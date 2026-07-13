@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId   String   @unique
+  email     String   @unique
+  role      Role     @default(BUYER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+model Product {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId       String  @db.ObjectId
+  title          String
+  priceInPaise   Int
+  availableStock Int
+  streamId       String? @db.ObjectId
+}
+
+model Stream {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId          String       @db.ObjectId
+  livekitRoomName   String       @unique
+  status            StreamStatus @default(LIVE)
+  thumbnailUrl      String?
+  featuredProductId String?      @db.ObjectId
+  startedAt         DateTime     @default(now())
+  endedAt           DateTime?
+}
+
+enum StreamStatus {
+  LIVE
+  ENDED
+}
+
+model Reservation {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  productId String    @db.ObjectId
+  userId    String    @db.ObjectId
+  streamId  String    @db.ObjectId
+  quantity  Int       @default(1)
+  status    ResStatus @default(PENDING)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+}
+
+enum ResStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+  CANCELLED
+}
+
+model Order {
+  id                String      @id @default(auto()) @map("_id") @db.ObjectId
+  reservationId     String      @unique @db.ObjectId
+  razorpayOrderId   String
+  razorpayPaymentId String?
+  amountInPaise     Int
+  status            OrderStatus @default(CREATED)
+  createdAt         DateTime    @default(now())
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  FAILED
+}

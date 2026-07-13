@@ -1,0 +1,48 @@
+{
+  "name": "liveshop",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "prisma generate",
+    "db:push": "dotenv -e .env.local -- prisma db push",
+    "db:studio": "dotenv -e .env.local -- prisma studio",
+    "sweeper": "dotenv -e .env.local -- tsx scripts/sweeper.ts",
+    "test:race": "dotenv -e .env.local -- tsx scripts/test-race.ts",
+    "make-admin": "dotenv -e .env.local -- tsx scripts/make-admin.ts"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^7.5.12",
+    "@clerk/themes": "^2.4.57",
+    "@livekit/components-react": "^2.9.21",
+    "@livekit/components-styles": "^1.2.0",
+    "@prisma/client": "^6.19.3",
+    "livekit-client": "^2.20.0",
+    "livekit-server-sdk": "^2.16.0",
+    "motion": "^12.42.2",
+    "next": "16.2.9",
+    "next-themes": "^0.4.6",
+    "node-cron": "^4.5.0",
+    "razorpay": "^2.9.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.22.5",
+    "typescript": "^5"
+  }
+}

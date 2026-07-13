@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* LiveShop design system.                                             */
+/* Light theme is the default; dark is applied via the `.dark` class   */
+/* set by next-themes (system option supported). Tokens are CSS vars   */
+/* mapped into Tailwind v4 utilities via @theme inline, so             */
+/* bg-surface / text-muted / border-border etc. adapt automatically.   */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --background: #f6f6f8;
+  --surface: #ffffff;
+  --surface-2: #f1f1f4;
+  --elevated: #ffffff;
+  --border: #e5e5ea;
+  --foreground: #17171c;
+  --muted: #55555f;
+  --faint: #9494a1;
+
+  --primary: #e11d48;
+  --primary-hover: #be123c;
+  --primary-foreground: #ffffff;
+
+  --live: #dc2626;
+  --success: #15803d;
+  --warning: #b45309;
+
+  --shadow-card: 0 1px 2px rgb(23 23 28 / 0.04), 0 4px 16px rgb(23 23 28 / 0.06);
+  --shadow-pop: 0 4px 12px rgb(23 23 28 / 0.08), 0 12px 32px rgb(23 23 28 / 0.12);
+
+  /* Chart palette — validated (dataviz six checks) against the light surface. */
+  --chart-series: #e11d48;
+  --chart-good: #15803d;
+  --chart-warn: #b45309;
+  --chart-info: #2563eb;
+  --chart-bad: #dc2626;
+  --chart-grid: #ececf0;
+  --chart-axis: #c9c9d1;
+}
+
+.dark {
+  --background: #0a0a0c;
+  --surface: #141418;
+  --surface-2: #1c1c22;
+  --elevated: #232329;
+  --border: #2a2a31;
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --faint: #71717a;
+
+  --primary: #f43f5e;
+  --primary-hover: #e11d48;
+  --primary-foreground: #ffffff;
+
+  --live: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.02);
+  --shadow-pop: 0 8px 32px rgb(0 0 0 / 0.55);
+
+  /* Chart palette — dark-surface steps, validated separately (not a flip). */
+  --chart-series: #f43f5e;
+  --chart-good: #16a34a;
+  --chart-warn: #d97706;
+  --chart-info: #3b82f6;
+  --chart-bad: #ef4444;
+  --chart-grid: #232329;
+  --chart-axis: #3a3a42;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-elevated: var(--elevated);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-live: var(--live);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+html.dark {
+  color-scheme: dark;
+}
+html:not(.dark) {
+  color-scheme: light;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
+  /* Ultra-smooth theme switching. */
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+/* Hide scrollbars for horizontal rails / chat panels while keeping scroll. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion vocabulary — small, consistent, GPU-friendly.                */
+/* ------------------------------------------------------------------ */
+
+/* Content entrance: subtle rise + fade used on page mounts. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-page-in {
+  animation: page-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+}
+
+/* Staggered list items (apply with inline animation-delay). */
+@keyframes item-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-item-in {
+  animation: item-in 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+}
+
+/* Skeleton shimmer for loading states. */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.skeleton {
+  border-radius: 0.75rem;
+  background: linear-gradient(
+    100deg,
+    var(--surface-2) 40%,
+    var(--border) 50%,
+    var(--surface-2) 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Toast enter/leave. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.28s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+}
+.animate-toast-out {
+  animation: toast-out 0.25s ease-in both;
+}
+
+/* Floating reaction emoji: rise, wobble, fade. */
+@keyframes reaction-float {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.6);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(-10%) translateX(4px) scale(1);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-45vh) translateX(-8px) scale(1.1);
+  }
+  100% {
+    transform: translateY(-70vh) translateX(6px) scale(0.9);
+    opacity: 0;
+  }
+}
+.animate-reaction-float {
+  animation: reaction-float 2.6s ease-out forwards;
+}
+
+/* Live pulse dot used on stream badges. */
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+.animate-live-pulse {
+  animation: live-pulse 1.6s infinite;
+}
+
+/* Respect users who prefer less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-in,
+  .animate-item-in,
+  .animate-reaction-float {
+    animation: none;
+  }
+  body {
+    transition: none;
+  }
+}

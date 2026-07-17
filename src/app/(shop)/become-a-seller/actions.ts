@@ -6,18 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { audit } from "@/lib/authz";
 
-export type ApplyState = { error?: string };
+import { SELLER_CATEGORIES } from "@/lib/seller-categories";
 
-export const SELLER_CATEGORIES = [
-  "Fashion & apparel",
-  "Sneakers & streetwear",
-  "Jewellery & accessories",
-  "Beauty & care",
-  "Collectibles & toys",
-  "Electronics & gadgets",
-  "Home & decor",
-  "Other",
-] as const;
+export type ApplyState = { error?: string };
 
 /**
  * Buyer → seller application (the only self-serve path toward SELLER).

@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import {
   applySeller,
-  SELLER_CATEGORIES,
   type ApplyState,
 } from "@/app/(shop)/become-a-seller/actions";
+import { SELLER_CATEGORIES } from "@/lib/seller-categories";
 
 export function SellerApplyForm() {
   const [state, formAction, pending] = useActionState<ApplyState, FormData>(

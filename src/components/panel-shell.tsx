@@ -27,6 +27,7 @@ export function PanelShell({
   brand,
   brandHref,
   accent,
+  themeClass,
   items,
   children,
 }: {
@@ -34,6 +35,8 @@ export function PanelShell({
   brandHref: string;
   /** Small label chip next to the brand, e.g. "Seller" / "Admin". */
   accent: string;
+  /** Area accent scope, e.g. "theme-seller" | "theme-admin". */
+  themeClass?: string;
   items: PanelNavItem[];
   children: React.ReactNode;
 }) {
@@ -46,7 +49,7 @@ export function PanelShell({
       : pathname === item.href || pathname.startsWith(item.href + "/");
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className={cn("min-h-dvh bg-background", themeClass)}>
       {/* ---------- Desktop sidebar ---------- */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-surface lg:flex">
         <Link

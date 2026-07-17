@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import {
   addProductToStream,
   adjustStock,
+  createProductInLive,
   removeProductFromStream,
   setFeaturedProduct,
 } from "@/app/(seller)/go-live/actions";
@@ -240,6 +241,51 @@ export function LiveConsole({
             </ul>
           </div>
         ) : null}
+
+        {/* Create a brand-new product without leaving the stream */}
+        <div className="mt-4 border-t border-border pt-3">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">
+            Quick-create product
+          </h3>
+          <form action={createProductInLive} className="space-y-2">
+            <input type="hidden" name="streamId" value={streamId} />
+            <input
+              name="title"
+              required
+              minLength={2}
+              maxLength={100}
+              placeholder="Product title"
+              className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-faint focus:border-primary/60 focus:outline-none"
+            />
+            <div className="flex gap-2">
+              <input
+                name="price"
+                type="number"
+                min="1"
+                step="0.01"
+                required
+                placeholder="Price ₹"
+                className="w-full min-w-0 flex-1 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-faint focus:border-primary/60 focus:outline-none"
+              />
+              <input
+                name="stock"
+                type="number"
+                min="0"
+                step="1"
+                required
+                placeholder="Stock"
+                className="w-full min-w-0 flex-1 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-faint focus:border-primary/60 focus:outline-none"
+              />
+              <button
+                type="submit"
+                onClick={() => haptics.tap()}
+                className="shrink-0 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-all active:scale-95"
+              >
+                Add live
+              </button>
+            </div>
+          </form>
+        </div>
       </Card>
     </div>
   );

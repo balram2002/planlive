@@ -36,6 +36,16 @@ export type ReserveResult = {
  * multi-document transaction (requires a replica set, e.g. Atlas) ties the
  * decrement and the Reservation insert together so a failure can't leak stock.
  */
+/** MongoDB aborts one of two truly-simultaneous transactions (P2034). */
+function isTransientTxnError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code?: string }).code === "P2034"
+  );
+}
+
 export async function reserveProduct(opts: {
   productId: string;
   userId: string;
@@ -46,6 +56,27 @@ export async function reserveProduct(opts: {
     throw new ReserveError("INVALID_QUANTITY");
   }
 
+  // Retry transient write conflicts (standard MongoDB txn guidance): the
+  // retried attempt then either wins on remaining stock or hits SOLD_OUT.
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await runReserveTransaction(opts.productId, opts.userId, quantity);
+    } catch (err) {
+      if (!isTransientTxnError(err)) throw err;
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 25 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+function runReserveTransaction(
+  productId: string,
+  userId: string,
+  quantity: number,
+): Promise<ReserveResult> {
+  const opts = { productId, userId };
   return prisma.$transaction(
     async (tx) => {
       // Soft cap on concurrent holds (checked inside the transaction so the

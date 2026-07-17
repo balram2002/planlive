@@ -5,6 +5,8 @@ import type { OrderRow } from "@/lib/order-rows";
 
 export function orderStatusBadge(row: OrderRow) {
   if (row.order?.status === "PAID") return <Badge tone="success">Paid</Badge>;
+  if (row.order?.status === "PLACED")
+    return <Badge tone="success">COD · placed</Badge>;
   switch (row.reservation.status) {
     case "PENDING":
       return <Badge tone="warning">Awaiting payment</Badge>;

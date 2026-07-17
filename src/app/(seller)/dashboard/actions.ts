@@ -2,43 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/current-user";
-import { audit, requireSeller } from "@/lib/authz";
+import { requireSeller } from "@/lib/authz";
 
 export type FormState = { error?: string };
 
-/**
- * Promote the current user to SELLER. Updates Clerk publicMetadata (the source
- * of truth synced by the webhook) and the local User doc so the change is
- * effective immediately without waiting for a webhook round-trip.
- */
-export async function becomeSeller(): Promise<void> {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
-
-  // Ensures the local User doc exists (lazily created from the Clerk session)
-  // before we update it — a bare update would throw for brand-new users.
-  const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
-  if (!user.isActive) redirect("/dashboard");
-
-  const client = await clerkClient();
-  await client.users.updateUserMetadata(userId, {
-    publicMetadata: { role: "seller" },
-  });
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { role: "SELLER" },
-  });
-
-  // Narrow escalation path by design: this action can only ever set SELLER.
-  audit("become-seller", { userId: user.id, email: user.email });
-
-  revalidatePath("/dashboard");
-}
+// NOTE: there is deliberately no self-serve role promotion here. Becoming a
+// seller goes through the /become-a-seller application, reviewed in the admin
+// panel (see (shop)/become-a-seller/actions.ts + (admin)/admin/actions.ts).
 
 type ParsedProduct = {
   title: string;

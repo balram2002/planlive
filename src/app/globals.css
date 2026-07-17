@@ -70,6 +70,33 @@
   --chart-axis: #3a3a42;
 }
 
+/* ------------------------------------------------------------------ */
+/* Area accents: buyers keep rose; the seller panel runs violet and    */
+/* the admin panel blue — professional, minimal shade shifts that make */
+/* it obvious at a glance which surface you're on. Scoped overrides    */
+/* ride the same tokens, so every component adapts automatically.      */
+/* ------------------------------------------------------------------ */
+.theme-seller {
+  --primary: #6d28d9;
+  --primary-hover: #5b21b6;
+  --chart-series: #7c3aed;
+}
+.dark .theme-seller {
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --chart-series: #8b5cf6;
+}
+.theme-admin {
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
+  --chart-series: #2563eb;
+}
+.dark .theme-admin {
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --chart-series: #3b82f6;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);

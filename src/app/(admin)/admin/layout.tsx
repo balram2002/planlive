@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 };
 import { PanelShell } from "@/components/panel-shell";
 import {
+  IconBag,
   IconBox,
   IconBroadcast,
   IconChart,
@@ -34,8 +35,11 @@ export default async function AdminLayout({
       brand="LiveShop"
       brandHref="/admin"
       accent="Admin"
+      themeClass="theme-admin"
       items={[
         { href: "/admin", label: "Overview", icon: <IconChart />, exact: true },
+        { href: "/admin/sellers", label: "Sellers", icon: <IconBag /> },
+        { href: "/admin/categories", label: "Categories", icon: <IconBox /> },
         { href: "/admin/users", label: "Users", icon: <IconUsers /> },
         { href: "/admin/streams", label: "Streams", icon: <IconBroadcast /> },
         { href: "/admin/products", label: "Products", icon: <IconBox /> },

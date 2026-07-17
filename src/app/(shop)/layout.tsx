@@ -19,7 +19,7 @@ export default async function ShopLayout({
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col border-x border-border/60 bg-background shadow-card">
-      <TopBar />
+      <TopBar role={role} />
       <SwipeNav
         routes={["/", "/discover", "/orders"]}
         className="flex flex-1 flex-col"

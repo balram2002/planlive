@@ -98,18 +98,30 @@ function linksForRole(role: NavRole) {
     { href: "/discover", label: "Live streams", emoji: "📡" },
     { href: "/orders", label: "Your orders", emoji: "🧾" },
   ];
+  const account =
+    role !== null
+      ? [
+          { href: "/profile", label: "Edit profile", emoji: "👤" },
+          { href: "/addresses", label: "Addresses", emoji: "📍" },
+        ]
+      : [];
   if (role === "ADMIN") {
-    return [...common, { href: "/admin", label: "Admin panel", emoji: "🛡️" }];
+    return [...common, ...account, { href: "/admin", label: "Admin panel", emoji: "🛡️" }];
   }
   if (role === "SELLER") {
     return [
       ...common,
+      ...account,
       { href: "/dashboard", label: "Seller dashboard", emoji: "🛍️" },
       { href: "/dashboard/sales", label: "Sales", emoji: "💸" },
     ];
   }
-  // Buyers (and guests) get the onboarding entry instead.
-  return [...common, { href: "/dashboard", label: "Start selling", emoji: "🛍️" }];
+  // Buyers (and guests) get the application funnel entry instead.
+  return [
+    ...common,
+    ...account,
+    { href: "/become-a-seller", label: "Become a seller", emoji: "🛍️" },
+  ];
 }
 
 /**

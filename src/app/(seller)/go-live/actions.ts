@@ -8,11 +8,13 @@ import { broadcastToRoom, deleteRoom } from "@/lib/livekit";
 
 export type StartStreamState = { error?: string };
 
-/** Only ever accept thumbnails our own upload endpoint produced. */
-function sanitizeThumbnail(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  return /^\/uploads\/[a-z0-9_-]+\.(jpg|png|webp)$/i.test(value) ? value : null;
-}
+/** Only ever accept thumbnails we hosted (ImageKit or the local fallback). */
+const sanitizeThumbnail = (value: unknown) => {
+  if (typeof value !== "string" || value.length === 0) return null;
+  if (/^\/uploads\/[a-z0-9_-]+\.(jpg|png|webp)$/i.test(value)) return value;
+  if (/^https:\/\/ik\.imagekit\.io\/[^\s"'<>]+$/i.test(value)) return value;
+  return null;
+};
 
 /**
  * Starts a live stream: creates the Stream doc with a unique LiveKit room
@@ -36,6 +38,21 @@ export async function startStream(
     return { error: "Pick at least one product to feature in the stream." };
   }
 
+  // Thumbnail is mandatory — the discover grid is image-first.
+  const thumbnailUrl = sanitizeThumbnail(formData.get("thumbnailUrl"));
+  if (!thumbnailUrl) {
+    return { error: "Add a stream cover image before going live." };
+  }
+
+  // Category is mandatory and must be an active one.
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const category = categoryId
+    ? await prisma.category.findUnique({ where: { id: categoryId } })
+    : null;
+  if (!category || !category.isActive) {
+    return { error: "Pick a category for your stream." };
+  }
+
   // Only the seller's own products can be pinned.
   const owned = await prisma.product.findMany({
     where: { id: { in: productIds }, sellerId: user.id },
@@ -50,7 +67,8 @@ export async function startStream(
       sellerId: user.id,
       livekitRoomName: `stream_${user.id}_${Date.now()}`,
       status: "LIVE",
-      thumbnailUrl: sanitizeThumbnail(formData.get("thumbnailUrl")),
+      thumbnailUrl,
+      categoryId: category.id,
     },
   });
 
@@ -59,9 +77,54 @@ export async function startStream(
     data: { streamId: stream.id },
   });
 
+  // Started from a scheduled plan → consume it.
+  const scheduledId = String(formData.get("scheduledId") ?? "");
+  if (scheduledId) {
+    await prisma.scheduledStream.deleteMany({
+      where: { id: scheduledId, sellerId: user.id },
+    });
+  }
+
   audit("stream.start", { sellerId: user.id, streamId: stream.id });
   revalidatePath("/discover");
   redirect(`/go-live/${stream.id}`);
+}
+
+/** Create a brand-new product mid-stream and add it to the live queue. */
+export async function createProductInLive(formData: FormData): Promise<void> {
+  const user = await requireSeller();
+  const streamId = String(formData.get("streamId") ?? "");
+
+  const stream = await ownedLiveStream(user.id, streamId);
+  if (!stream) return;
+
+  const title = String(formData.get("title") ?? "").trim().slice(0, 100);
+  const priceRupees = Number(formData.get("price"));
+  const stock = Number(formData.get("stock"));
+  if (
+    title.length < 2 ||
+    !Number.isFinite(priceRupees) ||
+    priceRupees < 1 ||
+    priceRupees > 1_000_000 ||
+    !Number.isInteger(stock) ||
+    stock < 0 ||
+    stock > 100_000
+  ) {
+    return;
+  }
+
+  await prisma.product.create({
+    data: {
+      sellerId: user.id,
+      title,
+      priceInPaise: Math.round(priceRupees * 100),
+      availableStock: stock,
+      streamId: stream.id,
+    },
+  });
+
+  await broadcastToRoom(stream.livekitRoomName, { type: "products-changed" });
+  revalidatePath(`/go-live/${stream.id}`);
 }
 
 /** Ends a stream: marks it ENDED, unpins products, and closes the LiveKit room. */
@@ -162,10 +225,12 @@ export async function setFeaturedProduct(formData: FormData): Promise<void> {
   if (!stream) return;
 
   let featured: string | null = null;
+  let featuredTitle: string | null = null;
   if (productId) {
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product || product.streamId !== stream.id) return;
     featured = productId;
+    featuredTitle = product.title;
   }
 
   await prisma.stream.update({
@@ -176,6 +241,7 @@ export async function setFeaturedProduct(formData: FormData): Promise<void> {
   await broadcastToRoom(stream.livekitRoomName, {
     type: "featured",
     productId: featured,
+    productTitle: featuredTitle,
   });
   revalidatePath(`/go-live/${stream.id}`);
 }

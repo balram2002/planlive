@@ -5,7 +5,12 @@ import { GoLiveForm } from "@/components/go-live-form";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 
-export default async function GoLivePage() {
+export default async function GoLivePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
   if (!isSeller(user)) redirect("/dashboard");
@@ -20,6 +25,20 @@ export default async function GoLivePage() {
     where: { sellerId: user.id },
     orderBy: { title: "asc" },
   });
+
+  // Prefill from a scheduled stream (?from=<id>).
+  const [schedule, categories] = await Promise.all([
+    from
+      ? prisma.scheduledStream.findFirst({
+          where: { id: from, sellerId: user.id },
+        })
+      : Promise.resolve(null),
+    prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, subcategory: true },
+    }),
+  ]);
 
   return (
     <div className="animate-page-in mx-auto max-w-lg lg:mx-0">
@@ -45,6 +64,10 @@ export default async function GoLivePage() {
             priceInPaise: p.priceInPaise,
             availableStock: p.availableStock,
           }))}
+          categories={categories}
+          preselectedIds={schedule?.productIds}
+          initialThumbnailUrl={schedule?.thumbnailUrl ?? null}
+          scheduledId={schedule?.id}
         />
       )}
     </div>

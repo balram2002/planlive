@@ -103,6 +103,30 @@ export function ChatOverlay({
         const data = JSON.parse(decoder.decode(msg.payload));
         const fromIdentity = msg.from?.identity;
 
+        // Server-sent packets (no participant) become seller-action notices.
+        if (!msg.from) {
+          if (data?.type === "featured") {
+            append({
+              id: `sys_pin_${Date.now()}`,
+              kind: "system",
+              text: data.productTitle
+                ? `📌 pinned ${String(data.productTitle).slice(0, 60)}`
+                : "📌 featured product cleared",
+              userId: "server",
+              name: "",
+            });
+          } else if (data?.type === "products-changed") {
+            append({
+              id: `sys_prod_${Date.now()}`,
+              kind: "system",
+              text: "🛍️ product lineup updated",
+              userId: "server",
+              name: "",
+            });
+          }
+          return;
+        }
+
         if (data?.type === "chat" && typeof data.text === "string") {
           append({
             id: String(data.id ?? `${fromIdentity}_${Date.now()}`),

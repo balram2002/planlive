@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { PanelShell } from "@/components/panel-shell";
 import {
+  IconBox,
   IconBroadcast,
+  IconCalendar,
   IconChart,
   IconReceipt,
 } from "@/components/panel-icons";
@@ -27,9 +29,12 @@ export default function SellerLayout({
       brand="LiveShop"
       brandHref="/"
       accent="Seller"
+      themeClass="theme-seller"
       items={[
         { href: "/dashboard", label: "Dashboard", icon: <IconChart />, exact: true },
         { href: "/go-live", label: "Go live", icon: <IconBroadcast /> },
+        { href: "/dashboard/schedule", label: "Schedule", icon: <IconCalendar /> },
+        { href: "/dashboard/categories", label: "Categories", icon: <IconBox /> },
         { href: "/dashboard/sales", label: "Sales", icon: <IconReceipt /> },
       ]}
     >

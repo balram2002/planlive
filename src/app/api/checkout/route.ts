@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { reservationId?: unknown };
+  let body: { reservationId?: unknown; addressId?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -42,6 +42,27 @@ export async function POST(req: NextRequest) {
       { error: "reservationId is required." },
       { status: 400 },
     );
+  }
+
+  // Delivery address snapshot (chosen in the buy drawer before payment).
+  let addressJson: string | null = null;
+  if (typeof body.addressId === "string" && body.addressId) {
+    const address = await prisma.address.findUnique({
+      where: { id: body.addressId },
+    });
+    if (!address || address.userId !== user.id) {
+      return NextResponse.json({ error: "Address not found." }, { status: 404 });
+    }
+    addressJson = JSON.stringify({
+      label: address.label,
+      fullName: address.fullName,
+      phone: address.phone,
+      line1: address.line1,
+      line2: address.line2,
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+    });
   }
 
   const reservation = await prisma.reservation.findUnique({
@@ -74,6 +95,14 @@ export async function POST(req: NextRequest) {
     where: { reservationId: reservation.id },
   });
 
+  // A retry may supply the address the first attempt didn't have.
+  if (order && addressJson && !order.addressJson) {
+    order = await prisma.order.update({
+      where: { id: order.id },
+      data: { addressJson },
+    });
+  }
+
   if (!order) {
     const rzpOrder = await getRazorpay().orders.create({
       amount: amountInPaise,
@@ -89,6 +118,8 @@ export async function POST(req: NextRequest) {
           razorpayOrderId: rzpOrder.id,
           amountInPaise,
           status: "CREATED",
+          paymentMethod: "ONLINE",
+          addressJson,
         },
       });
     } catch (err) {

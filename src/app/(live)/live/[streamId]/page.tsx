@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/current-user";
 import { ViewerRoom } from "@/components/live/viewer-room";
 
 /**
@@ -82,25 +83,41 @@ export default async function LiveStreamPage({
     );
   }
 
-  const [seller, products] = await Promise.all([
+  const viewer = await getCurrentUser().catch(() => null);
+
+  const [seller, products, follow] = await Promise.all([
     prisma.user.findUnique({ where: { id: stream.sellerId } }),
     prisma.product.findMany({
       where: { streamId: stream.id },
       orderBy: { title: "asc" },
     }),
+    viewer
+      ? prisma.follow.findUnique({
+          where: {
+            followerId_sellerId: {
+              followerId: viewer.id,
+              sellerId: stream.sellerId,
+            },
+          },
+        })
+      : Promise.resolve(null),
   ]);
 
-  const sellerName = seller ? seller.email.split("@")[0] : "seller";
+  const sellerName =
+    seller?.username ?? (seller ? seller.email.split("@")[0] : "seller");
 
-  // Full-bleed, app-like: the stream fills all space between top bar and nav.
+  // Fullscreen room — the (live) layout has no top bar / bottom nav.
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ViewerRoom
         streamId={stream.id}
+        sellerId={stream.sellerId}
         sellerName={sellerName}
+        sellerAvatar={seller?.imageUrl ?? null}
         // Server-issued identity of the broadcaster — used by clients to
         // verify moderation packets (delete/mute) really came from the host.
         sellerIdentity={`user_${stream.sellerId}`}
+        initiallyFollowing={Boolean(follow)}
         featuredProductId={stream.featuredProductId}
         startedAt={stream.startedAt.toISOString()}
         products={products.map((p) => ({

@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
-import { getCurrentUser, isSeller } from "@/lib/current-user";
+import { getCurrentUser } from "@/lib/current-user";
 
 // Client downscales to ~960px JPEG before upload; 3MB is generous headroom.
 const MAX_BYTES = 3 * 1024 * 1024;
@@ -14,14 +14,14 @@ const EXT_BY_MIME: Record<string, string> = {
 };
 
 /**
- * POST /api/upload — seller-only image upload (stream thumbnails).
- * Stores to /public/uploads on local disk (persistent on the self-managed
- * VPS this app deploys to). Extension derives from the MIME type, never the
- * client filename; names are random so nothing is guessable/overwritable.
+ * POST /api/upload — local-disk image upload, used as the fallback when
+ * ImageKit isn't configured (avatars for any signed-in user, thumbnails for
+ * sellers). Extension derives from the MIME type, never the client filename;
+ * names are random so nothing is guessable/overwritable.
  */
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || !user.isActive || !isSeller(user)) {
+  if (!user || !user.isActive) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

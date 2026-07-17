@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const orderTone = {
   PAID: "success",
+  PLACED: "success",
   CREATED: "warning",
   FAILED: "live",
 } as const;

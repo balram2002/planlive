@@ -41,5 +41,10 @@ export const IconUsers = () =>
 export const IconBox = () =>
   base({ d: "M4 8 12 4l8 4v8l-8 4-8-4V8Zm8 4 8-4M12 12 4 8m8 4v8" });
 
+export const IconCalendar = () =>
+  base({
+    d: "M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3-3v4m8-4v4M4 11h16",
+  });
+
 export const IconShield = () =>
   base({ d: "M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm-2.5 9 2 2 3.5-4" });

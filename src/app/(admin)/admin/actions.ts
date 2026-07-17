@@ -156,6 +156,71 @@ async function forceEndStreamById(streamId: string): Promise<void> {
   await deleteRoom(stream.livekitRoomName);
 }
 
+/** Approve a pending seller application → promotes the user to SELLER. */
+export async function approveSellerRequest(formData: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const requestId = String(formData.get("requestId") ?? "");
+
+  const request = await prisma.sellerRequest.findUnique({
+    where: { id: requestId },
+  });
+  if (!request || request.status !== "PENDING") return;
+
+  const target = await prisma.user.findUnique({ where: { id: request.userId } });
+  if (!target || !target.isActive || target.role === "ADMIN") return;
+
+  const client = await clerkClient();
+  await client.users.updateUserMetadata(target.clerkId, {
+    publicMetadata: { role: "seller" },
+  });
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: target.id },
+      data: { role: "SELLER" },
+    }),
+    prisma.sellerRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "APPROVED",
+        reviewedAt: new Date(),
+        reviewedBy: admin.email,
+      },
+    }),
+  ]);
+
+  audit("admin.approve-seller-request", {
+    by: admin.email,
+    target: target.email,
+    brand: request.brandName,
+  });
+  revalidatePath("/admin/sellers");
+  revalidatePath("/admin/users");
+}
+
+/** Reject a pending seller application (user may re-apply). */
+export async function rejectSellerRequest(formData: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const requestId = String(formData.get("requestId") ?? "");
+
+  const request = await prisma.sellerRequest.findUnique({
+    where: { id: requestId },
+  });
+  if (!request || request.status !== "PENDING") return;
+
+  await prisma.sellerRequest.update({
+    where: { id: request.id },
+    data: {
+      status: "REJECTED",
+      reviewedAt: new Date(),
+      reviewedBy: admin.email,
+    },
+  });
+
+  audit("admin.reject-seller-request", { by: admin.email, requestId });
+  revalidatePath("/admin/sellers");
+}
+
 /** Force-end any live stream (moderation control). */
 export async function forceEndStream(formData: FormData): Promise<void> {
   const admin = await requireAdmin();

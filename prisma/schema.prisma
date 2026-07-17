@@ -8,12 +8,87 @@ datasource db {
 }
 
 model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId   String    @unique
+  email     String    @unique
+  role      Role      @default(BUYER)
+  isActive  Boolean   @default(true)
+  // Profile (username uniqueness enforced in the action layer — Mongo unique
+  // on optional fields rejects multiple nulls).
+  username  String?
+  name      String?
+  imageUrl  String?
+  birthday  DateTime?
+  gender    String?
+  // Seller's shop address snapshot (JSON incl. lat/lng), edited on /profile.
+  shopAddressJson String?
+  createdAt DateTime  @default(now())
+}
+
+model Address {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  clerkId   String   @unique
-  email     String   @unique
-  role      Role     @default(BUYER)
-  isActive  Boolean  @default(true)
+  userId    String   @db.ObjectId
+  label     String
+  fullName  String
+  phone     String
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  pincode   String
+  // Pinpoint coordinates captured via "use my location".
+  latitude  Float?
+  longitude Float?
+  isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Category {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  subcategory String?
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdBy   String   @db.ObjectId
+  createdAt   DateTime @default(now())
+}
+
+model Follow {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  followerId String   @db.ObjectId
+  sellerId   String   @db.ObjectId
+  createdAt  DateTime @default(now())
+
+  @@unique([followerId, sellerId])
+}
+
+model SellerRequest {
+  id         String          @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String          @unique @db.ObjectId
+  brandName  String
+  phone      String
+  category   String
+  about      String
+  status     SellerReqStatus @default(PENDING)
+  createdAt  DateTime        @default(now())
+  reviewedAt DateTime?
+  reviewedBy String?
+}
+
+enum SellerReqStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ScheduledStream {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId     String   @db.ObjectId
+  title        String
+  scheduledFor DateTime
+  thumbnailUrl String?
+  productIds   String[] @db.ObjectId
+  createdAt    DateTime @default(now())
 }
 
 enum Role {
@@ -37,6 +112,7 @@ model Stream {
   livekitRoomName   String       @unique
   status            StreamStatus @default(LIVE)
   thumbnailUrl      String?
+  categoryId        String?      @db.ObjectId
   featuredProductId String?      @db.ObjectId
   startedAt         DateTime     @default(now())
   endedAt           DateTime?
@@ -66,17 +142,27 @@ enum ResStatus {
 }
 
 model Order {
-  id                String      @id @default(auto()) @map("_id") @db.ObjectId
-  reservationId     String      @unique @db.ObjectId
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  reservationId     String        @unique @db.ObjectId
+  // Empty string for COD orders (no Razorpay order exists).
   razorpayOrderId   String
   razorpayPaymentId String?
   amountInPaise     Int
-  status            OrderStatus @default(CREATED)
-  createdAt         DateTime    @default(now())
+  status            OrderStatus   @default(CREATED)
+  paymentMethod     PaymentMethod @default(ONLINE)
+  // Delivery address snapshot (JSON) captured at purchase time.
+  addressJson       String?
+  createdAt         DateTime      @default(now())
 }
 
 enum OrderStatus {
   CREATED
   PAID
   FAILED
+  PLACED
+}
+
+enum PaymentMethod {
+  ONLINE
+  COD
 }

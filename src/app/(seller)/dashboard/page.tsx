@@ -7,7 +7,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { becomeSeller, deleteProduct } from "./actions";
+import { deleteProduct } from "./actions";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -42,24 +42,34 @@ export default async function DashboardPage() {
     );
   }
 
-  // Signed in but not a seller yet — offer onboarding.
+  // Signed in but not a seller yet — route through the application funnel.
   if (!isSeller(user)) {
+    const request = await prisma.sellerRequest.findUnique({
+      where: { userId: user.id },
+    });
     return (
       <div className="animate-page-in mx-auto max-w-md py-10">
         <Card className="p-6 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-2xl">
             🛍️
           </div>
-          <h1 className="text-xl font-semibold">Become a seller</h1>
+          <h1 className="text-xl font-semibold">Sell on LiveShop</h1>
           <p className="mx-auto mt-2 max-w-xs text-sm text-muted">
-            Switch your account to a seller to list products and broadcast live
-            streams to buyers.
+            {request?.status === "PENDING"
+              ? "Your seller application is under review — we'll unlock this dashboard once an admin approves it."
+              : "Selling requires an approved application. It takes two minutes to apply."}
           </p>
-          <form action={becomeSeller} className="mt-6">
-            <Button type="submit" className="w-full">
-              Start selling
-            </Button>
-          </form>
+          <div className="mt-6">
+            {request?.status === "PENDING" ? (
+              <ButtonLink href="/become-a-seller" variant="secondary" className="w-full">
+                View application status
+              </ButtonLink>
+            ) : (
+              <ButtonLink href="/become-a-seller" className="w-full">
+                Apply to become a seller
+              </ButtonLink>
+            )}
+          </div>
         </Card>
       </div>
     );

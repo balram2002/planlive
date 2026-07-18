@@ -21,7 +21,7 @@ export default async function ShopLayout({
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col border-x border-border/60 bg-background shadow-card">
       <TopBar role={role} />
       <SwipeNav
-        routes={["/", "/discover", "/orders"]}
+        routes={["/", "/play", "/orders"]}
         className="flex flex-1 flex-col"
       >
         <main className="flex flex-1 flex-col">{children}</main>

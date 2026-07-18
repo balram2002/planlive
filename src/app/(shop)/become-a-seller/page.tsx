@@ -28,9 +28,16 @@ export default async function BecomeSellerPage({
   if (!user) redirect("/sign-in?backTo=%2Fbecome-a-seller");
   if (isSeller(user)) redirect("/dashboard");
 
-  const request = await prisma.sellerRequest.findUnique({
-    where: { userId: user.id },
-  });
+  const [request, dbCategories] = await Promise.all([
+    prisma.sellerRequest.findUnique({ where: { userId: user.id } }),
+    prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { name: true },
+    }),
+  ]);
+  // Prefer live marketplace categories; static list only as a bootstrap.
+  const categoryNames = [...new Set(dbCategories.map((c) => c.name))];
 
   return (
     <div className="animate-page-in space-y-6 px-4 py-6">
@@ -89,7 +96,7 @@ export default async function BecomeSellerPage({
               </p>
             </Card>
           ) : null}
-          <SellerApplyForm />
+          <SellerApplyForm categories={categoryNames} />
         </>
       )}
     </div>

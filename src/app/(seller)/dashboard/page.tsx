@@ -5,6 +5,7 @@ import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { formatPrice } from "@/lib/format";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteProduct } from "./actions";
@@ -223,13 +224,13 @@ export default async function DashboardPage() {
                   ) : (
                     <form action={deleteProduct}>
                       <input type="hidden" name="id" value={product.id} />
-                      <button
-                        type="submit"
+                      <ActionButton
+                        haptic="impact"
                         className="rounded-full px-3 py-1.5 text-sm font-medium text-live transition-colors hover:bg-live/10"
                         aria-label={`Delete ${product.title}`}
                       >
                         Delete
-                      </button>
+                      </ActionButton>
                     </form>
                   )}
                 </div>

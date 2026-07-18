@@ -1,10 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { useToast } from "@/components/toast";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
+
+// Client-mount detection (portals need document).
+const emptySubscribe = () => () => {};
+function useMounted(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+}
 
 type Row = {
   key: string;
@@ -34,6 +45,7 @@ export function ViewerMenu({
   shareTitle: string;
 }) {
   const [open, setOpen] = useState(false);
+  const mounted = useMounted();
   const { toast } = useToast();
 
   function close() {
@@ -125,27 +137,31 @@ export function ViewerMenu({
         </svg>
       </button>
 
-      <AnimatePresence>
-        {open ? (
-          <>
-            <motion.button
-              aria-label="Close options"
-              className="fixed inset-0 z-40 bg-black/40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={close}
-            />
-            <motion.div
-              role="dialog"
-              aria-label="Stream options"
-              className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl border border-b-0 border-border bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-pop"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 36 }}
-            >
+      {/* Portaled to <body>: escapes the room header's stacking context so
+          the sheet always opens ABOVE every other room layer. */}
+      {mounted
+        ? createPortal(
+            <AnimatePresence>
+              {open ? (
+                <>
+                  <motion.button
+                    aria-label="Close options"
+                    className="fixed inset-0 z-[80] bg-black/40"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={close}
+                  />
+                  <motion.div
+                    role="dialog"
+                    aria-label="Stream options"
+                    className="fixed inset-x-0 bottom-0 z-[90] mx-auto max-w-md rounded-t-3xl border border-b-0 border-border bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-pop"
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    exit={{ y: "100%" }}
+                    transition={{ type: "spring", stiffness: 380, damping: 36 }}
+                  >
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
               <ul className="space-y-0.5">
                 {rows.map((row) => (
@@ -172,10 +188,13 @@ export function ViewerMenu({
                   </li>
                 ))}
               </ul>
-            </motion.div>
-          </>
-        ) : null}
-      </AnimatePresence>
+                  </motion.div>
+                </>
+              ) : null}
+            </AnimatePresence>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

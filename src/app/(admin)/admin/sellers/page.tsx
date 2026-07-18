@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { SellerReqStatus } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ActionButton } from "@/components/ui/action-button";
 import { cn } from "@/lib/cn";
 import { approveSellerRequest, rejectSellerRequest } from "../actions";
 
@@ -193,21 +194,19 @@ async function RequestsTab({
                     <div className="mt-3 flex gap-2">
                       <form action={approveSellerRequest} className="flex-1">
                         <input type="hidden" name="requestId" value={request.id} />
-                        <button
-                          type="submit"
+                        <ActionButton
                           className="w-full rounded-full bg-success/10 py-2 text-sm font-semibold text-success transition-colors hover:bg-success/20"
                         >
                           Approve
-                        </button>
+                        </ActionButton>
                       </form>
                       <form action={rejectSellerRequest} className="flex-1">
                         <input type="hidden" name="requestId" value={request.id} />
-                        <button
-                          type="submit"
+                        <ActionButton
                           className="w-full rounded-full bg-live/10 py-2 text-sm font-semibold text-live transition-colors hover:bg-live/20"
                         >
                           Reject
-                        </button>
+                        </ActionButton>
                       </form>
                     </div>
                   ) : (

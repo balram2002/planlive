@@ -78,52 +78,66 @@ export async function DiscoverExperience({
 
   return (
     <div className="space-y-4">
-      {/* Category rail */}
+      {/* Category tiles — Whatnot-style rail: label up top, artwork below. */}
       {categories.length > 0 ? (
         <div
-          className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4"
+          className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1"
           data-no-swipe
         >
           <Link
             href={chipHref()}
             className={cn(
-              "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors",
+              "relative flex aspect-[4/5] w-[104px] shrink-0 flex-col overflow-hidden rounded-2xl border-2 bg-gradient-to-b from-primary via-primary to-primary-hover p-2.5 transition-all duration-200 active:scale-[0.97]",
               !selected
-                ? "border-primary/50 bg-primary/10 text-primary"
-                : "border-border bg-surface text-muted hover:text-foreground",
+                ? "border-foreground shadow-pop"
+                : "border-transparent opacity-90 hover:opacity-100",
             )}
           >
-            All
+            <span className="text-sm font-bold leading-tight text-white">
+              For You
+            </span>
+            <span className="absolute bottom-2 left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-white/20 text-2xl backdrop-blur">
+              ⚡
+            </span>
           </Link>
-          {categories.map((category) => (
-            <Link
-              key={category.id}
-              href={chipHref(category.id)}
-              className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-3.5 text-xs font-semibold transition-colors",
-                selected?.id === category.id
-                  ? "border-primary/50 bg-primary/10 text-primary"
-                  : "border-border bg-surface text-muted hover:text-foreground",
-              )}
-            >
-              <span className="relative h-6 w-6 overflow-hidden rounded-full bg-surface-2">
+
+          {categories.map((category) => {
+            const active = selected?.id === category.id;
+            return (
+              <Link
+                key={category.id}
+                href={chipHref(category.id)}
+                className={cn(
+                  "relative flex aspect-[4/5] w-[104px] shrink-0 flex-col overflow-hidden rounded-2xl border-2 bg-surface-2 p-2.5 transition-all duration-200 active:scale-[0.97]",
+                  active
+                    ? "border-primary shadow-pop"
+                    : "border-transparent hover:border-border",
+                )}
+              >
                 {category.imageUrl ? (
-                  <Image
-                    src={category.imageUrl}
-                    alt=""
-                    fill
-                    sizes="24px"
-                    className="object-cover"
-                  />
+                  <>
+                    <Image
+                      src={category.imageUrl}
+                      alt=""
+                      fill
+                      sizes="104px"
+                      className="object-cover"
+                    />
+                    {/* Keeps the top label readable over any artwork. */}
+                    <span className="absolute inset-0 bg-gradient-to-b from-surface-2 via-surface-2/40 to-transparent" />
+                  </>
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center text-[11px]">
+                  <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-4xl opacity-70">
                     🗂️
                   </span>
                 )}
-              </span>
-              {category.name}
-            </Link>
-          ))}
+                {/* Re-paint label above the scrim. */}
+                <span className="absolute left-2.5 right-2.5 top-2.5 z-20 text-sm font-bold leading-tight text-foreground">
+                  {category.name}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       ) : null}
 

@@ -4,6 +4,7 @@ import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { ScheduleForm } from "@/components/seller/schedule-form";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteSchedule } from "./actions";
@@ -96,12 +97,12 @@ export default async function SchedulePage() {
                       </ButtonLink>
                       <form action={deleteSchedule}>
                         <input type="hidden" name="id" value={schedule.id} />
-                        <button
-                          type="submit"
+                        <ActionButton
+                          haptic="impact"
                           className="rounded-full px-3 py-2 text-xs font-medium text-live transition-colors hover:bg-live/10"
                         >
                           Delete
-                        </button>
+                        </ActionButton>
                       </form>
                     </div>
                   </Card>

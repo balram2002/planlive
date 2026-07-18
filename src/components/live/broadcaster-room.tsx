@@ -9,7 +9,12 @@ import {
   useTrackToggle,
   useTracks,
 } from "@livekit/components-react";
-import { ConnectionState, Track } from "livekit-client";
+import {
+  ConnectionState,
+  Track,
+  type LocalVideoTrack,
+} from "livekit-client";
+import { useState } from "react";
 import { motion } from "motion/react";
 import { useLivekitToken } from "./use-livekit-token";
 import { ViewerCount } from "./viewer-count";
@@ -105,6 +110,56 @@ function DeviceToggle({
   );
 }
 
+/** Front ↔ rear camera switch with a Y-axis flip animation. */
+function FlipCameraButton() {
+  const { localParticipant } = useLocalParticipant();
+  const [facing, setFacing] = useState<"user" | "environment">("user");
+  const [busy, setBusy] = useState(false);
+
+  async function flip() {
+    haptics.tap();
+    const track = localParticipant.getTrackPublication(Track.Source.Camera)
+      ?.track as LocalVideoTrack | undefined;
+    if (!track || busy) return;
+    setBusy(true);
+    const next = facing === "user" ? "environment" : "user";
+    try {
+      await track.restartTrack({ facingMode: next });
+      setFacing(next);
+    } catch {
+      // Device may have a single camera — keep current facing.
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <motion.button
+        type="button"
+        onClick={flip}
+        disabled={busy}
+        aria-label={`Switch to ${facing === "user" ? "rear" : "front"} camera`}
+        whileTap={{ scale: 0.88 }}
+        animate={{ rotateY: facing === "user" ? 0 : 180 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24 }}
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors duration-200 hover:bg-white/25 disabled:opacity-50"
+      >
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+          <path
+            d="M4 9a8 8 0 0 1 14-3.5M20 15a8 8 0 0 1-14 3.5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path d="M18 2v4h-4M6 22v-4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </motion.button>
+      <span className="text-[10px] font-medium text-white/70">Flip</span>
+    </div>
+  );
+}
+
 function BroadcasterStage({ startedAt }: { startedAt: string }) {
   const connectionState = useConnectionState();
   const { localParticipant } = useLocalParticipant();
@@ -168,6 +223,7 @@ function BroadcasterStage({ startedAt }: { startedAt: string }) {
             </svg>
           }
         />
+        <FlipCameraButton />
         <DeviceToggle
           source={Track.Source.Microphone}
           label="Mic"

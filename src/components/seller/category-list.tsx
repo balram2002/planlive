@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Category } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ActionButton } from "@/components/ui/action-button";
 import {
   deleteCategory,
   toggleCategory,
@@ -69,23 +70,23 @@ export function CategoryList({
                 {canToggle ? (
                   <form action={toggleCategory}>
                     <input type="hidden" name="id" value={category.id} />
-                    <button
-                      type="submit"
+                    <ActionButton
+                      haptic="tap"
                       className="rounded-full px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
                     >
                       {category.isActive ? "Hide" : "Activate"}
-                    </button>
+                    </ActionButton>
                   </form>
                 ) : null}
                 {viewerIsAdmin ? (
                   <form action={deleteCategory}>
                     <input type="hidden" name="id" value={category.id} />
-                    <button
-                      type="submit"
+                    <ActionButton
+                      haptic="impact"
                       className="rounded-full px-3 py-1.5 text-xs font-medium text-live transition-colors hover:bg-live/10"
                     >
                       Delete
-                    </button>
+                    </ActionButton>
                   </form>
                 ) : null}
               </div>

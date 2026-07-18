@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { audit } from "@/lib/authz";
 
-import { SELLER_CATEGORIES } from "@/lib/seller-categories";
 
 export type ApplyState = { error?: string };
 
@@ -27,14 +26,16 @@ export async function applySeller(
 
   const brandName = String(formData.get("brandName") ?? "").trim().slice(0, 60);
   const phone = String(formData.get("phone") ?? "").trim().slice(0, 15);
-  const category = String(formData.get("category") ?? "");
+  const category = String(formData.get("category") ?? "").trim().slice(0, 40);
   const about = String(formData.get("about") ?? "").trim().slice(0, 600);
 
   if (brandName.length < 2) return { error: "Enter your brand or shop name." };
   if (!/^[0-9+\-\s]{8,15}$/.test(phone)) {
     return { error: "Enter a valid phone number." };
   }
-  if (!SELLER_CATEGORIES.includes(category as (typeof SELLER_CATEGORIES)[number])) {
+  // Options are dynamic (active marketplace categories, with a static
+  // fallback list) — validate shape, not membership.
+  if (category.length < 2) {
     return { error: "Pick a category." };
   }
   if (about.length < 20) {

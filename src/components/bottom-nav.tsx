@@ -18,17 +18,27 @@ type Tab = {
 
 const baseTabs: Tab[] = [
   {
-    href: "/discover",
-    label: "Live",
+    href: "/",
+    label: "Home",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]" aria-hidden>
         <path
-          d="M4 8a8 8 0 0 1 16 0M7 11a5 5 0 0 1 10 0"
+          d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1v-8.5Z"
           stroke="currentColor"
           strokeWidth="1.8"
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
-        <circle cx="12" cy="14" r="2.5" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    href: "/play",
+    label: "Play",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]" aria-hidden>
+        <rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M10 8.8v6.4a.5.5 0 0 0 .77.42l5-3.2a.5.5 0 0 0 0-.84l-5-3.2a.5.5 0 0 0-.77.42Z" fill="currentColor" />
       </svg>
     ),
   },
@@ -91,13 +101,8 @@ const adminTab: Tab = {
   ),
 };
 
-/** Menu-sheet links adapt to the account's role. */
+/** Menu-sheet links: account settings + role tools (nav tabs cover the rest). */
 function linksForRole(role: NavRole) {
-  const common = [
-    { href: "/", label: "Home", emoji: "🏠" },
-    { href: "/discover", label: "Live streams", emoji: "📡" },
-    { href: "/orders", label: "Your orders", emoji: "🧾" },
-  ];
   const account =
     role !== null
       ? [
@@ -106,19 +111,18 @@ function linksForRole(role: NavRole) {
         ]
       : [];
   if (role === "ADMIN") {
-    return [...common, ...account, { href: "/admin", label: "Admin panel", emoji: "🛡️" }];
+    return [...account, { href: "/admin", label: "Admin panel", emoji: "🛡️" }];
   }
   if (role === "SELLER") {
     return [
-      ...common,
       ...account,
+      { href: "/shop-address", label: "Shop address", emoji: "🏬" },
       { href: "/dashboard", label: "Seller dashboard", emoji: "🛍️" },
       { href: "/dashboard/sales", label: "Sales", emoji: "💸" },
     ];
   }
   // Buyers (and guests) get the application funnel entry instead.
   return [
-    ...common,
     ...account,
     { href: "/become-a-seller", label: "Become a seller", emoji: "🛍️" },
   ];

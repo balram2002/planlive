@@ -9,11 +9,17 @@ import {
 } from "@/app/(shop)/become-a-seller/actions";
 import { SELLER_CATEGORIES } from "@/lib/seller-categories";
 
-export function SellerApplyForm() {
+export function SellerApplyForm({
+  categories = [],
+}: {
+  /** Active marketplace categories from the DB; static list is the fallback. */
+  categories?: string[];
+}) {
   const [state, formAction, pending] = useActionState<ApplyState, FormData>(
     applySeller,
     {},
   );
+  const options = categories.length > 0 ? categories : [...SELLER_CATEGORIES];
 
   return (
     <form action={formAction} className="space-y-4">
@@ -45,7 +51,7 @@ export function SellerApplyForm() {
           required
           className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-2.5 text-base text-foreground focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
-          {SELLER_CATEGORIES.map((c) => (
+          {options.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>

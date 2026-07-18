@@ -3,11 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { ProfileForm } from "@/components/profile/profile-form";
-import {
-  ShopAddressForm,
-  type ShopAddress,
-} from "@/components/profile/shop-address-form";
-import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Edit profile",
@@ -43,26 +38,19 @@ export default async function ProfilePage() {
         }}
       />
 
-      {/* Sellers: shop address with pinpoint location. */}
+      {/* Sellers manage their shop address on its own page (menu → Shop address). */}
       {isSeller(user) ? (
-        <Card className="p-5">
-          <h2 className="mb-1 text-base font-semibold">Shop address</h2>
-          <p className="mb-4 text-xs text-muted">
-            Shown as your shop&apos;s city on your public profile — exact
-            address stays private.
-          </p>
-          <ShopAddressForm initial={parseShopAddress(user.shopAddressJson)} />
-        </Card>
+        <Link
+          href="/shop-address"
+          className="flex items-center justify-between rounded-2xl border border-border bg-surface p-4 shadow-card transition-all hover:shadow-pop active:scale-[0.99]"
+        >
+          <span className="flex items-center gap-3">
+            <span aria-hidden>🏬</span>
+            <span className="text-sm font-medium">Shop address</span>
+          </span>
+          <span className="text-sm text-primary">Manage →</span>
+        </Link>
       ) : null}
     </div>
   );
-}
-
-function parseShopAddress(json: string | null): ShopAddress | null {
-  if (!json) return null;
-  try {
-    return JSON.parse(json) as ShopAddress;
-  } catch {
-    return null;
-  }
 }

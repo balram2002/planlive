@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ActionButton } from "@/components/ui/action-button";
 import { formatPrice } from "@/lib/format";
-import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
 import {
   addProductToStream,
@@ -140,15 +140,14 @@ export function LiveConsole({
                           <input type="hidden" name="streamId" value={streamId} />
                           <input type="hidden" name="productId" value={product.id} />
                           <input type="hidden" name="delta" value="-1" />
-                          <button
-                            type="submit"
+                          <ActionButton
+                            haptic="tap"
                             disabled={product.availableStock <= 0}
-                            onClick={() => haptics.tap()}
                             aria-label="Decrease stock"
                             className="flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold transition-all active:scale-90 disabled:opacity-30"
                           >
                             −
-                          </button>
+                          </ActionButton>
                         </form>
                         <Badge tone={product.availableStock > 0 ? "success" : "warning"}>
                           {product.availableStock}
@@ -157,14 +156,13 @@ export function LiveConsole({
                           <input type="hidden" name="streamId" value={streamId} />
                           <input type="hidden" name="productId" value={product.id} />
                           <input type="hidden" name="delta" value="1" />
-                          <button
-                            type="submit"
-                            onClick={() => haptics.tap()}
+                          <ActionButton
+                            haptic="tap"
                             aria-label="Increase stock"
                             className="flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold transition-all active:scale-90"
                           >
                             +
-                          </button>
+                          </ActionButton>
                         </form>
                       </span>
 
@@ -176,9 +174,8 @@ export function LiveConsole({
                           name="productId"
                           value={featured ? "" : product.id}
                         />
-                        <button
-                          type="submit"
-                          onClick={() => haptics.tap()}
+                        <ActionButton
+                          haptic="tap"
                           className={cn(
                             "rounded-full px-3 py-1.5 text-xs font-medium transition-all active:scale-95",
                             featured
@@ -187,20 +184,19 @@ export function LiveConsole({
                           )}
                         >
                           {featured ? "Unpin" : "Feature"}
-                        </button>
+                        </ActionButton>
                       </form>
 
                       {/* Remove from stream */}
                       <form action={removeProductFromStream} className="ml-auto">
                         <input type="hidden" name="streamId" value={streamId} />
                         <input type="hidden" name="productId" value={product.id} />
-                        <button
-                          type="submit"
-                          onClick={() => haptics.tap()}
+                        <ActionButton
+                          haptic="tap"
                           className="rounded-full px-3 py-1.5 text-xs font-medium text-live transition-all hover:bg-live/10 active:scale-95"
                         >
                           Remove
-                        </button>
+                        </ActionButton>
                       </form>
                     </div>
                   </motion.li>
@@ -228,13 +224,12 @@ export function LiveConsole({
                   <form action={addProductToStream}>
                     <input type="hidden" name="streamId" value={streamId} />
                     <input type="hidden" name="productId" value={product.id} />
-                    <button
-                      type="submit"
-                      onClick={() => haptics.tap()}
+                    <ActionButton
+                      haptic="tap"
                       className="rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium transition-all hover:bg-border active:scale-95"
                     >
                       + Add
-                    </button>
+                    </ActionButton>
                   </form>
                 </li>
               ))}
@@ -276,13 +271,12 @@ export function LiveConsole({
                 placeholder="Stock"
                 className="w-full min-w-0 flex-1 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-faint focus:border-primary/60 focus:outline-none"
               />
-              <button
-                type="submit"
-                onClick={() => haptics.tap()}
+              <ActionButton
+                haptic="tap"
                 className="shrink-0 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-all active:scale-95"
               >
                 Add live
-              </button>
+              </ActionButton>
             </div>
           </form>
         </div>

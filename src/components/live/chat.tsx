@@ -53,11 +53,14 @@ const decoder = new TextDecoder();
  */
 export function ChatOverlay({
   className,
+  listClassName,
   broadcasterIdentity,
   canModerate = false,
   actions,
 }: {
   className?: string;
+  /** Extra classes for the messages list only (e.g. inset around a pinned card). */
+  listClassName?: string;
   broadcasterIdentity: string;
   canModerate?: boolean;
   /** Extra buttons rendered at the right end of the input row (bag, heart…). */
@@ -228,7 +231,10 @@ export function ChatOverlay({
       {/* Messages — newest at the bottom, top fades out over the video. */}
       <div
         ref={listRef}
-        className="no-scrollbar max-h-40 space-y-1.5 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_20%)]"
+        className={cn(
+          "no-scrollbar max-h-40 space-y-1.5 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_20%)]",
+          listClassName,
+        )}
       >
         <AnimatePresence initial={false}>
           {messages.map((msg) => (

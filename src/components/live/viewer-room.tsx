@@ -415,7 +415,7 @@ function ViewerStage({
 
       <FloatingReactions floats={floats} onDone={remove} />
 
-      {/* ---------- Pinned product card (dynamic, right side) ---------- */}
+      {/* ---------- Pinned product card — just above the dock, right corner ---------- */}
       <AnimatePresence>
         {featuredProduct ? (
           <motion.div
@@ -424,7 +424,7 @@ function ViewerStage({
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 60, scale: 0.9 }}
             transition={{ type: "spring", stiffness: 340, damping: 28 }}
-            className="absolute bottom-40 right-3 z-10 w-32"
+            className="absolute bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] right-3 z-30 w-32"
           >
             <div className="overflow-hidden rounded-2xl border border-white/15 bg-black/70 backdrop-blur">
               <div className="flex h-20 items-center justify-center bg-white/5 text-3xl">
@@ -467,11 +467,15 @@ function ViewerStage({
         ) : null}
       </AnimatePresence>
 
-      {/* ---------- Bottom dock ---------- */}
-      <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-12">
+      {/* ---------- Bottom dock: full-width fixed input row ----------
+          The gradient shell is pointer-events-none so the pinned card and
+          double-tap layer stay clickable through its transparent top area;
+          chat content re-enables its own pointer events. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-12">
         <ChatOverlay
           broadcasterIdentity={sellerIdentity}
-          className={cn("w-full", featuredProduct ? "pr-32" : "")}
+          className="pointer-events-auto w-full"
+          listClassName={featuredProduct ? "mr-32" : undefined}
           actions={
             <>
               <button

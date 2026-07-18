@@ -15,6 +15,7 @@ export function AddressManager() {
   const [max, setMax] = useState(3);
   const [adding, setAdding] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch-on-mount + manual reloads (external system → setState in callback).
@@ -40,26 +41,36 @@ export function AddressManager() {
 
   async function setActive(id: string) {
     haptics.tap();
+    setBusyId(id);
     setAddresses(
       (prev) =>
         prev?.map((a) => ({ ...a, isActive: a.id === id })) ?? prev,
     );
-    const res = await fetch(`/api/addresses/${id}`, { method: "PATCH" });
-    if (!res.ok) {
-      toast({ title: "Couldn't set active address", variant: "error" });
-      load();
+    try {
+      const res = await fetch(`/api/addresses/${id}`, { method: "PATCH" });
+      if (!res.ok) {
+        toast({ title: "Couldn't set active address", variant: "error" });
+        load();
+      }
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function remove(id: string) {
     haptics.impact();
-    const res = await fetch(`/api/addresses/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      toast({ title: "Couldn't delete address", variant: "error" });
-      return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/addresses/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast({ title: "Couldn't delete address", variant: "error" });
+        return;
+      }
+      toast({ title: "Address deleted", variant: "success" });
+      load();
+    } finally {
+      setBusyId(null);
     }
-    toast({ title: "Address deleted", variant: "success" });
-    load();
   }
 
   if (addresses === null) {
@@ -101,7 +112,8 @@ export function AddressManager() {
                     <button
                       type="button"
                       onClick={() => setActive(address.id)}
-                      className="rounded-full px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                      disabled={busyId === address.id}
+                      className="rounded-full px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
                     >
                       Set active
                     </button>
@@ -109,7 +121,8 @@ export function AddressManager() {
                   <button
                     type="button"
                     onClick={() => remove(address.id)}
-                    className="rounded-full px-3 py-1.5 text-xs font-medium text-live transition-colors hover:bg-live/10"
+                    disabled={busyId === address.id}
+                    className="rounded-full px-3 py-1.5 text-xs font-medium text-live transition-colors hover:bg-live/10 disabled:opacity-50"
                   >
                     Delete
                   </button>

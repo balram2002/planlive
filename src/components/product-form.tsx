@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
 import { useToast } from "@/components/toast";
 import type { FormState } from "@/app/(seller)/dashboard/actions";
@@ -79,7 +80,11 @@ export function ProductForm({
 
       <div className="flex gap-3 pt-1">
         <Button type="submit" disabled={pending} className="flex-1">
-          {pending ? "Saving…" : submitLabel}
+          {pending ? (
+          <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+        ) : (
+          submitLabel
+        )}
         </Button>
         <Link
           href="/dashboard"

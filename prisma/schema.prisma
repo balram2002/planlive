@@ -111,6 +111,7 @@ model Stream {
   sellerId          String       @db.ObjectId
   livekitRoomName   String       @unique
   status            StreamStatus @default(LIVE)
+  title             String?
   thumbnailUrl      String?
   categoryId        String?      @db.ObjectId
   featuredProductId String?      @db.ObjectId

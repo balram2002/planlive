@@ -62,11 +62,18 @@ export async function startStream(
     return { error: "No valid products selected." };
   }
 
+  // Optional stream title shown on discover/search cards.
+  const title =
+    String(formData.get("title") ?? "")
+      .trim()
+      .slice(0, 80) || null;
+
   const stream = await prisma.stream.create({
     data: {
       sellerId: user.id,
       livekitRoomName: `stream_${user.id}_${Date.now()}`,
       status: "LIVE",
+      title,
       thumbnailUrl,
       categoryId: category.id,
     },

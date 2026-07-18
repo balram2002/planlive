@@ -1,10 +1,8 @@
-import Image from "next/image";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/time";
 import { StreamCard, type DiscoverStream } from "@/components/stream-card";
+import { CategoryRail } from "@/components/category-rail";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cn } from "@/lib/cn";
 
 /**
  * The buyer-facing live directory: horizontally scrollable ACTIVE category
@@ -56,6 +54,7 @@ export async function DiscoverExperience({
       ]);
       return {
         id: stream.id,
+        title: stream.title,
         sellerId: stream.sellerId,
         sellerName:
           seller?.username ?? (seller ? seller.email.split("@")[0] : "seller"),
@@ -73,72 +72,19 @@ export async function DiscoverExperience({
     }),
   );
 
-  const chipHref = (id?: string) =>
-    id ? `${basePath}?category=${id}` : basePath;
-
   return (
     <div className="space-y-4">
-      {/* Category tiles — Whatnot-style rail: label up top, artwork below. */}
+      {/* Category tiles — client rail with useTransition pending feedback. */}
       {categories.length > 0 ? (
-        <div
-          className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1"
-          data-no-swipe
-        >
-          <Link
-            href={chipHref()}
-            className={cn(
-              "relative flex aspect-[4/5] w-[104px] shrink-0 flex-col overflow-hidden rounded-2xl border-2 bg-gradient-to-b from-primary via-primary to-primary-hover p-2.5 transition-all duration-200 active:scale-[0.97]",
-              !selected
-                ? "border-foreground shadow-pop"
-                : "border-transparent opacity-90 hover:opacity-100",
-            )}
-          >
-            <span className="text-sm font-bold leading-tight text-white">
-              For You
-            </span>
-            <span className="absolute bottom-2 left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-white/20 text-2xl backdrop-blur">
-              ⚡
-            </span>
-          </Link>
-
-          {categories.map((category) => {
-            const active = selected?.id === category.id;
-            return (
-              <Link
-                key={category.id}
-                href={chipHref(category.id)}
-                className={cn(
-                  "relative flex aspect-[4/5] w-[104px] shrink-0 flex-col overflow-hidden rounded-2xl border-2 bg-surface-2 p-2.5 transition-all duration-200 active:scale-[0.97]",
-                  active
-                    ? "border-primary shadow-pop"
-                    : "border-transparent hover:border-border",
-                )}
-              >
-                {category.imageUrl ? (
-                  <>
-                    <Image
-                      src={category.imageUrl}
-                      alt=""
-                      fill
-                      sizes="104px"
-                      className="object-cover"
-                    />
-                    {/* Keeps the top label readable over any artwork. */}
-                    <span className="absolute inset-0 bg-gradient-to-b from-surface-2 via-surface-2/40 to-transparent" />
-                  </>
-                ) : (
-                  <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-4xl opacity-70">
-                    🗂️
-                  </span>
-                )}
-                {/* Re-paint label above the scrim. */}
-                <span className="absolute left-2.5 right-2.5 top-2.5 z-20 text-sm font-bold leading-tight text-foreground">
-                  {category.name}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+        <CategoryRail
+          categories={categories.map((c) => ({
+            id: c.id,
+            name: c.name,
+            imageUrl: c.imageUrl,
+          }))}
+          selectedId={selected?.id ?? null}
+          basePath={basePath}
+        />
       ) : null}
 
       {/* Heading */}

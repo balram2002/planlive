@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
 import { useToast } from "@/components/toast";
 import { LocateButton, type LocatedAddress } from "./locate-button";
@@ -141,7 +142,11 @@ export function AddressForm({
 
       <div className="flex gap-2 pt-1">
         <Button type="submit" disabled={saving} className="flex-1" size={compact ? "md" : "lg"}>
-          {saving ? "Saving…" : "Save address"}
+          {saving ? (
+            <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+          ) : (
+            "Save address"
+          )}
         </Button>
         {onCancel ? (
           <Button type="button" variant="ghost" onClick={onCancel} size={compact ? "md" : "lg"}>

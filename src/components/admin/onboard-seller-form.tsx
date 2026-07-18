@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/toast";
 import {
@@ -35,7 +36,11 @@ export function OnboardSellerForm() {
           aria-label="Seller email"
         />
         <Button type="submit" disabled={pending} className="shrink-0">
-          {pending ? "Working…" : "Onboard seller"}
+          {pending ? (
+            <span className="inline-flex items-center gap-2"><Spinner /> Onboarding…</span>
+          ) : (
+            "Onboard seller"
+          )}
         </Button>
       </div>
       {state.error ? (

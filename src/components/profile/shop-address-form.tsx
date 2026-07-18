@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
 import { useToast } from "@/components/toast";
 import { LocateButton, type LocatedAddress } from "./locate-button";
@@ -132,7 +133,11 @@ export function ShopAddressForm({ initial }: { initial: ShopAddress | null }) {
       </div>
 
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Saving…" : "Save shop address"}
+        {pending ? (
+          <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+        ) : (
+          "Save shop address"
+        )}
       </Button>
     </form>
   );

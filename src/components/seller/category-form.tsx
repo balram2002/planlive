@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/image-uploader";
 import { useToast } from "@/components/toast";
@@ -55,7 +56,11 @@ export function CategoryForm() {
       <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
 
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Adding…" : "Add category"}
+        {pending ? (
+          <span className="inline-flex items-center gap-2"><Spinner /> Creating…</span>
+        ) : (
+          "Add category"
+        )}
       </Button>
     </form>
   );

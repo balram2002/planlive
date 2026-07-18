@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { ImageUploader } from "@/components/upload/image-uploader";
 import { useToast } from "@/components/toast";
 import { formatPrice } from "@/lib/format";
@@ -26,12 +27,14 @@ export function GoLiveForm({
   categories,
   preselectedIds,
   initialThumbnailUrl = null,
+  initialTitle = "",
   scheduledId,
 }: {
   products: PickableProduct[];
   categories: PickableCategory[];
   preselectedIds?: string[];
   initialThumbnailUrl?: string | null;
+  initialTitle?: string;
   scheduledId?: string;
 }) {
   const [state, formAction, pending] = useActionState<StartStreamState, FormData>(
@@ -54,6 +57,23 @@ export function GoLiveForm({
 
   return (
     <form action={formAction} className="space-y-5">
+      <div>
+        <label
+          htmlFor="live-title"
+          className="mb-1.5 block text-sm font-medium text-muted"
+        >
+          Stream title <span className="font-normal text-faint">(optional)</span>
+        </label>
+        <input
+          id="live-title"
+          name="title"
+          defaultValue={initialTitle}
+          maxLength={80}
+          placeholder="Friday drip drop 🔥"
+          className="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-2.5 text-base text-foreground placeholder:text-faint focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+      </div>
+
       <ImageUploader
         kind="thumbnail"
         label="Stream cover (required)"
@@ -144,11 +164,13 @@ export function GoLiveForm({
         className="w-full"
         onClick={() => haptics.impact()}
       >
-        {pending
-          ? "Starting…"
-          : !thumbnailUrl
-            ? "Add a cover to go live"
-            : "🔴 Go live"}
+        {pending ? (
+          <span className="inline-flex items-center gap-2"><Spinner /> Starting…</span>
+        ) : !thumbnailUrl ? (
+          "Add a cover to go live"
+        ) : (
+          "🔴 Go live"
+        )}
       </Button>
     </form>
   );

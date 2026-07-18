@@ -79,6 +79,7 @@ export default async function SellerProfilePage({
       });
       return {
         id: stream.id,
+        title: stream.title,
         sellerId: seller.id,
         sellerName: name,
         sellerAvatar: seller.imageUrl,

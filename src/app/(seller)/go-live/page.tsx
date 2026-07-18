@@ -67,6 +67,7 @@ export default async function GoLivePage({
           categories={categories}
           preselectedIds={schedule?.productIds}
           initialThumbnailUrl={schedule?.thumbnailUrl ?? null}
+          initialTitle={schedule?.title ?? ""}
           scheduledId={schedule?.id}
         />
       )}

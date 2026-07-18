@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import {
   applySeller,
@@ -74,7 +75,11 @@ export function SellerApplyForm({
       ) : null}
 
       <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending ? "Submitting…" : "Submit application"}
+        {pending ? (
+          <span className="inline-flex items-center gap-2"><Spinner /> Submitting…</span>
+        ) : (
+          "Submit application"
+        )}
       </Button>
     </form>
   );

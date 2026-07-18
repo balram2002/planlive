@@ -38,14 +38,20 @@ const steps = [
  *   streams) — the shopping experience IS the homepage.
  * - Sellers & admins see the marketing/ops landing with quick links.
  */
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  // Category filter arrives as ?category= from the tile rail.
+  const { category } = await searchParams;
   const user = await getCurrentUser().catch(() => null);
   const role = user?.role ?? null;
 
   if (role !== "SELLER" && role !== "ADMIN") {
     return (
       <div className="animate-page-in px-4 py-4">
-        <DiscoverExperience basePath="/" />
+        <DiscoverExperience basePath="/" categoryId={category} />
       </div>
     );
   }

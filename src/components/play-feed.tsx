@@ -9,6 +9,7 @@ import { haptics } from "@/lib/haptics";
 
 export type PlaySlide = {
   id: string;
+  title: string | null;
   sellerId: string;
   sellerName: string;
   sellerAvatar: string | null;
@@ -27,9 +28,12 @@ export type PlaySlide = {
  */
 export function PlayFeed({ slides }: { slides: PlaySlide[] }) {
   return (
+    // absolute-inset scroll container: its height is definite (from the
+    // relative flex-1 parent), so the h-full slides always fill the screen —
+    // percentage heights through flex/min-h chains resolve to 0 otherwise.
     <div
       data-no-swipe
-      className="no-scrollbar h-full snap-y snap-mandatory overflow-y-auto overscroll-contain"
+      className="no-scrollbar absolute inset-0 snap-y snap-mandatory overflow-y-auto overscroll-contain"
     >
       {slides.map((slide) => (
         <section
@@ -121,7 +125,12 @@ export function PlayFeed({ slides }: { slides: PlaySlide[] }) {
               </span>
             </Link>
 
-            <p className="mt-2.5 text-sm text-white/80">
+            {slide.title ? (
+              <p className="mt-2.5 line-clamp-2 text-lg font-bold leading-snug text-white">
+                {slide.title}
+              </p>
+            ) : null}
+            <p className="mt-1.5 text-sm text-white/80">
               {slide.productCount}{" "}
               {slide.productCount === 1 ? "product" : "products"} live
               {slide.fromPaise !== null

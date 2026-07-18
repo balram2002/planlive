@@ -48,7 +48,8 @@ export function ActionButton({
       {pending ? (
         <span className="inline-flex items-center justify-center gap-1.5">
           <Spinner />
-          {pendingLabel ?? null}
+          {/* Keep the label visible — loader sits beside it, never replaces it. */}
+          {pendingLabel ?? children}
         </span>
       ) : (
         children

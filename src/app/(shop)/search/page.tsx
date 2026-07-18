@@ -47,6 +47,8 @@ export default async function SearchPage({
         OR: [
           { username: { contains: query, mode: "insensitive" } },
           { name: { contains: query, mode: "insensitive" } },
+          // Email local-part doubles as the public @handle when no username.
+          { email: { contains: query, mode: "insensitive" } },
         ],
       },
       take: 10,
@@ -63,11 +65,12 @@ export default async function SearchPage({
     }),
   ]);
 
-  // Live streams whose seller or category matched.
+  // Live streams matching by their own title OR a matched seller/category.
   const liveStreams = await prisma.stream.findMany({
     where: {
       status: "LIVE",
       OR: [
+        { title: { contains: query, mode: "insensitive" } },
         { sellerId: { in: sellers.map((s) => s.id) } },
         { categoryId: { in: categories.map((c) => c.id) } },
       ],
@@ -90,6 +93,7 @@ export default async function SearchPage({
       ]);
       return {
         id: stream.id,
+        title: stream.title,
         sellerId: stream.sellerId,
         sellerName:
           seller?.username ?? (seller ? seller.email.split("@")[0] : "seller"),

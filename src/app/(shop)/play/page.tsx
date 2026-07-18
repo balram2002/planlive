@@ -41,6 +41,7 @@ async function loadSlides(): Promise<PlaySlide[]> {
       ]);
       return {
         id: stream.id,
+        title: stream.title,
         sellerId: stream.sellerId,
         sellerName:
           seller?.username ?? (seller ? seller.email.split("@")[0] : "seller"),
@@ -79,7 +80,7 @@ export default async function PlayPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative min-h-0 flex-1">
       <PlayFeed slides={slides} />
     </div>
   );

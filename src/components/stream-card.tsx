@@ -5,6 +5,7 @@ import { formatPrice } from "@/lib/format";
 
 export type DiscoverStream = {
   id: string;
+  title: string | null;
   sellerId: string;
   sellerName: string;
   sellerAvatar: string | null;
@@ -50,6 +51,11 @@ export function StreamCard({ stream }: { stream: DiscoverStream }) {
 
       {/* Bottom info */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-2.5 pt-10">
+        {stream.title ? (
+          <p className="mb-1 line-clamp-2 text-[13px] font-semibold leading-snug text-white">
+            {stream.title}
+          </p>
+        ) : null}
         <div className="flex items-center gap-1.5">
           <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full border border-white/30 bg-primary">
             {stream.sellerAvatar ? (

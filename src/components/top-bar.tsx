@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Show, UserButton } from "@clerk/nextjs";
 import { LiveBadge } from "@/components/ui/badge";
 import { SignInLink } from "@/components/auth/sign-in-link";
+import { SearchBox } from "@/components/search-box";
 import type { NavRole } from "@/components/bottom-nav";
 
 /**
@@ -25,26 +26,8 @@ export function TopBar({ role = null }: { role?: NavRole }) {
               L
             </Link>
 
-            {/* Master search — streams, categories, sellers. */}
-            <form action="/search" className="min-w-0 flex-1">
-              <div className="relative">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
-                >
-                  <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.8" />
-                  <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-                <input
-                  type="search"
-                  name="q"
-                  placeholder="Search lives, categories, sellers…"
-                  className="h-9 w-full rounded-full border border-border bg-surface-2 pl-9 pr-3 text-sm placeholder:text-faint focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/25"
-                />
-              </div>
-            </form>
+            {/* Master search — live typeahead across streams/categories/sellers. */}
+            <SearchBox />
 
             <div className="flex shrink-0 items-center">
               <Show when="signed-in">

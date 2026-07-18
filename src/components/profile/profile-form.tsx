@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/image-uploader";
 import { useToast } from "@/components/toast";
@@ -109,7 +110,11 @@ export function ProfileForm({
       ) : null}
 
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Saving…" : "Save profile"}
+        {pending ? (
+          <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+        ) : (
+          "Save profile"
+        )}
       </Button>
     </form>
   );

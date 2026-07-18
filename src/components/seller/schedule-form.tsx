@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/image-uploader";
 import { useToast } from "@/components/toast";
@@ -89,7 +90,11 @@ export function ScheduleForm({ products }: { products: PickableProduct[] }) {
       ) : null}
 
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Scheduling…" : "Schedule stream"}
+        {pending ? (
+          <span className="inline-flex items-center gap-2"><Spinner /> Scheduling…</span>
+        ) : (
+          "Schedule stream"
+        )}
       </Button>
     </form>
   );

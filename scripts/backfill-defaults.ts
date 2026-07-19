@@ -13,7 +13,7 @@ async function backfill(
   field: string,
   value: unknown,
 ): Promise<void> {
-  const res = (await prisma.$runCommandRaw({
+  const command = {
     update: collection,
     updates: [
       {
@@ -22,7 +22,9 @@ async function backfill(
         multi: true,
       },
     ],
-  })) as { nModified?: number };
+  };
+
+  const res = (await prisma.$runCommandRaw(command as never)) as { nModified?: number };
   console.log(`${collection}.${field}: backfilled ${res.nModified ?? 0} docs`);
 }
 

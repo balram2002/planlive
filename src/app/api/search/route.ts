@@ -94,7 +94,9 @@ export async function GET(req: NextRequest) {
         };
       }),
     });
-  } catch {
+  } catch (err) {
+    // Degrade gracefully for the typeahead, but never hide the cause.
+    console.error("search failed:", err);
     return NextResponse.json(
       { sellers: [], categories: [], streams: [] },
       { status: 200 },

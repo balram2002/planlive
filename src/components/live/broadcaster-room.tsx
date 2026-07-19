@@ -12,7 +12,11 @@ import {
 import {
   ConnectionState,
   Track,
+  VideoPresets,
   type LocalVideoTrack,
+  type RoomOptions,
+  type TrackPublishDefaults,
+  type VideoCaptureOptions,
 } from "livekit-client";
 import { useState } from "react";
 import { motion } from "motion/react";
@@ -24,6 +28,49 @@ import { Elapsed } from "./elapsed";
 import { LiveBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import { haptics } from "@/lib/haptics";
+
+/**
+ * HD broadcast configuration — the reason viewers used to get 360p.
+ *
+ * LiveKit's defaults capture 720p but publish simulcast layers at 180p/360p
+ * as well, and the SFU will happily serve those lower layers. Here we:
+ *  - capture at 1080p30 (h1080 preset),
+ *  - define ONLY two simulcast layers, 720p and 1080p, so no sub-720p
+ *    encoding exists for any viewer to receive,
+ *  - set explicit bitrates (3 Mbps for 1080p, 1.7 Mbps for 720p),
+ *  - use "maintain-resolution" degradation so congestion drops frame rate
+ *    instead of collapsing resolution,
+ *  - keep dynacast on (pauses layers nobody watches — saves upstream CPU
+ *    and bandwidth without ever lowering the quality that IS watched).
+ */
+const CAPTURE_OPTIONS: VideoCaptureOptions = {
+  resolution: VideoPresets.h1080.resolution,
+  facingMode: "user",
+};
+
+const PUBLISH_DEFAULTS: TrackPublishDefaults = {
+  simulcast: true,
+  // Only HD layers — 720p is the floor by construction.
+  videoSimulcastLayers: [VideoPresets.h720, VideoPresets.h1080],
+  videoEncoding: {
+    maxBitrate: 3_000_000,
+    maxFramerate: 30,
+    priority: "high",
+  },
+  degradationPreference: "maintain-resolution",
+  videoCodec: "vp9",
+  backupCodec: { codec: "vp8" },
+  red: true,
+  dtx: true,
+};
+
+const ROOM_OPTIONS: RoomOptions = {
+  // Dynacast pauses unwatched layers; adaptiveStream stays OFF for the
+  // publisher's own preview so the local view is never downgraded.
+  dynacast: true,
+  videoCaptureDefaults: CAPTURE_OPTIONS,
+  publishDefaults: PUBLISH_DEFAULTS,
+};
 
 /**
  * Seller-side studio surface: local preview with a centered, properly-aligned
@@ -59,8 +106,9 @@ export function BroadcasterRoom({
       token={token.token}
       serverUrl={token.serverUrl}
       connect
-      video
+      video={CAPTURE_OPTIONS}
       audio
+      options={ROOM_OPTIONS}
       className="block"
     >
       <BroadcasterStage startedAt={startedAt} />
@@ -124,7 +172,12 @@ function FlipCameraButton() {
     setBusy(true);
     const next = facing === "user" ? "environment" : "user";
     try {
-      await track.restartTrack({ facingMode: next });
+      // Re-assert the 1080p constraint — restartTrack without it would fall
+      // back to the browser's default (often 480p) capture size.
+      await track.restartTrack({
+        ...CAPTURE_OPTIONS,
+        facingMode: next,
+      });
       setFacing(next);
     } catch {
       // Device may have a single camera — keep current facing.

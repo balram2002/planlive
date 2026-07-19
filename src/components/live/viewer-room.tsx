@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
@@ -15,7 +15,13 @@ import {
   useTracks,
   type TrackReference,
 } from "@livekit/components-react";
-import { ConnectionState, Track } from "livekit-client";
+import {
+  ConnectionState,
+  RemoteTrackPublication,
+  Track,
+  VideoQuality,
+  type RoomOptions,
+} from "livekit-client";
 import { useLivekitToken } from "./use-livekit-token";
 import { ViewerCount } from "./viewer-count";
 import { ChatOverlay } from "./chat";
@@ -34,6 +40,20 @@ export type PinnedProduct = {
   title: string;
   priceInPaise: number;
   availableStock: number;
+};
+
+/**
+ * Viewer room options — the other half of the HD fix.
+ *
+ * adaptiveStream (LiveKit's default) picks a simulcast layer from the
+ * *rendered element size*. Our player lives in a phone-width column, so it
+ * was requesting the smallest layer — that's the 360p viewers reported.
+ * We turn it off and explicitly request HIGH quality; combined with the
+ * publisher only offering 720p/1080p layers, playback stays HD.
+ */
+const VIEWER_ROOM_OPTIONS: RoomOptions = {
+  adaptiveStream: false,
+  dynacast: true,
 };
 
 /**
@@ -80,6 +100,7 @@ export function ViewerRoom({
       connect
       video={false}
       audio={false}
+      options={VIEWER_ROOM_OPTIONS}
       className="flex min-h-0 flex-1 flex-col"
     >
       <ViewerStage
@@ -105,6 +126,18 @@ const VideoSurface = memo(function VideoSurface({
   trackRef: TrackReference | undefined;
   waitingLabel: string;
 }) {
+  // Explicitly pin the highest simulcast layer. With adaptiveStream off this
+  // is what stops the SFU from ever choosing a lower spatial layer for us.
+  const publication = trackRef?.publication;
+  useEffect(() => {
+    if (!(publication instanceof RemoteTrackPublication)) return;
+    try {
+      publication.setVideoQuality(VideoQuality.HIGH);
+    } catch {
+      // Not yet subscribed — a later render retries once it is.
+    }
+  }, [publication]);
+
   if (!trackRef) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">

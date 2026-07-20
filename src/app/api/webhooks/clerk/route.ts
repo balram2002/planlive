@@ -3,6 +3,7 @@ import type { WebhookEvent } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseRole } from "@/lib/roles";
+import { notifyWelcome } from "@/lib/notify";
 
 /**
  * Clerk webhook. On first login (user.created) we create a local User doc so
@@ -40,7 +41,14 @@ export async function POST(req: NextRequest) {
 
       const role = parseRole(public_metadata?.role);
 
-      await prisma.user.upsert({
+      // Detect a genuinely new account: `user.updated` fires often, and
+      // upsert alone can't tell us whether it created or matched.
+      const existing = await prisma.user.findUnique({
+        where: { clerkId: id },
+        select: { id: true },
+      });
+
+      const user = await prisma.user.upsert({
         where: { clerkId: id },
         create: {
           clerkId: id,
@@ -52,6 +60,8 @@ export async function POST(req: NextRequest) {
           role,
         },
       });
+
+      if (!existing) notifyWelcome(user);
       break;
     }
 

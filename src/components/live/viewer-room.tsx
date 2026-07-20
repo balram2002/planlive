@@ -12,20 +12,26 @@ import {
   VideoTrack,
   useConnectionState,
   useDataChannel,
+  useLocalParticipant,
+  useRoomContext,
   useTracks,
   type TrackReference,
 } from "@livekit/components-react";
 import {
   ConnectionState,
   RemoteTrackPublication,
+  RoomEvent,
   Track,
   VideoQuality,
+  type RemoteParticipant,
   type RoomOptions,
 } from "livekit-client";
 import { useLivekitToken } from "./use-livekit-token";
 import { ViewerCount } from "./viewer-count";
 import { ChatOverlay } from "./chat";
 import { FloatingReactions, useReactions } from "./reactions";
+import { LiveNotices, useLiveNotices } from "./live-notices";
+import { OrderCelebration, type Celebration } from "./order-celebration";
 import { ProductsPanel } from "./products-panel";
 import { BuyDrawer, type BuyFlow } from "./buy-drawer";
 import { ViewerMenu } from "./viewer-menu";
@@ -40,6 +46,7 @@ export type PinnedProduct = {
   title: string;
   priceInPaise: number;
   availableStock: number;
+  imageUrl: string | null;
 };
 
 /**
@@ -182,6 +189,8 @@ function ViewerStage({
   startedAt: string;
 }) {
   const connectionState = useConnectionState();
+  const room = useRoomContext();
+  const { localParticipant } = useLocalParticipant();
   const { openSignIn } = useClerk();
   const { toast } = useToast();
 
@@ -196,6 +205,27 @@ function ViewerStage({
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const { floats, remove, react } = useReactions();
+  const { notices, push: pushNotice } = useLiveNotices();
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const celebrationId = useRef(0);
+
+  // A viewer holding down the heart shouldn't flood the ticker — one "liked"
+  // notice per person per window, tracked by identity.
+  const lastLikeAt = useRef<Map<string, number>>(new Map());
+  const LIKE_NOTICE_WINDOW_MS = 8000;
+
+  /** Announce a viewer join as a notice pill. */
+  useEffect(() => {
+    const onJoin = (participant: RemoteParticipant) => {
+      // The broadcaster isn't a "viewer joining" — skip their (re)connects.
+      if (participant.identity === sellerIdentity) return;
+      pushNotice("join", participant.name || "someone");
+    };
+    room.on(RoomEvent.ParticipantConnected, onJoin);
+    return () => {
+      room.off(RoomEvent.ParticipantConnected, onJoin);
+    };
+  }, [room, sellerIdentity, pushNotice]);
 
   /** Re-sync the queue when the seller changes it mid-stream. */
   const refreshProducts = useCallback(async () => {
@@ -211,12 +241,48 @@ function ViewerStage({
   }, [streamId]);
 
   const onData = useCallback(
-    (msg: { payload: Uint8Array; from?: unknown }) => {
-      // Trust only server packets (RoomService API → no `from` participant).
-      if (msg.from) return;
+    (msg: {
+      payload: Uint8Array;
+      from?: { identity: string; name?: string };
+    }) => {
+      let data: Record<string, unknown>;
       try {
-        const data = JSON.parse(new TextDecoder().decode(msg.payload));
-        if (data?.type === "stock" && typeof data.productId === "string") {
+        data = JSON.parse(new TextDecoder().decode(msg.payload));
+      } catch {
+        return; // Malformed — ignore.
+      }
+
+      // ---- Participant-sent packets: social activity only. ----
+      if (msg.from) {
+        const who = msg.from.name || "someone";
+        if (data?.type === "reaction") {
+          const now = Date.now();
+          const previous = lastLikeAt.current.get(msg.from.identity) ?? 0;
+          if (now - previous > LIKE_NOTICE_WINDOW_MS) {
+            lastLikeAt.current.set(msg.from.identity, now);
+            pushNotice("like", who);
+          }
+        } else if (data?.type === "share") {
+          pushNotice("share", who);
+        }
+        return;
+      }
+
+      // ---- Server packets (RoomService API → no `from` participant). ----
+      // Only these are trusted: a client can't forge a sale or a stock count.
+      try {
+        if (data?.type === "order-celebration") {
+          setCelebration({
+            id: ++celebrationId.current,
+            buyerName: String(data.buyerName ?? "Someone"),
+            productTitle: String(data.productTitle ?? "an item"),
+            productImageUrl:
+              typeof data.productImageUrl === "string"
+                ? data.productImageUrl
+                : null,
+            quantity: Number(data.quantity) || 1,
+          });
+        } else if (data?.type === "stock" && typeof data.productId === "string") {
           setProducts((prev) =>
             prev.map((p) =>
               p.id === data.productId
@@ -235,9 +301,22 @@ function ViewerStage({
         // Ignore malformed messages.
       }
     },
-    [refreshProducts],
+    [refreshProducts, pushNotice],
   );
   useDataChannel(onData);
+
+  const clearCelebration = useCallback(() => setCelebration(null), []);
+
+  /** Tell the room this viewer shared the stream. Best-effort, like reactions. */
+  const announceShare = useCallback(() => {
+    const payload = new TextEncoder().encode(JSON.stringify({ type: "share" }));
+    localParticipant
+      .publishData(payload, { reliable: false })
+      .catch(() => {
+        // Guests can't publish data — the share itself still happened.
+      });
+    pushNotice("share", localParticipant.name || "You");
+  }, [localParticipant, pushNotice]);
 
   const remoteCamera = useTracks([Track.Source.Camera]).find(
     (t) => !t.participant.isLocal,
@@ -432,6 +511,7 @@ function ViewerStage({
               videoHidden={videoHidden}
               onToggleVideo={() => setVideoHidden((v) => !v)}
               shareTitle={`@${sellerName} is live on liveWAB`}
+              onShared={announceShare}
             />
             {/* Close */}
             <Link
@@ -454,6 +534,15 @@ function ViewerStage({
 
       <FloatingReactions floats={floats} onDone={remove} />
 
+      {/* Activity ticker: joins, likes, shares. */}
+      <LiveNotices notices={notices} />
+
+      {/* Full-screen moment when someone completes a purchase. */}
+      <OrderCelebration
+        celebration={celebration}
+        onDone={clearCelebration}
+      />
+
       {/* ---------- Pinned product card — just above the dock, right corner ---------- */}
       <AnimatePresence>
         {featuredProduct ? (
@@ -466,14 +555,27 @@ function ViewerStage({
             className="absolute bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] right-3 z-30 w-32"
           >
             <div className="overflow-hidden rounded-2xl border border-white/15 bg-black/70 backdrop-blur">
-              <div className="flex h-20 items-center justify-center bg-white/5 text-3xl">
-                🏷️
-              </div>
-              <div className="p-2.5">
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary-foreground">
+              {/* Square hero image on top — the product sells itself. */}
+              <div className="relative aspect-square w-full overflow-hidden bg-white/5">
+                {featuredProduct.imageUrl ? (
+                  <Image
+                    src={featuredProduct.imageUrl}
+                    alt={featuredProduct.title}
+                    fill
+                    sizes="128px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-3xl">
+                    🏷️
+                  </span>
+                )}
+                <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-black/65 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white backdrop-blur">
                   📌 Pinned
                 </span>
-                <p className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-white">
+              </div>
+              <div className="p-2.5">
+                <p className="line-clamp-2 text-xs font-medium leading-snug text-white">
                   {featuredProduct.title}
                 </p>
                 <p className="mt-0.5 text-xs font-bold text-white">

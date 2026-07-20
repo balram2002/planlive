@@ -32,6 +32,10 @@ async function main() {
   await backfill("User", "isActive", true);
   await backfill("Category", "isActive", true);
   await backfill("Order", "paymentMethod", "ONLINE");
+  // deliveryFeeInPaise is a required Int with a default: unlike the optional
+  // fields above, a legacy Order that lacks it fails Prisma's read-time
+  // validation outright, so this one is mandatory before deploying.
+  await backfill("Order", "deliveryFeeInPaise", 0);
   console.log("✅ backfill complete");
 }
 

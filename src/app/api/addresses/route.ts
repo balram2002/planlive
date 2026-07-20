@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
+import { notifyAddressAdded } from "@/lib/notify";
 
 export const MAX_ADDRESSES = 3;
 
@@ -79,5 +80,16 @@ export async function POST(req: NextRequest) {
       isActive: count === 0,
     },
   });
+
+  notifyAddressAdded({
+    user,
+    label: created.label,
+    fullName: created.fullName,
+    phone: created.phone,
+    line1: created.line1,
+    city: created.city,
+    pincode: created.pincode,
+  });
+
   return NextResponse.json({ address: created });
 }

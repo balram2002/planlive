@@ -125,6 +125,7 @@ export default async function LiveStreamPage({
           title: p.title,
           priceInPaise: p.priceInPaise,
           availableStock: p.availableStock,
+          imageUrl: p.imageUrl,
         }))}
       />
     </div>

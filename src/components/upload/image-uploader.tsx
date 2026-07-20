@@ -8,7 +8,16 @@ import { downscaleImage } from "@/lib/downscale-image";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
 
-type Kind = "avatar" | "thumbnail" | "category";
+type Kind = "avatar" | "thumbnail" | "category" | "product";
+
+/** Preview shape: a circle for avatars, a rounded square/portrait otherwise. */
+type Aspect = "square" | "portrait" | "tile";
+
+const aspectClasses: Record<Aspect, string> = {
+  square: "h-24 w-24 rounded-full",
+  portrait: "aspect-[3/4] w-28 rounded-2xl",
+  tile: "aspect-square w-28 rounded-2xl",
+};
 
 type UploadState =
   | { phase: "idle" }
@@ -46,7 +55,7 @@ export function ImageUploader({
   kind: Kind;
   value: string | null;
   onChange: (url: string | null) => void;
-  aspect?: "square" | "portrait";
+  aspect?: Aspect;
   label: string;
   maxWidth?: number;
 }) {
@@ -203,9 +212,7 @@ export function ImageUploader({
           onClick={() => fileInput.current?.click()}
           className={cn(
             "relative block overflow-hidden border border-dashed border-border bg-surface-2 transition-all duration-200 hover:border-primary/50 active:scale-[0.98]",
-            aspect === "square"
-              ? "h-24 w-24 rounded-full"
-              : "aspect-[3/4] w-28 rounded-2xl",
+            aspectClasses[aspect],
           )}
         >
           {shown ? (

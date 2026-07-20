@@ -19,7 +19,13 @@ export async function GET(
   const products = await prisma.product.findMany({
     where: { streamId: stream.id },
     orderBy: { title: "asc" },
-    select: { id: true, title: true, priceInPaise: true, availableStock: true },
+    select: {
+      id: true,
+      title: true,
+      priceInPaise: true,
+      availableStock: true,
+      imageUrl: true,
+    },
   });
 
   return NextResponse.json({

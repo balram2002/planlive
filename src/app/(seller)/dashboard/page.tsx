@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { formatPrice } from "@/lib/format";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { ProductThumb } from "@/components/product-thumb";
 import { Card } from "@/components/ui/card";
 import { ActionButton } from "@/components/ui/action-button";
 import { Badge } from "@/components/ui/badge";
@@ -189,9 +190,12 @@ export default async function DashboardPage() {
               style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
             >
               <Card className="flex items-center gap-3 p-3 transition-shadow hover:shadow-pop">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-lg">
-                  🏷️
-                </div>
+                <ProductThumb
+                  src={product.imageUrl}
+                  alt={product.title}
+                  sizes="48px"
+                  className="w-12"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{product.title}</p>
                   <div className="mt-1 flex items-center gap-2">

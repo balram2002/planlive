@@ -17,6 +17,9 @@ model User {
   // on optional fields rejects multiple nulls).
   username  String?
   name      String?
+  // Contact number for WhatsApp notifications not tied to a delivery address
+  // (profile changes, seller application updates, account status).
+  phone     String?
   imageUrl  String?
   birthday  DateTime?
   gender    String?
@@ -103,6 +106,9 @@ model Product {
   title          String
   priceInPaise   Int
   availableStock Int
+  // Required for every new product; optional in the DB so listings created
+  // before images were mandatory still load.
+  imageUrl       String?
   streamId       String? @db.ObjectId
 }
 
@@ -148,12 +154,18 @@ model Order {
   // Empty string for COD orders (no Razorpay order exists).
   razorpayOrderId   String
   razorpayPaymentId String?
+  // Grand total actually charged, i.e. goods + deliveryFeeInPaise.
   amountInPaise     Int
+  // COD carries a flat delivery charge; online orders are 0.
+  deliveryFeeInPaise Int          @default(0)
   status            OrderStatus   @default(CREATED)
   paymentMethod     PaymentMethod @default(ONLINE)
   // Delivery address snapshot (JSON) captured at purchase time.
   addressJson       String?
   createdAt         DateTime      @default(now())
+  // Fulfilment timestamps, set when the seller advances the order.
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
 }
 
 enum OrderStatus {
@@ -161,6 +173,8 @@ enum OrderStatus {
   PAID
   FAILED
   PLACED
+  SHIPPED
+  DELIVERED
 }
 
 enum PaymentMethod {

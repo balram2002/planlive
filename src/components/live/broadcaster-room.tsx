@@ -5,25 +5,31 @@ import {
   RoomAudioRenderer,
   VideoTrack,
   useConnectionState,
+  useDataChannel,
   useLocalParticipant,
+  useRoomContext,
   useTrackToggle,
   useTracks,
 } from "@livekit/components-react";
 import {
   ConnectionState,
+  RoomEvent,
   Track,
   VideoPresets,
   type LocalVideoTrack,
+  type RemoteParticipant,
   type RoomOptions,
   type TrackPublishDefaults,
   type VideoCaptureOptions,
 } from "livekit-client";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useLivekitToken } from "./use-livekit-token";
 import { ViewerCount } from "./viewer-count";
 import { ChatOverlay } from "./chat";
 import { FloatingReactions, useReactions } from "./reactions";
+import { LiveNotices, useLiveNotices } from "./live-notices";
+import { OrderCelebration, type Celebration } from "./order-celebration";
 import { Elapsed } from "./elapsed";
 import { LiveBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
@@ -236,8 +242,73 @@ function FlipCameraButton() {
 
 function BroadcasterStage({ startedAt }: { startedAt: string }) {
   const connectionState = useConnectionState();
+  const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
   const { floats, remove } = useReactions();
+  const { notices, push: pushNotice } = useLiveNotices();
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const celebrationId = useRef(0);
+  const lastLikeAt = useRef<Map<string, number>>(new Map());
+
+  // The seller sees the same activity ticker their viewers do — joins are
+  // the signal they're actually reaching an audience.
+  useEffect(() => {
+    const onJoin = (participant: RemoteParticipant) => {
+      pushNotice("join", participant.name || "someone");
+    };
+    room.on(RoomEvent.ParticipantConnected, onJoin);
+    return () => {
+      room.off(RoomEvent.ParticipantConnected, onJoin);
+    };
+  }, [room, pushNotice]);
+
+  const onData = useCallback(
+    (msg: {
+      payload: Uint8Array;
+      from?: { identity: string; name?: string };
+    }) => {
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(new TextDecoder().decode(msg.payload));
+      } catch {
+        return;
+      }
+
+      if (msg.from) {
+        const who = msg.from.name || "someone";
+        if (data?.type === "reaction") {
+          const now = Date.now();
+          const previous = lastLikeAt.current.get(msg.from.identity) ?? 0;
+          if (now - previous > 8000) {
+            lastLikeAt.current.set(msg.from.identity, now);
+            pushNotice("like", who);
+          }
+        } else if (data?.type === "share") {
+          pushNotice("share", who);
+        }
+        return;
+      }
+
+      // Server-sent: a sale just landed. This is the moment the seller
+      // is actually here for, so it gets the full celebration.
+      if (data?.type === "order-celebration") {
+        setCelebration({
+          id: ++celebrationId.current,
+          buyerName: String(data.buyerName ?? "Someone"),
+          productTitle: String(data.productTitle ?? "an item"),
+          productImageUrl:
+            typeof data.productImageUrl === "string"
+              ? data.productImageUrl
+              : null,
+          quantity: Number(data.quantity) || 1,
+        });
+      }
+    },
+    [pushNotice],
+  );
+  useDataChannel(onData);
+
+  const clearCelebration = useCallback(() => setCelebration(null), []);
 
   // Local camera preview.
   const cameraTracks = useTracks([Track.Source.Camera]).filter(
@@ -270,6 +341,10 @@ function BroadcasterStage({ startedAt }: { startedAt: string }) {
 
       {/* Incoming reactions from viewers. */}
       <FloatingReactions floats={floats} onDone={remove} />
+
+      {/* Activity ticker + the sale celebration. */}
+      <LiveNotices notices={notices} />
+      <OrderCelebration celebration={celebration} onDone={clearCelebration} />
 
       {/* Viewer chat with moderation (delete/mute), input docked at bottom. */}
       <ChatOverlay

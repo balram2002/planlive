@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { MenuSheet } from "@/components/menu-sheet";
+import { BecomeSellerDrawer } from "@/components/seller/become-seller-drawer";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
 
@@ -133,33 +134,40 @@ function linksForRole(role: NavRole) {
  * element (layoutId), so it *slides* between tabs with a spring instead of
  * jumping — transform/opacity only, no layout thrash.
  */
-export function BottomNav({ role = null }: { role?: NavRole }) {
+export function BottomNav({
+  role = null,
+  sellerCategories = [],
+}: {
+  role?: NavRole;
+  /** Live marketplace categories, for the become-a-seller drawer's form. */
+  sellerCategories?: string[];
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sellerOpen, setSellerOpen] = useState(false);
 
   // Admins get an Admin tab where sellers/buyers see Sell.
   const tabs = baseTabs.map((tab) =>
     tab.href === "/dashboard" && role === "ADMIN" ? adminTab : tab,
   );
 
+  // Buyers and guests have no dashboard to open — the Sell tab is their
+  // entry into the application funnel, presented in place as a drawer
+  // instead of navigating them out of whatever they were browsing.
+  const sellTabIsFunnel = role !== "SELLER" && role !== "ADMIN";
+
   return (
     <>
       <div className="pointer-events-none sticky bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.625rem)] pt-2">
         <nav className="pointer-events-auto mx-auto flex max-w-sm items-stretch rounded-full border border-border bg-surface/85 p-1 shadow-pop backdrop-blur-xl">
           {tabs.map((tab) => {
-            const active =
-              pathname === tab.href || pathname.startsWith(tab.href + "/");
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                onClick={() => haptics.tap()}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative flex flex-1 flex-col items-center gap-0.5 rounded-full py-2 text-[10.5px] font-semibold transition-colors duration-200 active:scale-95",
-                  active ? "text-primary" : "text-faint hover:text-muted",
-                )}
-              >
+            const isSellFunnel = tab.href === "/dashboard" && sellTabIsFunnel;
+            const active = isSellFunnel
+              ? sellerOpen
+              : pathname === tab.href || pathname.startsWith(tab.href + "/");
+
+            const inner = (
+              <>
                 {active ? (
                   <motion.span
                     layoutId="bottom-nav-pill"
@@ -175,6 +183,41 @@ export function BottomNav({ role = null }: { role?: NavRole }) {
                   {tab.icon}
                 </motion.span>
                 <span className="relative">{tab.label}</span>
+              </>
+            );
+
+            const tabClass = cn(
+              "relative flex flex-1 flex-col items-center gap-0.5 rounded-full py-2 text-[10.5px] font-semibold transition-colors duration-200 active:scale-95",
+              active ? "text-primary" : "text-faint hover:text-muted",
+            );
+
+            if (isSellFunnel) {
+              return (
+                <button
+                  key={tab.href}
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={sellerOpen}
+                  onClick={() => {
+                    haptics.tap();
+                    setSellerOpen(true);
+                  }}
+                  className={tabClass}
+                >
+                  {inner}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                onClick={() => haptics.tap()}
+                aria-current={active ? "page" : undefined}
+                className={tabClass}
+              >
+                {inner}
               </Link>
             );
           })}
@@ -198,6 +241,13 @@ export function BottomNav({ role = null }: { role?: NavRole }) {
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         links={linksForRole(role)}
+      />
+
+      <BecomeSellerDrawer
+        open={sellerOpen}
+        onClose={() => setSellerOpen(false)}
+        signedIn={role !== null}
+        categories={sellerCategories}
       />
     </>
   );

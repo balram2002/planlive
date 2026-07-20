@@ -15,7 +15,16 @@ type ParsedProduct = {
   title: string;
   priceInPaise: number;
   availableStock: number;
+  imageUrl: string;
 };
+
+/** Only images we hosted ourselves (ImageKit or the local fallback). */
+function sanitizeImageUrl(value: unknown): string | null {
+  if (typeof value !== "string" || value.length === 0) return null;
+  if (/^\/uploads\/[a-z0-9_-]+\.(jpg|png|webp)$/i.test(value)) return value;
+  if (/^https:\/\/ik\.imagekit\.io\/[^\s"'<>]+$/i.test(value)) return value;
+  return null;
+}
 
 /** Validates raw form input into product fields, or returns an error message. */
 function parseProductForm(
@@ -24,6 +33,7 @@ function parseProductForm(
   const title = String(formData.get("title") ?? "").trim();
   const priceRupees = Number(formData.get("price"));
   const stock = Number(formData.get("stock"));
+  const imageUrl = sanitizeImageUrl(formData.get("imageUrl"));
 
   if (title.length < 2 || title.length > 100) {
     return { error: "Title must be between 2 and 100 characters." };
@@ -38,12 +48,17 @@ function parseProductForm(
   if (!Number.isInteger(stock) || stock < 0 || stock > 100_000) {
     return { error: "Stock must be a whole number between 0 and 100,000." };
   }
+  // Buyers shop from the photo — a listing without one isn't sellable.
+  if (!imageUrl) {
+    return { error: "Upload a product photo before saving." };
+  }
 
   return {
     data: {
       title,
       priceInPaise: Math.round(priceRupees * 100),
       availableStock: stock,
+      imageUrl,
     },
   };
 }

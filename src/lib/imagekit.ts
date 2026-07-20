@@ -35,6 +35,7 @@ export function mintUploadAuth(): {
 export const IMAGEKIT_FOLDERS = {
   avatar: (userId: string) => `/liveshop/avatars/${userId}`,
   thumbnail: (sellerId: string) => `/liveshop/thumbnails/${sellerId}`,
+  product: (sellerId: string) => `/liveshop/products/${sellerId}`,
   category: () => `/liveshop/categories`,
 } as const;
 

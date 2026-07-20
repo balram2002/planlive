@@ -1,16 +1,22 @@
+import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ActionButton } from "@/components/ui/action-button";
+import { STAGE_LABELS, TRACK_STAGES, trackStage } from "@/lib/order-status";
+import { adminSetOrderStage } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-const orderTone = {
+const orderTone: Record<OrderStatus, "success" | "warning" | "live" | "primary"> = {
   PAID: "success",
   PLACED: "success",
+  SHIPPED: "primary",
+  DELIVERED: "success",
   CREATED: "warning",
   FAILED: "live",
-} as const;
+};
 
 export default async function AdminOrdersPage() {
   const orders = await prisma.order.findMany({
@@ -56,6 +62,7 @@ export default async function AdminOrdersPage() {
                 <th className="px-4 py-3 font-medium">Amount</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Date</th>
+                <th className="px-4 py-3 font-medium">Fulfilment</th>
               </tr>
             </thead>
             <tbody>
@@ -86,12 +93,40 @@ export default async function AdminOrdersPage() {
                         minute: "2-digit",
                       })}
                     </td>
+                    <td className="px-4 py-3">
+                      {trackStage(order.status) ? (
+                        <div className="flex items-center gap-1">
+                          {TRACK_STAGES.map((stage) => {
+                            const current = trackStage(order.status) === stage;
+                            return (
+                              <form key={stage} action={adminSetOrderStage}>
+                                <input type="hidden" name="orderId" value={order.id} />
+                                <input type="hidden" name="stage" value={stage} />
+                                <ActionButton
+                                  haptic="tap"
+                                  disabled={current}
+                                  className={
+                                    current
+                                      ? "cursor-default rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-semibold text-primary"
+                                      : "rounded-full px-2.5 py-1 text-[11px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+                                  }
+                                >
+                                  {STAGE_LABELS[stage]}
+                                </ActionButton>
+                              </form>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-faint">—</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-faint">
+                  <td colSpan={6} className="px-4 py-10 text-center text-faint">
                     No orders yet.
                   </td>
                 </tr>

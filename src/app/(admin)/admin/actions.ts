@@ -5,6 +5,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { audit, requireAdmin } from "@/lib/authz";
 import { deleteRoom } from "@/lib/livekit";
+import { notifyAccountStatus, notifySellerReviewed } from "@/lib/notify";
 import { Role } from "@prisma/client";
 
 export type AdminActionState = { error?: string; success?: string };
@@ -128,6 +129,9 @@ export async function setUserActive(formData: FormData): Promise<void> {
     data: { isActive: active },
   });
   audit("admin.set-active", { by: admin.email, target: target.email, active });
+  // Being locked out without explanation is the worst version of this — so
+  // both suspension and reinstatement are always communicated.
+  notifyAccountStatus({ user: target, active });
 
   // Deactivating a seller mid-broadcast force-ends their stream too.
   if (!active) {
@@ -194,6 +198,11 @@ export async function approveSellerRequest(formData: FormData): Promise<void> {
     target: target.email,
     brand: request.brandName,
   });
+  notifySellerReviewed({
+    user: target,
+    approved: true,
+    applicationPhone: request.phone,
+  });
   revalidatePath("/admin/sellers");
   revalidatePath("/admin/users");
 }
@@ -218,6 +227,17 @@ export async function rejectSellerRequest(formData: FormData): Promise<void> {
   });
 
   audit("admin.reject-seller-request", { by: admin.email, requestId });
+
+  const applicant = await prisma.user.findUnique({
+    where: { id: request.userId },
+  });
+  if (applicant) {
+    notifySellerReviewed({
+      user: applicant,
+      approved: false,
+      applicationPhone: request.phone,
+    });
+  }
   revalidatePath("/admin/sellers");
 }
 

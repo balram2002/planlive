@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
 import { audit } from "@/lib/authz";
+import { notifyProfileUpdated, notifyShopAddressUpdated } from "@/lib/notify";
 
 export type ProfileFormState = { error?: string; success?: string };
 
@@ -64,12 +65,37 @@ export async function updateProfile(
 
   const imageUrl = sanitizeImageUrl(formData.get("imageUrl"));
 
+  // Optional WhatsApp number for account notifications. Empty clears it.
+  const phoneRaw = String(formData.get("phone") ?? "").trim().slice(0, 15);
+  if (phoneRaw && !/^[0-9+\-\s]{8,15}$/.test(phoneRaw)) {
+    return { error: "Enter a valid phone number." };
+  }
+  const phone = phoneRaw || null;
+
+  // Diff before writing, so the notification can name what actually changed
+  // — a security notice is only useful if it's specific.
+  const changed: string[] = [];
+  if (username !== user.username) changed.push("Username");
+  if (name !== user.name) changed.push("Name");
+  if (phone !== user.phone) changed.push("Phone number");
+  if (gender !== user.gender) changed.push("Gender");
+  if (birthday?.getTime() !== user.birthday?.getTime()) changed.push("Birthday");
+  if (imageUrl !== user.imageUrl) changed.push("Profile picture");
+
   await prisma.user.update({
     where: { id: user.id },
-    data: { username, name, gender, birthday, imageUrl },
+    data: { username, name, phone, gender, birthday, imageUrl },
   });
 
   audit("profile.update", { userId: user.id, username });
+  // Nothing actually changed — don't send a "your profile changed" alert.
+  if (changed.length > 0) {
+    notifyProfileUpdated({
+      user: { ...user, username, name, phone },
+      username,
+      changed,
+    });
+  }
   revalidatePath("/profile");
   return { success: "Profile saved." };
 }
@@ -130,6 +156,14 @@ export async function updateShopAddress(
   });
 
   audit("profile.shop-address", { userId: user.id, city: shop.city });
+  notifyShopAddressUpdated({
+    user,
+    shopName: shop.shopName,
+    city: shop.city,
+    pincode: shop.pincode,
+    shopPhone: shop.phone || null,
+  });
   revalidatePath("/profile");
+  revalidatePath("/shop-address");
   return { success: "Shop address saved." };
 }

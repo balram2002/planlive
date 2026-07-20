@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useToast } from "@/components/toast";
 import { AddressForm, type SavedAddress } from "@/components/profile/address-form";
+import { ProductThumb } from "@/components/product-thumb";
 import { formatPrice } from "@/lib/format";
+import { COD_DELIVERY_FEE_PAISE, priceBreakdown } from "@/lib/pricing";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
 import type { PinnedProduct } from "./viewer-room";
@@ -40,8 +42,14 @@ export function BuyDrawer({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [placing, setPlacing] = useState(false);
+  const [method, setMethod] = useState<"COD" | "ONLINE">("ONLINE");
   const [codOrder, setCodOrder] = useState<{ amountInPaise: number } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // Mirrors the server's pricing rules exactly (lib/pricing.ts).
+  const items = flow ? flow.product.priceInPaise : 0;
+  const cod = priceBreakdown(items, "COD");
+  const online = priceBreakdown(items, "ONLINE");
 
   // Reset when a new reservation flow opens — render-phase adjustment
   // (react.dev "adjusting state during render"), not an effect.
@@ -53,6 +61,7 @@ export function BuyDrawer({
       setStep("address");
       setCreating(false);
       setPlacing(false);
+      setMethod("ONLINE");
       setCodOrder(null);
     }
   }
@@ -199,9 +208,12 @@ export function BuyDrawer({
             {/* Product summary + hold countdown */}
             {step !== "success" ? (
               <div className="mb-4 flex items-center gap-3 rounded-2xl bg-surface-2 p-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-lg">
-                  🏷️
-                </span>
+                <ProductThumb
+                  src={flow.product.imageUrl}
+                  alt={flow.product.title}
+                  sizes="48px"
+                  className="w-12"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     {flow.product.title}
@@ -348,42 +360,138 @@ export function BuyDrawer({
                   ) : null}
 
                   <div className="space-y-2.5">
-                    <button
-                      type="button"
-                      disabled={placing}
-                      onClick={placeCod}
-                      className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left transition-all duration-200 hover:bg-surface-2 active:scale-[0.99] disabled:opacity-50"
+                    {/* Cash on delivery — carries a flat delivery charge, so
+                        the full breakdown is shown before committing. */}
+                    <div
+                      className={cn(
+                        "rounded-2xl border transition-colors duration-200",
+                        method === "COD"
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border bg-surface",
+                      )}
                     >
-                      <span className="text-xl">💵</span>
-                      <span className="flex-1">
-                        <span className="block text-sm font-semibold">
-                          Cash on Delivery
+                      <button
+                        type="button"
+                        onClick={() => {
+                          haptics.tap();
+                          setMethod("COD");
+                        }}
+                        className="flex w-full items-center gap-3 p-4 text-left"
+                      >
+                        <span className="text-xl">💵</span>
+                        <span className="flex-1">
+                          <span className="block text-sm font-semibold">
+                            Cash on Delivery
+                          </span>
+                          <span className="text-xs text-muted">
+                            Pay when it arrives · +
+                            {formatPrice(COD_DELIVERY_FEE_PAISE)} delivery
+                          </span>
                         </span>
-                        <span className="text-xs text-muted">
-                          Pay {formatPrice(flow.product.priceInPaise)} when it arrives
-                        </span>
-                      </span>
-                      {placing ? (
-                        <span className="text-xs text-faint">…</span>
-                      ) : null}
-                    </button>
+                        <Radio checked={method === "COD"} />
+                      </button>
 
-                    <button
-                      type="button"
-                      disabled={placing}
-                      onClick={payOnline}
-                      className="flex w-full items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-4 text-left transition-all duration-200 hover:bg-primary/10 active:scale-[0.99] disabled:opacity-50"
+                      <AnimatePresence initial={false}>
+                        {method === "COD" ? (
+                          <motion.div
+                            key="cod-summary"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t border-border/60 px-4 py-3">
+                              <SummaryRow
+                                label="Item total"
+                                value={formatPrice(cod.itemsInPaise)}
+                              />
+                              <SummaryRow
+                                label="Delivery charge"
+                                value={formatPrice(cod.deliveryFeeInPaise)}
+                              />
+                              <div className="my-2 border-t border-dashed border-border" />
+                              <SummaryRow
+                                label="Total payable"
+                                value={formatPrice(cod.totalInPaise)}
+                                strong
+                              />
+                              <button
+                                type="button"
+                                disabled={placing}
+                                onClick={placeCod}
+                                className="mt-3 w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+                              >
+                                {placing
+                                  ? "Placing order…"
+                                  : `Place order · ${formatPrice(cod.totalInPaise)}`}
+                              </button>
+                            </div>
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Online — no extra charges, so no breakdown needed. */}
+                    <div
+                      className={cn(
+                        "rounded-2xl border transition-colors duration-200",
+                        method === "ONLINE"
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border bg-surface",
+                      )}
                     >
-                      <span className="text-xl">⚡</span>
-                      <span className="flex-1">
-                        <span className="block text-sm font-semibold">
-                          Pay online
+                      <button
+                        type="button"
+                        onClick={() => {
+                          haptics.tap();
+                          setMethod("ONLINE");
+                        }}
+                        className="flex w-full items-center gap-3 p-4 text-left"
+                      >
+                        <span className="text-xl">⚡</span>
+                        <span className="flex-1">
+                          <span className="block text-sm font-semibold">
+                            Pay online
+                          </span>
+                          <span className="text-xs text-muted">
+                            UPI, cards, netbanking · no delivery charge
+                          </span>
                         </span>
-                        <span className="text-xs text-muted">
-                          UPI, cards, netbanking via Razorpay
-                        </span>
-                      </span>
-                    </button>
+                        <Radio checked={method === "ONLINE"} />
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {method === "ONLINE" ? (
+                          <motion.div
+                            key="online-summary"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t border-border/60 px-4 py-3">
+                              <SummaryRow
+                                label="Total payable"
+                                value={formatPrice(online.totalInPaise)}
+                                strong
+                              />
+                              <button
+                                type="button"
+                                disabled={placing}
+                                onClick={payOnline}
+                                className="mt-3 w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+                              >
+                                {placing
+                                  ? "Opening checkout…"
+                                  : `Pay ${formatPrice(online.totalInPaise)}`}
+                              </button>
+                            </div>
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </motion.div>
               ) : step === "processing" ? (
@@ -428,7 +536,7 @@ export function BuyDrawer({
                   <p className="mt-1 max-w-xs text-sm text-muted">
                     {flow.product.title} is yours
                     {codOrder
-                      ? ` — pay ${formatPrice(codOrder.amountInPaise)} on delivery.`
+                      ? ` — keep ${formatPrice(codOrder.amountInPaise)} ready for delivery (incl. ${formatPrice(COD_DELIVERY_FEE_PAISE)} delivery).`
                       : " — payment received."}
                   </p>
                   <div className="mt-6 flex w-full flex-col gap-2">
@@ -454,6 +562,52 @@ export function BuyDrawer({
         </>
       ) : null}
     </AnimatePresence>
+  );
+}
+
+/** One line of the price summary. */
+function SummaryRow({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span
+        className={cn(
+          "text-xs",
+          strong ? "font-semibold text-foreground" : "text-muted",
+        )}
+      >
+        {label}
+      </span>
+      <span
+        className={cn(
+          "tabular-nums",
+          strong ? "text-sm font-bold" : "text-xs font-medium",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/** Radio dot for the payment-method rows. */
+function Radio({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={cn(
+        "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200",
+        checked ? "border-primary" : "border-faint",
+      )}
+    >
+      {checked ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+    </span>
   );
 }
 

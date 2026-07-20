@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
 import { audit } from "@/lib/authz";
+import { priceBreakdown } from "@/lib/pricing";
+import { announceOrder } from "@/lib/order-events";
 
 /**
  * POST /api/checkout/cod  { reservationId, addressId }
@@ -61,6 +63,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Product no longer exists." }, { status: 404 });
   }
 
+  // COD adds the flat delivery charge on top of the goods. Computed here,
+  // never taken from the client — the drawer's summary just mirrors it.
+  const totals = priceBreakdown(
+    product.priceInPaise * reservation.quantity,
+    "COD",
+  );
+
   const addressJson = JSON.stringify({
     label: address.label,
     fullName: address.fullName,
@@ -86,7 +95,8 @@ export async function POST(req: NextRequest) {
         data: {
           reservationId: reservation.id,
           razorpayOrderId: "", // COD — no gateway order
-          amountInPaise: product.priceInPaise * reservation.quantity,
+          amountInPaise: totals.totalInPaise,
+          deliveryFeeInPaise: totals.deliveryFeeInPaise,
           status: "PLACED",
           paymentMethod: "COD",
           addressJson,
@@ -99,8 +109,20 @@ export async function POST(req: NextRequest) {
       orderId: order.id,
       reservationId: reservation.id,
     });
+
+    // Celebration in the live room + the buyer's receipt. Both fail-soft.
+    await announceOrder({
+      order,
+      reservation,
+      product,
+      buyer: user,
+      address,
+    });
+
     return NextResponse.json({
       orderId: order.id,
+      itemsInPaise: totals.itemsInPaise,
+      deliveryFeeInPaise: totals.deliveryFeeInPaise,
       amountInPaise: order.amountInPaise,
     });
   } catch (err) {

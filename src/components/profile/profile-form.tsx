@@ -24,6 +24,7 @@ export function ProfileForm({
   defaults: {
     username: string;
     name: string;
+    phone: string;
     imageUrl: string | null;
     birthday: string; // yyyy-mm-dd or ""
     gender: string;
@@ -75,6 +76,22 @@ export function ProfileForm({
           defaultValue={defaults.name}
           placeholder="Your full name"
           maxLength={60}
+        />
+      </Field>
+
+      <Field
+        label="WhatsApp number"
+        htmlFor="phone"
+        hint="Optional · we'll send order and account updates here"
+      >
+        <Input
+          id="phone"
+          name="phone"
+          type="tel"
+          inputMode="tel"
+          defaultValue={defaults.phone}
+          placeholder="98765 43210"
+          maxLength={15}
         />
       </Field>
 

@@ -32,6 +32,7 @@ export default async function ProfilePage() {
         defaults={{
           username: user.username ?? "",
           name: user.name ?? "",
+          phone: user.phone ?? "",
           imageUrl: user.imageUrl,
           birthday: user.birthday ? user.birthday.toISOString().slice(0, 10) : "",
           gender: user.gender ?? "",

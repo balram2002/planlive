@@ -37,12 +37,15 @@ export function ViewerMenu({
   videoHidden,
   onToggleVideo,
   shareTitle,
+  onShared,
 }: {
   audioMuted: boolean;
   onToggleAudio: () => void;
   videoHidden: boolean;
   onToggleVideo: () => void;
   shareTitle: string;
+  /** Fired once the viewer actually shares/copies — announces it in-room. */
+  onShared?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const mounted = useMounted();
@@ -61,8 +64,9 @@ export function ViewerMenu({
         await navigator.clipboard.writeText(url);
         toast({ title: "Link copied", variant: "success" });
       }
+      onShared?.();
     } catch {
-      // Dismissed.
+      // Dismissed — nothing was shared, so don't announce it.
     }
     close();
   }
@@ -71,6 +75,7 @@ export function ViewerMenu({
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast({ title: "Link copied", variant: "success" });
+      onShared?.();
     } catch {
       toast({ title: "Couldn't copy link", variant: "error" });
     }

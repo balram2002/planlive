@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
+import { ImageUploader } from "@/components/upload/image-uploader";
 import { useToast } from "@/components/toast";
 import type { FormState } from "@/app/(seller)/dashboard/actions";
 
@@ -17,11 +18,19 @@ export function ProductForm({
 }: {
   action: Action;
   submitLabel: string;
-  defaultValues?: { title?: string; priceRupees?: number; stock?: number };
+  defaultValues?: {
+    title?: string;
+    priceRupees?: number;
+    stock?: number;
+    imageUrl?: string | null;
+  };
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     action,
     {},
+  );
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    defaultValues?.imageUrl ?? null,
   );
   const { toast } = useToast();
 
@@ -31,6 +40,24 @@ export function ProductForm({
 
   return (
     <form action={formAction} className="space-y-5">
+      <div>
+        <ImageUploader
+          kind="product"
+          label="Product photo (required)"
+          value={imageUrl}
+          onChange={setImageUrl}
+          aspect="tile"
+          maxWidth={1080}
+        />
+        <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+        {!imageUrl ? (
+          <p className="mt-2 text-xs text-faint">
+            Buyers see this photo in the live room, the product list and their
+            orders. Square crops look best.
+          </p>
+        ) : null}
+      </div>
+
       <Field label="Product title" htmlFor="title">
         <Input
           id="title"
@@ -79,12 +106,14 @@ export function ProductForm({
       ) : null}
 
       <div className="flex gap-3 pt-1">
-        <Button type="submit" disabled={pending} className="flex-1">
+        <Button type="submit" disabled={pending || !imageUrl} className="flex-1">
           {pending ? (
-          <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
-        ) : (
-          submitLabel
-        )}
+            <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+          ) : !imageUrl ? (
+            "Add a photo to continue"
+          ) : (
+            submitLabel
+          )}
         </Button>
         <Link
           href="/dashboard"

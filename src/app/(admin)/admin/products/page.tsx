@@ -2,6 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ProductThumb } from "@/components/product-thumb";
+import { ActionButton } from "@/components/ui/action-button";
+import { ProductRowEditor } from "@/components/admin/product-row-editor";
+import { adminDeleteProduct } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +64,7 @@ export default async function AdminProductsPage({
                 <th className="px-4 py-3 font-medium">Price</th>
                 <th className="px-4 py-3 font-medium">Stock</th>
                 <th className="px-4 py-3 font-medium">Live</th>
+                <th className="px-4 py-3 font-medium">Manage</th>
               </tr>
             </thead>
             <tbody>
@@ -68,8 +73,17 @@ export default async function AdminProductsPage({
                   key={product.id}
                   className="border-b border-border/60 last:border-0 transition-colors hover:bg-surface-2/50"
                 >
-                  <td className="max-w-[240px] truncate px-4 py-3 font-medium">
-                    {product.title}
+                  <td className="max-w-[240px] px-4 py-3 font-medium">
+                    <span className="flex items-center gap-2.5">
+                      <ProductThumb
+                        src={product.imageUrl}
+                        alt=""
+                        sizes="36px"
+                        rounded="rounded-lg"
+                        className="w-9"
+                      />
+                      <span className="min-w-0 truncate">{product.title}</span>
+                    </span>
                   </td>
                   <td className="max-w-[200px] truncate px-4 py-3 text-muted">
                     {sellerById.get(product.sellerId) ?? "—"}
@@ -85,11 +99,43 @@ export default async function AdminProductsPage({
                   <td className="px-4 py-3">
                     {product.streamId ? <Badge tone="live">Live</Badge> : <span className="text-faint">—</span>}
                   </td>
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex items-center gap-1">
+                      <ProductRowEditor
+                        product={{
+                          id: product.id,
+                          title: product.title,
+                          priceInPaise: product.priceInPaise,
+                          availableStock: product.availableStock,
+                          imageUrl: product.imageUrl,
+                          isLive: product.streamId !== null,
+                        }}
+                      />
+                      {product.streamId ? (
+                        <span
+                          className="cursor-not-allowed px-3 py-1.5 text-xs font-medium text-faint"
+                          title="Featured in a live stream — end the stream first"
+                        >
+                          Delete
+                        </span>
+                      ) : (
+                        <form action={adminDeleteProduct}>
+                          <input type="hidden" name="id" value={product.id} />
+                          <ActionButton
+                            haptic="impact"
+                            className="rounded-full px-3 py-1.5 text-xs font-medium text-live transition-colors hover:bg-live/10"
+                          >
+                            Delete
+                          </ActionButton>
+                        </form>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-faint">
+                  <td colSpan={6} className="px-4 py-10 text-center text-faint">
                     No products found{q ? ` for “${q}”` : ""}.
                   </td>
                 </tr>

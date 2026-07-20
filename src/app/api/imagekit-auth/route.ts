@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   if (!(kind in IMAGEKIT_FOLDERS)) {
     return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
   }
-  if ((kind === "thumbnail" || kind === "category") && !isSeller(user)) {
+  if (kind !== "avatar" && !isSeller(user)) {
     return NextResponse.json({ error: "Sellers only" }, { status: 403 });
   }
 

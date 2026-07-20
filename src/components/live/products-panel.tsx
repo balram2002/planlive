@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import { ProductThumb } from "@/components/product-thumb";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import type { PinnedProduct } from "./viewer-room";
@@ -101,9 +102,12 @@ export function ProductsPanel({
                           </span>
                         ) : null}
                         <div className="flex items-start gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-lg">
-                            🏷️
-                          </div>
+                          <ProductThumb
+                            src={product.imageUrl}
+                            alt={product.title}
+                            sizes="64px"
+                            className="w-16"
+                          />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">
                               {product.title}

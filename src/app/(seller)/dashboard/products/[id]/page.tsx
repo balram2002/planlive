@@ -29,6 +29,7 @@ export default async function EditProductPage({
           title: product.title,
           priceRupees: product.priceInPaise / 100,
           stock: product.availableStock,
+          imageUrl: product.imageUrl,
         }}
       />
     </div>

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcastToRoom } from "@/lib/livekit";
 import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
+import { announceOrder, announcePaymentFailed } from "@/lib/order-events";
 
 /**
  * Razorpay webhook (configure `payment.captured` + `payment.failed` events).
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
         return { ok: true as const, reclaimed: true };
       });
 
-      await prisma.order.update({
+      const paidOrder = await prisma.order.update({
         where: { id: order.id },
         data: { status: "PAID", razorpayPaymentId: payment.id },
       });
@@ -100,29 +101,55 @@ export async function POST(req: NextRequest) {
         break;
       }
 
-      if (confirmed.reclaimed) {
+      const [product, buyer, stream] = await Promise.all([
+        prisma.product.findUnique({ where: { id: reservation.productId } }),
+        prisma.user.findUnique({ where: { id: reservation.userId } }),
+        prisma.stream.findUnique({ where: { id: reservation.streamId } }),
+      ]);
+
+      if (confirmed.reclaimed && product && stream?.status === "LIVE") {
         // Stock changed again — tell viewers.
-        const [product, stream] = await Promise.all([
-          prisma.product.findUnique({ where: { id: reservation.productId } }),
-          prisma.stream.findUnique({ where: { id: reservation.streamId } }),
-        ]);
-        if (product && stream?.status === "LIVE") {
-          await broadcastToRoom(stream.livekitRoomName, {
-            type: "stock",
-            productId: product.id,
-            availableStock: product.availableStock,
-          });
-        }
+        await broadcastToRoom(stream.livekitRoomName, {
+          type: "stock",
+          productId: product.id,
+          availableStock: product.availableStock,
+        });
+      }
+
+      // Live-room celebration + receipt email, same as the COD path.
+      if (product && buyer) {
+        await announceOrder({
+          order: paidOrder,
+          reservation,
+          product,
+          buyer,
+          address: null,
+        });
       }
       break;
     }
 
     case "payment.failed": {
       // Reservation stays PENDING so the buyer can retry until it expires.
-      await prisma.order.updateMany({
+      const flipped = await prisma.order.updateMany({
         where: { id: order.id, status: "CREATED" },
         data: { status: "FAILED" },
       });
+      // Only notify on the first failure — Razorpay retries this event.
+      if (flipped.count === 0) break;
+
+      const reservation = await prisma.reservation.findUnique({
+        where: { id: order.reservationId },
+      });
+      if (!reservation) break;
+
+      const [product, buyer] = await Promise.all([
+        prisma.product.findUnique({ where: { id: reservation.productId } }),
+        prisma.user.findUnique({ where: { id: reservation.userId } }),
+      ]);
+      if (product && buyer) {
+        await announcePaymentFailed({ order, product, buyer });
+      }
       break;
     }
 

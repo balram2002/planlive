@@ -20,7 +20,7 @@ export function TopBar({ role = null }: { role?: NavRole }) {
           <>
             <Link
               href="/"
-              aria-label="LiveShop home"
+              aria-label="liveWAB home"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-black text-white transition-opacity active:opacity-80"
             >
               L
@@ -46,7 +46,7 @@ export function TopBar({ role = null }: { role?: NavRole }) {
               href="/"
               className="flex items-center gap-2 transition-opacity active:opacity-70"
             >
-              <span className="text-lg font-bold tracking-tight">LiveShop</span>
+              <span className="text-lg font-bold tracking-tight">liveWAB</span>
               <LiveBadge />
             </Link>
             <div className="ml-auto flex items-center gap-2.5">

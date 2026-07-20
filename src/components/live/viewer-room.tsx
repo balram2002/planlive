@@ -43,13 +43,19 @@ export type PinnedProduct = {
 };
 
 /**
- * Viewer room options — the other half of the HD fix.
+ * Viewer quality: take the best layer the network can carry, never below 720p.
  *
- * adaptiveStream (LiveKit's default) picks a simulcast layer from the
- * *rendered element size*. Our player lives in a phone-width column, so it
- * was requesting the smallest layer — that's the 360p viewers reported.
- * We turn it off and explicitly request HIGH quality; combined with the
- * publisher only offering 720p/1080p layers, playback stays HD.
+ * adaptiveStream (LiveKit's default) chooses a simulcast layer from the
+ * *rendered element size*. Our player sits in a phone-width column, so it
+ * kept asking for the smallest layer — that was the 360p viewers reported.
+ * It stays OFF here: element size must never cap quality on a 4K-capable
+ * stream being watched full-screen on a laptop.
+ *
+ * setVideoQuality(HIGH) is a **ceiling**, not a pin (per LiveKit's docs:
+ * "specify maximum receivable quality"). So the SFU still steps down under
+ * genuine congestion — but the publisher's ladder bottoms out at 720p, so
+ * "stepped down" means 1080p, and worst case 720p. Exactly the intent:
+ * 4K/1440p when the connection is great, 1080p normally, 720p at worst.
  */
 const VIEWER_ROOM_OPTIONS: RoomOptions = {
   adaptiveStream: false,
@@ -425,7 +431,7 @@ function ViewerStage({
               onToggleAudio={() => setAudioMuted((v) => !v)}
               videoHidden={videoHidden}
               onToggleVideo={() => setVideoHidden((v) => !v)}
-              shareTitle={`@${sellerName} is live on LiveShop`}
+              shareTitle={`@${sellerName} is live on liveWAB`}
             />
             {/* Close */}
             <Link

@@ -29,7 +29,7 @@ export default async function SignInPage({
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-12 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
         <Link href="/" className="relative mb-6 inline-flex items-center gap-2">
-          <span className="text-2xl font-bold tracking-tight">LiveShop</span>
+          <span className="text-2xl font-bold tracking-tight">liveWAB</span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-live px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-white">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-live-pulse" />
             Live

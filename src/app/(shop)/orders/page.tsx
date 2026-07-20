@@ -4,6 +4,7 @@ import { SignInButton } from "@clerk/nextjs";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { loadOrderRows } from "@/lib/order-rows";
 import { OrderList } from "@/components/order-list";
+import { BrandFooter } from "@/components/brand-footer";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -59,6 +60,7 @@ export default async function OrdersPage() {
       ) : (
         <OrderList rows={purchases} empty="" />
       )}
+      <BrandFooter />
     </div>
   );
 }

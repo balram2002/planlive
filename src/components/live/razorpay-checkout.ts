@@ -67,7 +67,7 @@ export async function openRazorpayCheckout(opts: {
       order_id: opts.razorpayOrderId,
       amount: opts.amountInPaise,
       currency: opts.currency,
-      name: "LiveShop",
+      name: "liveWAB",
       description: opts.productTitle,
       prefill: opts.email ? { email: opts.email } : undefined,
       theme: { color: "#f43f5e" },

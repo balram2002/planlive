@@ -23,12 +23,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: "LiveShop — Shop live, buy now",
-    template: "%s · LiveShop",
+    default: "liveWAB — Shop live, buy now",
+    template: "%s · liveWAB",
   },
   description:
     "Watch sellers go live, grab products in real time, and check out in seconds. Live shopping with instant Buy Now reservations.",
-  applicationName: "LiveShop",
+  applicationName: "liveWAB",
   keywords: [
     "live shopping",
     "live commerce",
@@ -38,15 +38,15 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
-    siteName: "LiveShop",
-    title: "LiveShop — Shop live, buy now",
+    siteName: "liveWAB",
+    title: "liveWAB — Shop live, buy now",
     description:
       "Watch sellers go live, grab products in real time, and check out in seconds.",
     url: "/",
   },
   twitter: {
     card: "summary",
-    title: "LiveShop — Shop live, buy now",
+    title: "liveWAB — Shop live, buy now",
     description:
       "Watch sellers go live, grab products in real time, and check out in seconds.",
   },
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "LiveShop",
+    title: "liveWAB",
   },
 };
 

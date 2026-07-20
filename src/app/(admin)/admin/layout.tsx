@@ -32,7 +32,7 @@ export default async function AdminLayout({
 
   return (
     <PanelShell
-      brand="LiveShop"
+      brand="liveWAB"
       brandHref="/admin"
       accent="Admin"
       themeClass="theme-admin"

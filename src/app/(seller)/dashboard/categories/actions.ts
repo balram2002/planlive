@@ -33,6 +33,13 @@ export async function createCategory(
     String(formData.get("subcategory") ?? "").trim().slice(0, 40) || null;
   if (name.length < 2) return { error: "Category name is too short." };
 
+  // Image is mandatory — the buyer homepage carousel is image-first, so a
+  // category without artwork would leave a hole in it.
+  const imageUrl = sanitizeImage(formData.get("imageUrl"));
+  if (!imageUrl) {
+    return { error: "Upload a category image before creating it." };
+  }
+
   const duplicate = await prisma.category.findFirst({
     where: { name: { equals: name, mode: "insensitive" }, subcategory },
   });
@@ -42,7 +49,7 @@ export async function createCategory(
     data: {
       name,
       subcategory,
-      imageUrl: sanitizeImage(formData.get("imageUrl")),
+      imageUrl,
       createdBy: user.id,
       isActive: true,
     },

@@ -9,7 +9,7 @@ import { ButtonLink } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Become a seller",
-  description: "Apply to sell live on LiveShop.",
+  description: "Apply to sell live on liveWAB.",
 };
 
 const perks = [

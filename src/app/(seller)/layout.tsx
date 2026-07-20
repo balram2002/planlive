@@ -26,7 +26,7 @@ export default function SellerLayout({
 }) {
   return (
     <PanelShell
-      brand="LiveShop"
+      brand="liveWAB"
       brandHref="/"
       accent="Seller"
       themeClass="theme-seller"

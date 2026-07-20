@@ -54,7 +54,7 @@ export default async function DashboardPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-2xl">
             🛍️
           </div>
-          <h1 className="text-xl font-semibold">Sell on LiveShop</h1>
+          <h1 className="text-xl font-semibold">Sell on liveWAB</h1>
           <p className="mx-auto mt-2 max-w-xs text-sm text-muted">
             {request?.status === "PENDING"
               ? "Your seller application is under review — we'll unlock this dashboard once an admin approves it."

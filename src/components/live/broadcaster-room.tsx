@@ -30,43 +30,64 @@ import { cn } from "@/lib/cn";
 import { haptics } from "@/lib/haptics";
 
 /**
- * HD broadcast configuration — the reason viewers used to get 360p.
+ * Broadcast quality: hard 720p floor, up to 4K ceiling.
  *
- * LiveKit's defaults capture 720p but publish simulcast layers at 180p/360p
- * as well, and the SFU will happily serve those lower layers. Here we:
- *  - capture at 1080p30 (h1080 preset),
- *  - define ONLY two simulcast layers, 720p and 1080p, so no sub-720p
- *    encoding exists for any viewer to receive,
- *  - set explicit bitrates (3 Mbps for 1080p, 1.7 Mbps for 720p),
- *  - use "maintain-resolution" degradation so congestion drops frame rate
- *    instead of collapsing resolution,
- *  - keep dynacast on (pauses layers nobody watches — saves upstream CPU
- *    and bandwidth without ever lowering the quality that IS watched).
+ * How LiveKit actually builds simulcast (verified in livekit-client's
+ * computeVideoEncodings): WebRTC allows exactly three layers — rids
+ * ['q','h','f'] — and the library assembles them as
+ *
+ *     [ videoSimulcastLayers[0], videoSimulcastLayers[1], ORIGINAL_CAPTURE ]
+ *
+ * Only the first two entries we pass are used; the top layer is ALWAYS the
+ * real capture resolution. That gives us exactly the ladder we want:
+ *
+ *     q = 720p   (1280x720  @ 1.7 Mbps)  <- the floor; nothing lower exists
+ *     h = 1080p  (1920x1080 @ 3.0 Mbps)  <- the everyday sweet spot
+ *     f = camera native, up to 4K        <- 1440p/2160p when the seller's
+ *                                           camera and uplink allow
+ *
+ * Because no encoding below 720p is ever produced, no viewer on any network
+ * can be served worse than 720p — the floor is structural, not a preference.
+ *
+ * Capture asks for 4K as an `ideal` constraint (plain numeric values are
+ * "ideal" per the MediaTrackConstraints spec), so a 1080p webcam simply
+ * delivers 1080p instead of failing — the top layer then equals 1080p.
+ *
+ * Codec is H.264: hardware-encoded on virtually every phone and laptop,
+ * which is what makes 4K capture viable on mobile, and its simulcast path is
+ * the battle-tested one. VP9/AV1 are deliberately avoided here — LiveKit
+ * treats them as SVC codecs, and SVC's spatial ladder (2160/1080/540) would
+ * put the bottom layer at 540p and break the 720p floor.
  */
 const CAPTURE_OPTIONS: VideoCaptureOptions = {
-  resolution: VideoPresets.h1080.resolution,
+  // `ideal` 4K — degrades gracefully to whatever the camera supports.
+  resolution: VideoPresets.h2160.resolution,
   facingMode: "user",
 };
 
 const PUBLISH_DEFAULTS: TrackPublishDefaults = {
   simulcast: true,
-  // Only HD layers — 720p is the floor by construction.
+  // Bottom two rungs only; the third rung is the native capture (see above).
   videoSimulcastLayers: [VideoPresets.h720, VideoPresets.h1080],
   videoEncoding: {
-    maxBitrate: 3_000_000,
+    // Budget for the TOP layer. LiveKit builds `original` from this value,
+    // so it must be a 4K-grade bitrate or a 4K capture would be starved.
+    maxBitrate: VideoPresets.h2160.encoding.maxBitrate, // 8 Mbps
     maxFramerate: 30,
     priority: "high",
   },
+  // Under congestion drop frame rate, never resolution.
   degradationPreference: "maintain-resolution",
-  videoCodec: "vp9",
-  backupCodec: { codec: "vp8" },
+  videoCodec: "h264",
+  // Audio resilience (RED) + bandwidth saving on silence (DTX).
   red: true,
   dtx: true,
 };
 
 const ROOM_OPTIONS: RoomOptions = {
-  // Dynacast pauses unwatched layers; adaptiveStream stays OFF for the
-  // publisher's own preview so the local view is never downgraded.
+  // Dynacast pauses layers nobody is watching — with a 4K top layer this is
+  // what keeps the seller's uplink and CPU sane. adaptiveStream stays OFF so
+  // the publisher's own small preview never downgrades what we send.
   dynacast: true,
   videoCaptureDefaults: CAPTURE_OPTIONS,
   publishDefaults: PUBLISH_DEFAULTS,

@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 /** PWA manifest: installable app shell with theme-matched chrome. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "LiveShop — Shop live, buy now",
-    short_name: "LiveShop",
+    name: "liveWAB — Shop live, buy now",
+    short_name: "liveWAB",
     description:
       "Watch sellers go live, grab products in real time, and check out in seconds.",
     start_url: "/",

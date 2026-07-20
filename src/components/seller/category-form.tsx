@@ -47,17 +47,28 @@ export function CategoryForm() {
 
       <ImageUploader
         kind="category"
-        label="Category image (optional)"
+        label="Category image (required)"
         value={imageUrl}
         onChange={setImageUrl}
         aspect="square"
         maxWidth={512}
       />
       <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+      {!imageUrl ? (
+        <p className="-mt-2 text-xs text-faint">
+          Shown in the buyer&apos;s category carousel — an image is required.
+        </p>
+      ) : null}
 
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button
+        type="submit"
+        disabled={pending || !imageUrl}
+        className="w-full"
+      >
         {pending ? (
           <span className="inline-flex items-center gap-2"><Spinner /> Creating…</span>
+        ) : !imageUrl ? (
+          "Add an image to continue"
         ) : (
           "Add category"
         )}

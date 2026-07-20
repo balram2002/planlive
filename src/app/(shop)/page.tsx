@@ -1,12 +1,9 @@
-import Link from "next/link";
 import { getCurrentUser } from "@/lib/current-user";
 import { DiscoverExperience } from "@/components/discover-experience";
+import { BrandFooter } from "@/components/brand-footer";
 import { ButtonLink } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
-
-// Module scope: evaluated once, keeps the component render pure.
-const YEAR = new Date().getFullYear();
 
 const features = [
   { icon: "📡", label: "Live streams" },
@@ -52,6 +49,13 @@ export default async function Home({
     return (
       <div className="animate-page-in px-4 py-4">
         <DiscoverExperience basePath="/" categoryId={category} />
+        <BrandFooter
+          links={[
+            { href: "/play", label: "Play" },
+            { href: "/orders", label: "Orders" },
+            { href: "/become-a-seller", label: "Sell on liveWAB" },
+          ]}
+        />
       </div>
     );
   }
@@ -127,21 +131,13 @@ export default async function Home({
         </ol>
       </section>
 
-      <footer className="mt-10 border-t border-border pb-2 pt-6 text-center">
-        <p className="text-sm font-semibold">LiveShop</p>
-        <nav className="mt-3 flex items-center justify-center gap-4 text-xs text-muted">
-          <Link href="/discover" className="hover:text-foreground">
-            Live streams
-          </Link>
-          <Link href="/dashboard" className="hover:text-foreground">
-            Dashboard
-          </Link>
-          <Link href="/orders" className="hover:text-foreground">
-            Orders
-          </Link>
-        </nav>
-        <p className="mt-4 text-[10px] text-faint">© {YEAR} LiveShop</p>
-      </footer>
+      <BrandFooter
+        links={[
+          { href: "/discover", label: "Live streams" },
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/orders", label: "Orders" },
+        ]}
+      />
     </div>
   );
 }

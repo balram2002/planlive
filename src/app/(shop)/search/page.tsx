@@ -31,7 +31,7 @@ export default async function SearchPage({
       <div className="animate-page-in px-4 py-10">
         <EmptyState
           icon="🔎"
-          title="Search LiveShop"
+          title="Search liveWAB"
           description="Find live streams, categories, and sellers — try at least 2 characters."
         />
       </div>

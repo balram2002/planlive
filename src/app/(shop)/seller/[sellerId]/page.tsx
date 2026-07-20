@@ -23,7 +23,7 @@ export async function generateMetadata({
     const name = seller.username ?? seller.email.split("@")[0];
     return {
       title: `@${name}`,
-      description: `Shop @${name}'s live streams on LiveShop.`,
+      description: `Shop @${name}'s live streams on liveWAB.`,
     };
   } catch {
     return { title: "Seller" };

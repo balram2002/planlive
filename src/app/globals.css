@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ */
-/* LiveShop design system.                                             */
+/* liveWAB design system.                                             */
 /* Light theme is the default; dark is applied via the `.dark` class   */
 /* set by next-themes (system option supported). Tokens are CSS vars   */
 /* mapped into Tailwind v4 utilities via @theme inline, so             */

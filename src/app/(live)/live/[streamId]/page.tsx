@@ -17,7 +17,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const fallback: Metadata = {
     title: "Live stream",
-    description: "Watch live and shop in real time on LiveShop.",
+    description: "Watch live and shop in real time on liveWAB.",
   };
   try {
     const { streamId } = await params;
@@ -45,8 +45,8 @@ export async function generateMetadata({
     return {
       title,
       description,
-      openGraph: { title: `${title} · LiveShop`, description, url: `/live/${stream.id}` },
-      twitter: { card: "summary", title: `${title} · LiveShop`, description },
+      openGraph: { title: `${title} · liveWAB`, description, url: `/live/${stream.id}` },
+      twitter: { card: "summary", title: `${title} · liveWAB`, description },
     };
   } catch {
     return fallback;

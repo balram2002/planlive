@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
       {
         headers: {
-          "User-Agent": "LiveShop/1.0 (live-shopping app; address autofill)",
+          "User-Agent": "liveWAB/1.0 (live-shopping app; address autofill)",
           "Accept-Language": "en-IN,en",
         },
         // Nominatim results for a fixed point rarely change.

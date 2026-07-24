@@ -80,9 +80,9 @@ export function ProfileForm({
       </Field>
 
       <Field
-        label="WhatsApp number"
+        label="Phone number"
         htmlFor="phone"
-        hint="Optional · we'll send order and account updates here"
+        hint="Optional · used for delivery coordination"
       >
         <Input
           id="phone"

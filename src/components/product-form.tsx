@@ -23,6 +23,10 @@ export function ProductForm({
     priceRupees?: number;
     stock?: number;
     imageUrl?: string | null;
+    weightGrams?: number;
+    lengthCm?: number;
+    breadthCm?: number;
+    heightCm?: number;
   };
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
@@ -98,6 +102,72 @@ export function ProductForm({
           />
         </Field>
       </div>
+
+      {/* Parcel details — the courier prices and books from these. */}
+      <fieldset className="rounded-2xl border border-border p-4">
+        <legend className="px-1.5 text-xs font-semibold uppercase tracking-wide text-faint">
+          Parcel details
+        </legend>
+        <p className="mb-3 text-xs text-muted">
+          Measure the packed box. Couriers charge on whichever is greater —
+          actual weight or volume — so accurate numbers keep your costs down.
+        </p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Weight (grams)" htmlFor="weightGrams">
+            <Input
+              id="weightGrams"
+              name="weightGrams"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              placeholder="500"
+              defaultValue={defaultValues?.weightGrams ?? 500}
+              required
+            />
+          </Field>
+          <Field label="Length (cm)" htmlFor="lengthCm">
+            <Input
+              id="lengthCm"
+              name="lengthCm"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              placeholder="25"
+              defaultValue={defaultValues?.lengthCm ?? 25}
+              required
+            />
+          </Field>
+          <Field label="Breadth (cm)" htmlFor="breadthCm">
+            <Input
+              id="breadthCm"
+              name="breadthCm"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              placeholder="20"
+              defaultValue={defaultValues?.breadthCm ?? 20}
+              required
+            />
+          </Field>
+          <Field label="Height (cm)" htmlFor="heightCm">
+            <Input
+              id="heightCm"
+              name="heightCm"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              placeholder="5"
+              defaultValue={defaultValues?.heightCm ?? 5}
+              required
+            />
+          </Field>
+        </div>
+      </fieldset>
 
       {state.error ? (
         <p className="rounded-xl border border-live/30 bg-live/10 px-3 py-2 text-sm text-live">

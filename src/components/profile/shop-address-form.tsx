@@ -24,7 +24,14 @@ export type ShopAddress = {
 };
 
 /** Seller shop address with pinpoint "use my location" autofill. */
-export function ShopAddressForm({ initial }: { initial: ShopAddress | null }) {
+export function ShopAddressForm({
+  initial,
+  pickupLocationCode,
+}: {
+  initial: ShopAddress | null;
+  /** Eshopbox warehouse code for this seller's pickups. */
+  pickupLocationCode?: string | null;
+}) {
   const [state, formAction, pending] = useActionState<ProfileFormState, FormData>(
     updateShopAddress,
     {},
@@ -131,6 +138,21 @@ export function ShopAddressForm({ initial }: { initial: ShopAddress | null }) {
           />
         </Field>
       </div>
+
+      {/* Courier pickup — Eshopbox collects parcels from this location. */}
+      <Field
+        label="Eshopbox pickup location code"
+        htmlFor="shop-pickup"
+        hint="Optional · from your Eshopbox workspace. Leave blank to use the marketplace default."
+      >
+        <Input
+          id="shop-pickup"
+          name="pickupLocationCode"
+          defaultValue={pickupLocationCode ?? ""}
+          placeholder="e.g. WH-DEL-01"
+          maxLength={40}
+        />
+      </Field>
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? (

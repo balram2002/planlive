@@ -35,7 +35,10 @@ export function trackStage(status: OrderStatus): TrackStage | null {
     case "DELIVERED":
       return "DELIVERED";
     default:
-      return null; // CREATED / FAILED
+      // CREATED / FAILED never entered fulfilment; RTO and CANCELLED left it,
+      // so the three-stop track no longer describes them — they render their
+      // own badge instead of a misleading progress bar.
+      return null;
   }
 }
 

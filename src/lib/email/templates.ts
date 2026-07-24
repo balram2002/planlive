@@ -212,9 +212,35 @@ export function orderStatusEmail(input: {
   productTitle: string;
   status: "SHIPPED" | "DELIVERED";
   orderId: string;
+  courierName?: string | null;
+  trackingId?: string | null;
+  expectedDeliveryDate?: Date | null;
 }): EmailContent {
   const shipped = input.status === "SHIPPED";
   const accent = shipped ? COLORS.blue : COLORS.green;
+
+  // Courier block only renders once there's an AWB to show.
+  const courierRows: Row[] = [];
+  if (input.courierName) {
+    courierRows.push({ label: "Courier", value: input.courierName });
+  }
+  if (input.trackingId) {
+    courierRows.push({
+      label: "Tracking number",
+      value: input.trackingId,
+      strong: true,
+    });
+  }
+  if (shipped && input.expectedDeliveryDate) {
+    courierRows.push({
+      label: "Expected by",
+      value: input.expectedDeliveryDate.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+    });
+  }
 
   return {
     subject: shipped
@@ -225,7 +251,7 @@ export function orderStatusEmail(input: {
         ? `${input.productTitle} has left the seller.`
         : `${input.productTitle} was delivered.`,
       emoji: shipped ? "📦" : "✅",
-      eyebrow: shipped ? "Out for delivery" : "Delivered",
+      eyebrow: shipped ? "On the way" : "Delivered",
       heading: shipped ? "Your order has shipped" : "Your order was delivered",
       accent,
       body: `<p style="margin:0 0 4px 0;">Hi ${esc(input.buyerName)},</p>
@@ -235,6 +261,7 @@ export function orderStatusEmail(input: {
           : `<strong>${esc(input.productTitle)}</strong> has been delivered. We hope you love it!`
       }</p>
       ${progressTrack(shipped ? 1 : 2)}
+      ${courierRows.length > 0 ? rowsTable(courierRows) : ""}
       <p style="margin:18px 0 0 0;font-size:13px;color:${MUTED};">Order ID · ${esc(input.orderId)}</p>
       ${
         shipped
@@ -244,9 +271,40 @@ export function orderStatusEmail(input: {
               accent,
             )
       }
-      ${button(appUrl("/orders"), "View order", accent)}`,
+      ${button(appUrl("/orders"), "Track your order", accent)}`,
     }),
     text: `Hi ${input.buyerName}, ${input.productTitle} has been ${shipped ? "shipped" : "delivered"}.
+${input.courierName ? `Courier: ${input.courierName}\n` : ""}${input.trackingId ? `Tracking: ${input.trackingId}\n` : ""}Order ID: ${input.orderId}
+${appUrl("/orders")}`,
+  };
+}
+
+/** Parcel is being returned to the seller (RTO) — explain, don't alarm. */
+export function orderReturningEmail(input: {
+  buyerName: string;
+  productTitle: string;
+  orderId: string;
+}): EmailContent {
+  const accent = COLORS.amber;
+  return {
+    subject: `Your order is being returned — ${input.productTitle}`,
+    html: layout({
+      preheader: `${input.productTitle} is on its way back to the seller.`,
+      emoji: "↩️",
+      eyebrow: "Delivery unsuccessful",
+      heading: "Your order is coming back to us",
+      accent,
+      body: `<p style="margin:0 0 16px 0;">Hi ${esc(input.buyerName)}, the courier couldn't complete delivery of <strong>${esc(input.productTitle)}</strong>, so it's being returned to the seller.</p>
+      <p style="margin:0;">This usually happens after several failed delivery attempts, or when the address couldn't be reached.</p>
+      ${callout(
+        `If you paid online, your refund is processed automatically once the parcel reaches the seller — typically 5–7 working days after it arrives.`,
+        accent,
+      )}
+      <p style="margin:20px 0 0 0;font-size:13px;color:${MUTED};">Order ID · ${esc(input.orderId)}</p>
+      ${button(appUrl("/orders"), "View order", accent)}`,
+    }),
+    text: `Hi ${input.buyerName}, delivery of ${input.productTitle} was unsuccessful and it's being returned to the seller.
+If you paid online, your refund starts automatically once it arrives (5-7 working days).
 Order ID: ${input.orderId}
 ${appUrl("/orders")}`,
   };
@@ -486,6 +544,57 @@ export function sellerRejectedEmail(input: { name: string }): EmailContent {
       ${button(appUrl("/become-a-seller"), "Update and reapply", accent)}`,
     }),
     text: `Hi ${input.name}, your ${BRAND} seller application wasn't approved this time. You can update your details and apply again: ${appUrl("/become-a-seller")}`,
+  };
+}
+
+/**
+ * Seller alert: a parcel failed to book, or is being returned. Both need the
+ * seller to actually do something, so the reason is front and centre.
+ */
+export function shipmentIssueEmail(input: {
+  name: string;
+  productTitle: string;
+  orderId: string;
+  reason: string;
+  kind: "booking-failed" | "returning";
+}): EmailContent {
+  const failed = input.kind === "booking-failed";
+  const accent = failed ? COLORS.rose : COLORS.amber;
+
+  return {
+    subject: failed
+      ? `Shipment couldn't be booked — ${input.productTitle}`
+      : `Parcel returning to you — ${input.productTitle}`,
+    html: layout({
+      preheader: input.reason.slice(0, 120),
+      emoji: failed ? "⚠️" : "↩️",
+      eyebrow: failed ? "Action needed" : "Return to origin",
+      heading: failed
+        ? "We couldn't book this shipment"
+        : "A parcel is coming back to you",
+      accent,
+      body: `<p style="margin:0 0 16px 0;">Hi ${esc(input.name)}, ${
+        failed
+          ? `the courier rejected the booking for <strong>${esc(input.productTitle)}</strong>.`
+          : `<strong>${esc(input.productTitle)}</strong> couldn't be delivered and is being returned to your pickup address.`
+      }</p>
+      ${callout(esc(input.reason), accent)}
+      ${
+        failed
+          ? `<p style="margin:20px 0 0 0;">Fix the issue above, then retry from your Sales dashboard. Common causes are an unserviceable PIN code or parcel dimensions outside the courier's limits.</p>`
+          : `<p style="margin:20px 0 0 0;">No action is needed until it arrives. Once you receive it, restock the item so it can be sold again.</p>`
+      }
+      <p style="margin:20px 0 0 0;font-size:13px;color:${MUTED};">Order ID · ${esc(input.orderId)}</p>
+      ${button(appUrl("/dashboard/sales"), "Open Sales dashboard", accent)}`,
+    }),
+    text: `Hi ${input.name}, ${
+      failed
+        ? `the courier rejected the shipment booking for ${input.productTitle}.`
+        : `${input.productTitle} is being returned to you.`
+    }
+Reason: ${input.reason}
+Order ID: ${input.orderId}
+${appUrl("/dashboard/sales")}`,
   };
 }
 

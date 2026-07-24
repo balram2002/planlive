@@ -48,3 +48,15 @@ export const IconCalendar = () =>
 
 export const IconShield = () =>
   base({ d: "M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm-2.5 9 2 2 3.5-4" });
+
+/** Delivery truck — shipments / courier. */
+export const IconTruck = () =>
+  base({
+    d: "M3 7a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9H3V7Zm11 3h3.5l2.5 3v3h-6v-6Z",
+    extra: (
+      <>
+        <circle cx="7.5" cy="17.5" r="1.8" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="17" cy="17.5" r="1.8" stroke="currentColor" strokeWidth="1.8" />
+      </>
+    ),
+  });

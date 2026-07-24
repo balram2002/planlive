@@ -3,12 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { loadOrderRows } from "@/lib/order-rows";
 import { OrderList } from "@/components/order-list";
-import { ActionButton } from "@/components/ui/action-button";
+import { ShipmentPanel } from "@/components/shipping/shipment-panel";
 import { EmptyState } from "@/components/ui/empty-state";
-import { nextStage, STAGE_LABELS } from "@/lib/order-status";
-import { advanceOrderStatus } from "./actions";
+import { Card } from "@/components/ui/card";
+import { eshopboxConfigured } from "@/lib/eshopbox/client";
+import { isCancellable } from "@/lib/eshopbox/status-map";
 
 export const dynamic = "force-dynamic";
+
+/** Orders in these states are ready to hand to a courier. */
+const SHIPPABLE = new Set(["PAID", "PLACED"]);
 
 /** Seller sales history: every reservation/order against their products. */
 export default async function SalesPage() {
@@ -28,14 +32,52 @@ export default async function SalesPage() {
           await loadOrderRows({ productId: { in: myProducts.map((p) => p.id) } })
         ).filter((row) => row.reservation.userId !== user.id);
 
+  const shippingReady = eshopboxConfigured();
+
+  // "To pack" is the seller's actual working queue each morning.
+  const awaitingLabel = rows.filter(
+    (row) =>
+      row.order && SHIPPABLE.has(row.order.status) && !row.shipment?.trackingId,
+  ).length;
+  const toHandOver = rows.filter(
+    (row) => row.shipment && isCancellable(row.shipment.status),
+  ).length;
+
   return (
     <div className="animate-page-in space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Sales</h1>
         <p className="text-sm text-muted">
-          Reservations and payments on your products.
+          Orders on your products — book couriers and print labels here.
         </p>
       </div>
+
+      {!shippingReady ? (
+        <Card className="border-warning/30 bg-warning/5 p-4">
+          <p className="text-sm font-medium text-warning">
+            Shipping isn&apos;t connected yet
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Add your Eshopbox credentials to the server environment to book
+            couriers and print labels from here.
+          </p>
+        </Card>
+      ) : rows.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="p-4">
+            <p className="text-xs uppercase tracking-wide text-faint">
+              Awaiting label
+            </p>
+            <p className="mt-1 text-2xl font-bold tabular-nums">{awaitingLabel}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs uppercase tracking-wide text-faint">
+              Ready for pickup
+            </p>
+            <p className="mt-1 text-2xl font-bold tabular-nums">{toHandOver}</p>
+          </Card>
+        </div>
+      ) : null}
 
       {rows.length === 0 ? (
         <EmptyState
@@ -47,19 +89,28 @@ export default async function SalesPage() {
         <OrderList
           rows={rows}
           empty=""
+          // The seller panel below already shows courier state and controls.
+          showTracking={false}
           actions={(row) => {
-            const target = row.order ? nextStage(row.order.status) : null;
-            if (!row.order || !target) return null;
+            if (!row.order) return null;
             return (
-              <form action={advanceOrderStatus}>
-                <input type="hidden" name="orderId" value={row.order.id} />
-                <ActionButton
-                  haptic="tap"
-                  className="w-full rounded-full border border-border py-2 text-xs font-semibold transition-colors hover:border-primary/50 hover:bg-surface-2"
-                >
-                  Mark as {STAGE_LABELS[target].toLowerCase()}
-                </ActionButton>
-              </form>
+              <ShipmentPanel
+                orderId={row.order.id}
+                shippable={shippingReady && SHIPPABLE.has(row.order.status)}
+                shipment={
+                  row.shipment
+                    ? {
+                        status: row.shipment.status,
+                        trackingId: row.shipment.trackingId,
+                        courierName: row.shipment.courierName,
+                        labelUrl: row.shipment.labelUrl,
+                        courierStatus: row.shipment.courierStatus,
+                        lastError: row.shipment.lastError,
+                        cancellable: isCancellable(row.shipment.status),
+                      }
+                    : null
+                }
+              />
             );
           }}
         />

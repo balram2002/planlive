@@ -4,6 +4,7 @@ import { broadcastToRoom } from "@/lib/livekit";
 import {
   displayName,
   notifyOrderPlaced,
+  notifyOrderReturning,
   notifyOrderStatus,
   notifyPaymentFailed,
 } from "@/lib/notify";
@@ -42,7 +43,7 @@ function parseAddressSnapshot(json: string | null): AddressSnapshot | null {
  *
  *  1. broadcast a celebration packet to the live room (server-sent, so
  *     viewers can trust it — clients can't forge a purchase),
- *  2. notify the buyer by email + WhatsApp.
+ *  2. email the buyer their receipt.
  *
  * Both are best-effort: the order is already committed, and a failed
  * notification must never turn a successful purchase into an error.
@@ -87,8 +88,6 @@ export async function announceOrder(input: {
 
   notifyOrderPlaced({
     buyer,
-    // The courier calls the delivery number, so parcel updates go there.
-    deliveryPhone: snapshot?.phone || null,
     productTitle: product.title,
     quantity: reservation.quantity,
     itemsInPaise: order.amountInPaise - order.deliveryFeeInPaise,
@@ -100,20 +99,42 @@ export async function announceOrder(input: {
   });
 }
 
-/** Buyer notification when a seller advances an order to shipped/delivered. */
+/**
+ * Buyer notification when an order advances to shipped/delivered. Courier
+ * details are included when the parcel is booked with a carrier, so the
+ * email carries a real tracking number rather than a bare status change.
+ */
 export async function announceOrderStatus(input: {
   order: Order;
   product: Product;
   buyer: User;
   status: "SHIPPED" | "DELIVERED";
 }): Promise<void> {
-  const snapshot = parseAddressSnapshot(input.order.addressJson);
+  const shipment = await prisma.shipment
+    .findUnique({ where: { orderId: input.order.id } })
+    .catch(() => null);
+
   notifyOrderStatus({
     buyer: input.buyer,
-    deliveryPhone: snapshot?.phone || null,
     productTitle: input.product.title,
     orderId: input.order.id,
     status: input.status,
+    courierName: shipment?.courierName ?? null,
+    trackingId: shipment?.trackingId ?? null,
+    expectedDeliveryDate: shipment?.expectedDeliveryDate ?? null,
+  });
+}
+
+/** Buyer notification when a parcel is returned to the seller (RTO). */
+export async function announceOrderReturning(input: {
+  order: Order;
+  product: Product;
+  buyer: User;
+}): Promise<void> {
+  notifyOrderReturning({
+    buyer: input.buyer,
+    productTitle: input.product.title,
+    orderId: input.order.id,
   });
 }
 
@@ -123,10 +144,8 @@ export async function announcePaymentFailed(input: {
   product: Product;
   buyer: User;
 }): Promise<void> {
-  const snapshot = parseAddressSnapshot(input.order.addressJson);
   notifyPaymentFailed({
     buyer: input.buyer,
-    deliveryPhone: snapshot?.phone || null,
     productTitle: input.product.title,
     totalInPaise: input.order.amountInPaise,
   });

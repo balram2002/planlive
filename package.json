@@ -16,7 +16,10 @@
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "sweeper": "dotenv -e .env.local -- tsx scripts/sweeper.ts",
     "test:race": "dotenv -e .env.local -- tsx scripts/test-race.ts",
-    "make-admin": "dotenv -e .env.local -- tsx scripts/make-admin.ts"
+    "make-admin": "dotenv -e .env.local -- tsx scripts/make-admin.ts",
+    "email:verify": "dotenv -e .env.local -- tsx scripts/verify-email.ts",
+    "eshopbox:register-webhook": "dotenv -e .env.local -- tsx scripts/register-eshopbox-webhook.ts",
+    "shipments:sync": "dotenv -e .env.local -- tsx scripts/reconcile-shipments.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.12",
@@ -30,6 +33,7 @@
     "next": "16.2.9",
     "next-themes": "^0.4.6",
     "node-cron": "^4.5.0",
+    "nodemailer": "^9.0.3",
     "razorpay": "^2.9.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -38,6 +42,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv-cli": "^11.0.0",

@@ -14,6 +14,7 @@ import {
   IconBroadcast,
   IconChart,
   IconReceipt,
+  IconTruck,
   IconUsers,
 } from "@/components/panel-icons";
 
@@ -44,6 +45,7 @@ export default async function AdminLayout({
         { href: "/admin/streams", label: "Streams", icon: <IconBroadcast /> },
         { href: "/admin/products", label: "Products", icon: <IconBox /> },
         { href: "/admin/orders", label: "Orders", icon: <IconReceipt /> },
+        { href: "/admin/shipments", label: "Shipments", icon: <IconTruck /> },
       ]}
     >
       {children}

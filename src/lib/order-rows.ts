@@ -1,10 +1,12 @@
-import type { Order, Product, Reservation } from "@prisma/client";
+import type { Order, Product, Reservation, Shipment } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type OrderRow = {
   reservation: Reservation;
   product: Product | null;
   order: Order | null;
+  /** Courier booking, once the seller has created one. */
+  shipment: Shipment | null;
 };
 
 /**
@@ -30,12 +32,24 @@ export async function loadOrderRows(where: {
       where: { reservationId: { in: reservations.map((r) => r.id) } },
     }),
   ]);
+  const shipments =
+    orders.length === 0
+      ? []
+      : await prisma.shipment.findMany({
+          where: { orderId: { in: orders.map((o) => o.id) } },
+        });
+
   const productById = new Map(products.map((p) => [p.id, p]));
   const orderByReservation = new Map(orders.map((o) => [o.reservationId, o]));
+  const shipmentByOrder = new Map(shipments.map((s) => [s.orderId, s]));
 
-  return reservations.map((reservation) => ({
-    reservation,
-    product: productById.get(reservation.productId) ?? null,
-    order: orderByReservation.get(reservation.id) ?? null,
-  }));
+  return reservations.map((reservation) => {
+    const order = orderByReservation.get(reservation.id) ?? null;
+    return {
+      reservation,
+      product: productById.get(reservation.productId) ?? null,
+      order,
+      shipment: order ? (shipmentByOrder.get(order.id) ?? null) : null,
+    };
+  });
 }

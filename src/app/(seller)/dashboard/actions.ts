@@ -16,7 +16,19 @@ type ParsedProduct = {
   priceInPaise: number;
   availableStock: number;
   imageUrl: string;
+  weightGrams: number;
+  lengthCm: number;
+  breadthCm: number;
+  heightCm: number;
 };
+
+/** Parcel dimension bounds — beyond these no courier will accept the box. */
+const DIMENSION_LIMITS = {
+  weightGrams: { min: 1, max: 50_000, label: "Weight" },
+  lengthCm: { min: 1, max: 200, label: "Length" },
+  breadthCm: { min: 1, max: 200, label: "Breadth" },
+  heightCm: { min: 1, max: 200, label: "Height" },
+} as const;
 
 /** Only images we hosted ourselves (ImageKit or the local fallback). */
 function sanitizeImageUrl(value: unknown): string | null {
@@ -53,12 +65,33 @@ function parseProductForm(
     return { error: "Upload a product photo before saving." };
   }
 
+  // Parcel dimensions: the courier books from these, so they must be sane.
+  const parcel: Record<keyof typeof DIMENSION_LIMITS, number> = {
+    weightGrams: 0,
+    lengthCm: 0,
+    breadthCm: 0,
+    heightCm: 0,
+  };
+  for (const [field, limit] of Object.entries(DIMENSION_LIMITS) as [
+    keyof typeof DIMENSION_LIMITS,
+    (typeof DIMENSION_LIMITS)[keyof typeof DIMENSION_LIMITS],
+  ][]) {
+    const value = Number(formData.get(field));
+    if (!Number.isInteger(value) || value < limit.min || value > limit.max) {
+      return {
+        error: `${limit.label} must be a whole number between ${limit.min} and ${limit.max}.`,
+      };
+    }
+    parcel[field] = value;
+  }
+
   return {
     data: {
       title,
       priceInPaise: Math.round(priceRupees * 100),
       availableStock: stock,
       imageUrl,
+      ...parcel,
     },
   };
 }

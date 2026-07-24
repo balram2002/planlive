@@ -2,50 +2,28 @@ import "server-only";
 import type { User } from "@prisma/client";
 import { queueEmail } from "@/lib/email/send";
 import * as mail from "@/lib/email/templates";
-import { queueWhatsapp } from "@/lib/whatsapp/send";
-import * as wa from "@/lib/whatsapp/messages";
 
 /**
- * The single place that decides *what gets sent to whom* for each user
- * action. Call sites (routes, server actions) name the event; this module
- * owns the channels, the copy, and where the contact details come from.
+ * The single place that decides what gets sent for each user action.
+ * Call sites (routes, server actions) name the event; this module owns the
+ * copy and the recipient.
  *
- * Channel rules:
- *  - Email always goes to the account address.
- *  - WhatsApp goes to the ORDER's delivery phone for anything about a
- *    parcel — that's the number the courier will actually call — and to the
- *    profile number for everything else (account, security, seller status).
- *    A user with no profile number simply gets email only.
- *
- * Everything is queued, never awaited, and never throws.
+ * Everything is queued rather than awaited, and never throws — a failed
+ * notification must not turn a successful action into an error.
  */
 
-type Recipient = Pick<User, "username" | "name" | "email" | "phone">;
+type Recipient = Pick<User, "username" | "name" | "email">;
 
 /** Friendliest available name for a user. */
-export function displayName(
-  user: Pick<User, "username" | "name" | "email">,
-): string {
+export function displayName(user: Recipient): string {
   return user.name ?? user.username ?? user.email.split("@")[0];
 }
 
-/** Sends an email, plus WhatsApp when we have a usable number. */
-function dispatch(
-  to: { email: string; phone: string | null },
-  email: mail.EmailContent,
-  whatsapp: ((phone: string) => Parameters<typeof queueWhatsapp>[0]) | null,
-): void {
+function dispatch(to: string, email: mail.EmailContent): void {
   try {
-    queueEmail({ to: to.email, ...email });
+    queueEmail({ to, ...email });
   } catch (err) {
-    console.error("[notify] email dispatch failed:", err);
-  }
-
-  if (!whatsapp || !to.phone) return;
-  try {
-    queueWhatsapp(whatsapp(to.phone));
-  } catch (err) {
-    console.error("[notify] whatsapp dispatch failed:", err);
+    console.error("[notify] dispatch failed:", err);
   }
 }
 
@@ -53,8 +31,6 @@ function dispatch(
 
 export function notifyOrderPlaced(input: {
   buyer: Recipient;
-  /** Phone captured on the delivery address — preferred for parcel updates. */
-  deliveryPhone: string | null;
   productTitle: string;
   quantity: number;
   itemsInPaise: number;
@@ -64,18 +40,10 @@ export function notifyOrderPlaced(input: {
   orderId: string;
   address: { fullName: string; line1: string; city: string; pincode: string } | null;
 }): void {
-  const name = displayName(input.buyer);
-  const cod = input.paymentMethod === "COD";
-
   dispatch(
-    {
-      email: input.buyer.email,
-      // The delivery number is the one tied to this parcel; fall back to the
-      // account number when the address didn't carry one.
-      phone: input.deliveryPhone ?? input.buyer.phone,
-    },
+    input.buyer.email,
     mail.orderPlacedEmail({
-      buyerName: name,
+      buyerName: displayName(input.buyer),
       productTitle: input.productTitle,
       quantity: input.quantity,
       itemsInPaise: input.itemsInPaise,
@@ -85,78 +53,68 @@ export function notifyOrderPlaced(input: {
       orderId: input.orderId,
       address: input.address,
     }),
-    (to) =>
-      wa.waOrderPlaced({
-        to,
-        name,
-        productTitle: input.productTitle,
-        totalInPaise: input.totalInPaise,
-        orderId: input.orderId,
-        cod,
-      }),
   );
 }
 
 export function notifyOrderStatus(input: {
   buyer: Recipient;
-  deliveryPhone: string | null;
   productTitle: string;
   orderId: string;
   status: "SHIPPED" | "DELIVERED";
+  /** Courier details, when the parcel is booked with a carrier. */
+  courierName?: string | null;
+  trackingId?: string | null;
+  expectedDeliveryDate?: Date | null;
 }): void {
-  const name = displayName(input.buyer);
   dispatch(
-    {
-      email: input.buyer.email,
-      phone: input.deliveryPhone ?? input.buyer.phone,
-    },
+    input.buyer.email,
     mail.orderStatusEmail({
-      buyerName: name,
+      buyerName: displayName(input.buyer),
       productTitle: input.productTitle,
       status: input.status,
       orderId: input.orderId,
+      courierName: input.courierName ?? null,
+      trackingId: input.trackingId ?? null,
+      expectedDeliveryDate: input.expectedDeliveryDate ?? null,
     }),
-    (to) =>
-      wa.waOrderStatus({
-        to,
-        name,
-        productTitle: input.productTitle,
-        orderId: input.orderId,
-        status: input.status,
-      }),
   );
 }
 
 export function notifyPaymentFailed(input: {
   buyer: Recipient;
-  deliveryPhone: string | null;
   productTitle: string;
   totalInPaise: number;
 }): void {
-  const name = displayName(input.buyer);
   dispatch(
-    {
-      email: input.buyer.email,
-      phone: input.deliveryPhone ?? input.buyer.phone,
-    },
+    input.buyer.email,
     mail.paymentFailedEmail({
-      buyerName: name,
+      buyerName: displayName(input.buyer),
       productTitle: input.productTitle,
       totalInPaise: input.totalInPaise,
     }),
-    (to) => wa.waPaymentFailed({ to, name, productTitle: input.productTitle }),
+  );
+}
+
+/** Parcel is coming back to the seller — the buyer should hear it from us. */
+export function notifyOrderReturning(input: {
+  buyer: Recipient;
+  productTitle: string;
+  orderId: string;
+}): void {
+  dispatch(
+    input.buyer.email,
+    mail.orderReturningEmail({
+      buyerName: displayName(input.buyer),
+      productTitle: input.productTitle,
+      orderId: input.orderId,
+    }),
   );
 }
 
 // --------------------------------------------------------------- account
 
 export function notifyWelcome(user: Recipient): void {
-  const name = displayName(user);
-  dispatch(
-    { email: user.email, phone: user.phone },
-    mail.welcomeEmail({ name }),
-    (to) => wa.waWelcome({ to, name }),
-  );
+  dispatch(user.email, mail.welcomeEmail({ name: displayName(user) }));
 }
 
 export function notifyAddressAdded(input: {
@@ -168,12 +126,10 @@ export function notifyAddressAdded(input: {
   city: string;
   pincode: string;
 }): void {
-  const name = displayName(input.user);
   dispatch(
-    // Confirm to the number just added — that's the one being vouched for.
-    { email: input.user.email, phone: input.phone || input.user.phone },
+    input.user.email,
     mail.addressAddedEmail({
-      name,
+      name: displayName(input.user),
       label: input.label,
       fullName: input.fullName,
       phone: input.phone,
@@ -181,14 +137,6 @@ export function notifyAddressAdded(input: {
       city: input.city,
       pincode: input.pincode,
     }),
-    (to) =>
-      wa.waAddressAdded({
-        to,
-        name,
-        label: input.label,
-        city: input.city,
-        pincode: input.pincode,
-      }),
   );
 }
 
@@ -197,15 +145,13 @@ export function notifyProfileUpdated(input: {
   username: string;
   changed: string[];
 }): void {
-  const name = displayName(input.user);
   dispatch(
-    { email: input.user.email, phone: input.user.phone },
+    input.user.email,
     mail.profileUpdatedEmail({
-      name,
+      name: displayName(input.user),
       username: input.username,
       changed: input.changed,
     }),
-    (to) => wa.waProfileUpdated({ to, name }),
   );
 }
 
@@ -213,11 +159,12 @@ export function notifyAccountStatus(input: {
   user: Recipient;
   active: boolean;
 }): void {
-  const name = displayName(input.user);
   dispatch(
-    { email: input.user.email, phone: input.user.phone },
-    mail.accountStatusEmail({ name, active: input.active }),
-    (to) => wa.waAccountStatus({ to, name, active: input.active }),
+    input.user.email,
+    mail.accountStatusEmail({
+      name: displayName(input.user),
+      active: input.active,
+    }),
   );
 }
 
@@ -227,42 +174,26 @@ export function notifySellerApplied(input: {
   user: Recipient;
   brandName: string;
   category: string;
-  /** Phone from the application form — usually the best contact number. */
-  applicationPhone: string | null;
 }): void {
-  const name = displayName(input.user);
   dispatch(
-    {
-      email: input.user.email,
-      phone: input.applicationPhone ?? input.user.phone,
-    },
+    input.user.email,
     mail.sellerApplicationEmail({
-      name,
+      name: displayName(input.user),
       brandName: input.brandName,
       category: input.category,
     }),
-    (to) => wa.waSellerApplied({ to, name, brandName: input.brandName }),
   );
 }
 
 export function notifySellerReviewed(input: {
   user: Recipient;
   approved: boolean;
-  applicationPhone: string | null;
 }): void {
-  const name = displayName(input.user);
   dispatch(
-    {
-      email: input.user.email,
-      phone: input.applicationPhone ?? input.user.phone,
-    },
+    input.user.email,
     input.approved
-      ? mail.sellerApprovedEmail({ name })
-      : mail.sellerRejectedEmail({ name }),
-    (to) =>
-      input.approved
-        ? wa.waSellerApproved({ to, name })
-        : wa.waSellerRejected({ to, name }),
+      ? mail.sellerApprovedEmail({ name: displayName(input.user) })
+      : mail.sellerRejectedEmail({ name: displayName(input.user) }),
   );
 }
 
@@ -271,17 +202,34 @@ export function notifyShopAddressUpdated(input: {
   shopName: string;
   city: string;
   pincode: string;
-  shopPhone: string | null;
 }): void {
-  const name = displayName(input.user);
   dispatch(
-    { email: input.user.email, phone: input.shopPhone ?? input.user.phone },
+    input.user.email,
     mail.shopAddressUpdatedEmail({
-      name,
+      name: displayName(input.user),
       shopName: input.shopName,
       city: input.city,
       pincode: input.pincode,
     }),
-    (to) => wa.waShopUpdated({ to, name, city: input.city }),
+  );
+}
+
+/** Seller alert when a parcel fails to book or comes back as an RTO. */
+export function notifySellerShipmentIssue(input: {
+  seller: Recipient;
+  productTitle: string;
+  orderId: string;
+  reason: string;
+  kind: "booking-failed" | "returning";
+}): void {
+  dispatch(
+    input.seller.email,
+    mail.shipmentIssueEmail({
+      name: displayName(input.seller),
+      productTitle: input.productTitle,
+      orderId: input.orderId,
+      reason: input.reason,
+      kind: input.kind,
+    }),
   );
 }

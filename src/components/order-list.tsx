@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ProductThumb } from "@/components/product-thumb";
 import { OrderTrack } from "@/components/order-track";
+import { TrackingTimeline } from "@/components/shipping/tracking-timeline";
 import { formatPrice } from "@/lib/format";
 import { stageTimestamps, trackStage } from "@/lib/order-status";
 import type { OrderRow } from "@/lib/order-rows";
@@ -12,6 +14,10 @@ export function orderStatusBadge(row: OrderRow) {
       return <Badge tone="success">Delivered</Badge>;
     case "SHIPPED":
       return <Badge tone="primary">Shipped</Badge>;
+    case "RTO":
+      return <Badge tone="warning">Returning</Badge>;
+    case "CANCELLED":
+      return <Badge>Cancelled</Badge>;
     case "PAID":
       return <Badge tone="success">Paid</Badge>;
     case "PLACED":
@@ -45,10 +51,16 @@ export function OrderList({
   rows,
   empty,
   actions,
+  showTracking = true,
+  detailHref,
 }: {
   rows: OrderRow[];
   empty: string;
   actions?: (row: OrderRow) => React.ReactNode;
+  /** Set false where `actions` already renders courier detail (seller view). */
+  showTracking?: boolean;
+  /** Supply to render a "View details" link per row. */
+  detailHref?: (orderId: string) => string;
 }) {
   if (rows.length === 0) {
     return <p className="px-1 text-sm text-faint">{empty}</p>;
@@ -103,7 +115,27 @@ export function OrderList({
                 </>
               ) : null}
 
+              {/* Courier detail, once a parcel exists. Sellers get their own
+                  controls via `actions`, so this is the read-only view. */}
+              {showTracking && row.shipment?.trackingId ? (
+                <TrackingTimeline
+                  shipment={row.shipment}
+                  className="mt-3 border-t border-border/60 pt-3"
+                />
+              ) : null}
+
               {actions ? <div className="mt-3">{actions(row)}</div> : null}
+
+              {/* Buyers get a full detail page; the seller view has its own
+                  controls inline and doesn't need this. */}
+              {detailHref && row.order ? (
+                <Link
+                  href={detailHref(row.order.id)}
+                  className="mt-3 block rounded-full border border-border py-2 text-center text-xs font-semibold text-muted transition-colors hover:border-primary/50 hover:text-foreground"
+                >
+                  View details
+                </Link>
+              ) : null}
             </Card>
           </li>
         );

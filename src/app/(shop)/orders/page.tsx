@@ -58,7 +58,11 @@ export default async function OrdersPage() {
           description="Buy something from a live stream and it'll show up here."
         />
       ) : (
-        <OrderList rows={purchases} empty="" />
+        <OrderList
+          rows={purchases}
+          empty=""
+          detailHref={(id) => `/orders/${id}`}
+        />
       )}
       <BrandFooter />
     </div>

@@ -65,7 +65,7 @@ export async function updateProfile(
 
   const imageUrl = sanitizeImageUrl(formData.get("imageUrl"));
 
-  // Optional WhatsApp number for account notifications. Empty clears it.
+  // Optional contact number for delivery coordination. Empty clears it.
   const phoneRaw = String(formData.get("phone") ?? "").trim().slice(0, 15);
   if (phoneRaw && !/^[0-9+\-\s]{8,15}$/.test(phoneRaw)) {
     return { error: "Enter a valid phone number." };
@@ -91,7 +91,7 @@ export async function updateProfile(
   // Nothing actually changed — don't send a "your profile changed" alert.
   if (changed.length > 0) {
     notifyProfileUpdated({
-      user: { ...user, username, name, phone },
+      user: { ...user, username, name },
       username,
       changed,
     });
@@ -150,9 +150,15 @@ export async function updateShopAddress(
     shop.longitude = lon;
   }
 
+  // Eshopbox warehouse code; blank falls back to the marketplace default.
+  const pickupLocationCode =
+    String(formData.get("pickupLocationCode") ?? "")
+      .trim()
+      .slice(0, 40) || null;
+
   await prisma.user.update({
     where: { id: user.id },
-    data: { shopAddressJson: JSON.stringify(shop) },
+    data: { shopAddressJson: JSON.stringify(shop), pickupLocationCode },
   });
 
   audit("profile.shop-address", { userId: user.id, city: shop.city });
@@ -161,7 +167,6 @@ export async function updateShopAddress(
     shopName: shop.shopName,
     city: shop.city,
     pincode: shop.pincode,
-    shopPhone: shop.phone || null,
   });
   revalidatePath("/profile");
   revalidatePath("/shop-address");

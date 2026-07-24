@@ -38,7 +38,10 @@ export default async function ShopAddressPage() {
       </div>
 
       <Card className="p-5">
-        <ShopAddressForm initial={parseShopAddress(user.shopAddressJson)} />
+        <ShopAddressForm
+          initial={parseShopAddress(user.shopAddressJson)}
+          pickupLocationCode={user.pickupLocationCode}
+        />
       </Card>
     </div>
   );

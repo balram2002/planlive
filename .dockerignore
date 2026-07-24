@@ -1,0 +1,44 @@
+# Build context hygiene: everything here is either rebuilt inside the image,
+# host-specific, or must never reach a layer (secrets).
+
+node_modules
+.next
+out
+build
+dist
+
+# Secrets — env values are injected at runtime via docker-compose env_file,
+# never baked into an image layer.
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+.github
+
+# Editor / OS noise
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.swp
+
+# Local artefacts
+npm-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+next-env.d.ts
+coverage
+.claude
+
+# Locally uploaded images live in a Docker volume, not in the image.
+public/uploads
+
+# Docs and deployment files aren't needed by the build.
+README.md
+docs
+deploy
+Dockerfile
+.dockerignore
+docker-compose*.yml

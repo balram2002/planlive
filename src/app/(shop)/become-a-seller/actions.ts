@@ -65,13 +65,7 @@ export async function applySeller(
   });
 
   audit("seller-request.apply", { userId: user.id, brandName });
-  notifySellerApplied({
-    user,
-    brandName,
-    category,
-    // The number they just gave us is the best way to reach them.
-    applicationPhone: phone,
-  });
+  notifySellerApplied({ user, brandName, category });
   revalidatePath("/become-a-seller");
   redirect("/become-a-seller?submitted=1");
 }

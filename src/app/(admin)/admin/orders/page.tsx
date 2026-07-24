@@ -9,13 +9,18 @@ import { adminSetOrderStage } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-const orderTone: Record<OrderStatus, "success" | "warning" | "live" | "primary"> = {
+const orderTone: Record<
+  OrderStatus,
+  "success" | "warning" | "live" | "primary" | "neutral"
+> = {
   PAID: "success",
   PLACED: "success",
   SHIPPED: "primary",
   DELIVERED: "success",
   CREATED: "warning",
   FAILED: "live",
+  RTO: "warning",
+  CANCELLED: "neutral",
 };
 
 export default async function AdminOrdersPage() {

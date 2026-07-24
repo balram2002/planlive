@@ -198,11 +198,7 @@ export async function approveSellerRequest(formData: FormData): Promise<void> {
     target: target.email,
     brand: request.brandName,
   });
-  notifySellerReviewed({
-    user: target,
-    approved: true,
-    applicationPhone: request.phone,
-  });
+  notifySellerReviewed({ user: target, approved: true });
   revalidatePath("/admin/sellers");
   revalidatePath("/admin/users");
 }
@@ -232,11 +228,7 @@ export async function rejectSellerRequest(formData: FormData): Promise<void> {
     where: { id: request.userId },
   });
   if (applicant) {
-    notifySellerReviewed({
-      user: applicant,
-      approved: false,
-      applicationPhone: request.phone,
-    });
+    notifySellerReviewed({ user: applicant, approved: false });
   }
   revalidatePath("/admin/sellers");
 }

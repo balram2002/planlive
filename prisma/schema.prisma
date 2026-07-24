@@ -1,5 +1,9 @@
 generator client {
   provider = "prisma-client-js"
+  // "native" covers local development on any OS. The musl target is the
+  // Alpine engine the Docker image needs — without it the container starts
+  // and then fails on the first query with "Query engine library not found".
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -25,6 +29,9 @@ model User {
   gender    String?
   // Seller's shop address snapshot (JSON incl. lat/lng), edited on /profile.
   shopAddressJson String?
+  // Eshopbox pickup location code for this seller's warehouse. Falls back to
+  // ESHOPBOX_PICKUP_LOCATION_CODE when unset.
+  pickupLocationCode String?
   createdAt DateTime  @default(now())
 }
 
@@ -109,6 +116,12 @@ model Product {
   // Required for every new product; optional in the DB so listings created
   // before images were mandatory still load.
   imageUrl       String?
+  // Parcel dimensions — Eshopbox requires all four to book a shipment.
+  // Defaults cover a small apparel packet so legacy rows stay shippable.
+  weightGrams    Int     @default(500)
+  lengthCm       Int     @default(25)
+  breadthCm      Int     @default(20)
+  heightCm       Int     @default(5)
   streamId       String? @db.ObjectId
 }
 
@@ -175,6 +188,60 @@ enum OrderStatus {
   PLACED
   SHIPPED
   DELIVERED
+  // Courier exception states, driven by the Eshopbox tracking webhook.
+  // RTO = return to origin (delivery failed, parcel coming back to seller).
+  RTO
+  CANCELLED
+}
+
+/// A parcel booked with Eshopbox for one order.
+model Shipment {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId  String @unique @db.ObjectId
+  sellerId String @db.ObjectId
+
+  /// The `shipmentId` we send to Eshopbox — our idempotency key with them.
+  externalShipmentId String  @unique
+  /// AWB / tracking number issued by the courier.
+  trackingId         String?
+  courierName        String?
+  shippingMode       String?
+  /// Signed PDF link Eshopbox returns; sellers print this to pack.
+  labelUrl           String?
+  routingCode        String?
+
+  status ShipmentStatus @default(BOOKED)
+  /// Raw Eshopbox status string (PICKED_UP, INTRANSIT, RTO…), kept verbatim
+  /// so a status we don't map yet is still visible for support.
+  courierStatus String?
+  /// Full statusLogs array from the tracking API, as JSON.
+  statusLogsJson       String?
+  expectedDeliveryDate DateTime?
+
+  bookedAt    DateTime  @default(now())
+  pickedUpAt  DateTime?
+  deliveredAt DateTime?
+  cancelledAt DateTime?
+  /// Last time we successfully reconciled against Eshopbox.
+  syncedAt    DateTime?
+  /// Populated when booking fails, so the seller sees why.
+  lastError   String?
+
+  updatedAt DateTime @updatedAt
+}
+
+enum ShipmentStatus {
+  BOOKED
+  PICKUP_PENDING
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  RTO
+  RTO_DELIVERED
+  CANCELLED
+  EXCEPTION
 }
 
 enum PaymentMethod {

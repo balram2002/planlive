@@ -36,6 +36,13 @@ async function main() {
   // fields above, a legacy Order that lacks it fails Prisma's read-time
   // validation outright, so this one is mandatory before deploying.
   await backfill("Order", "deliveryFeeInPaise", 0);
+  // Parcel dimensions are required Ints on Product — a legacy doc missing
+  // them fails Prisma's read-time validation, so this must run before the
+  // shipping integration goes live. Values match the schema defaults.
+  await backfill("Product", "weightGrams", 500);
+  await backfill("Product", "lengthCm", 25);
+  await backfill("Product", "breadthCm", 20);
+  await backfill("Product", "heightCm", 5);
   console.log("✅ backfill complete");
 }
 

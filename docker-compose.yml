@@ -1,0 +1,105 @@
+# =============================================================================
+# liveWAB — production stack for livewab.planwab.com
+#
+# Three services from one image:
+#   web       Next.js server (HTTP)
+#   sweeper   expires stale reservations and restocks them
+#   shipsync  reconciles courier tracking against Eshopbox
+#
+# Ports bind to 127.0.0.1 only. The VPS already runs Nginx for planwab.com,
+# and that Nginx is what terminates TLS and proxies to this app — exposing
+# 3000 on 0.0.0.0 would put an unencrypted origin on the public internet,
+# reachable directly by IP and bypassing Cloudflare entirely.
+# =============================================================================
+
+name: livewab
+
+x-build: &build
+  context: .
+  dockerfile: Dockerfile
+  args:
+    # NEXT_PUBLIC_* are compiled into the browser bundle at build time, so
+    # they must be passed as build args, not just runtime env.
+    NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: ${NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
+    NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: ${NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    # Without caps, container logs will eventually fill the VPS disk.
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  web:
+    build:
+      <<: *build
+      target: runner
+    image: livewab-web:latest
+    container_name: livewab-web
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      - "127.0.0.1:3100:3000"
+    volumes:
+      # Local-disk upload fallback. Only used when ImageKit is unconfigured,
+      # but without this a container rebuild would delete stored images.
+      - uploads:/app/public/uploads
+    logging: *logging
+    healthcheck:
+      test:
+        ["CMD", "wget", "--no-verbose", "--tries=1", "--spider",
+         "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          # KVM2 is 8GB. Leaving headroom for the existing planwab.com app,
+          # Nginx and the workers.
+          memory: 2G
+
+  sweeper:
+    build:
+      <<: *build
+      target: worker
+    image: livewab-worker:latest
+    container_name: livewab-sweeper
+    restart: unless-stopped
+    env_file: .env.production
+    command: ["npx", "tsx", "scripts/sweeper.ts"]
+    depends_on:
+      web:
+        condition: service_healthy
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  shipsync:
+    build:
+      <<: *build
+      target: worker
+    image: livewab-worker:latest
+    container_name: livewab-shipsync
+    restart: unless-stopped
+    env_file: .env.production
+    # --watch keeps it polling; the webhook is the primary path and this is
+    # the safety net for webhooks dropped during a deploy or an outage.
+    command: ["npx", "tsx", "scripts/reconcile-shipments.ts", "--watch"]
+    depends_on:
+      web:
+        condition: service_healthy
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  uploads:

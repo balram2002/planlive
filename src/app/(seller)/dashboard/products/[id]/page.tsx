@@ -30,6 +30,10 @@ export default async function EditProductPage({
           priceRupees: product.priceInPaise / 100,
           stock: product.availableStock,
           imageUrl: product.imageUrl,
+          weightGrams: product.weightGrams,
+          lengthCm: product.lengthCm,
+          breadthCm: product.breadthCm,
+          heightCm: product.heightCm,
         }}
       />
     </div>

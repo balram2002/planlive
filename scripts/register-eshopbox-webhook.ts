@@ -23,11 +23,22 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
 /** Shipment lifecycle events we want pushed to us. */
 const EVENTS = [
-  { resource: "shipment", eventSubType: "created" },
-  { resource: "shipment", eventSubType: "updated" },
-  { resource: "shipment", eventSubType: "picked_up" },
-  { resource: "shipment", eventSubType: "delivered" },
-  { resource: "returnShipment", eventSubType: "updated" },
+  // { resource: "shipment", eventSubType: "created" },
+  // { resource: "shipment", eventSubType: "updated" },
+  // { resource: "shipment", eventSubType: "picked_up" },
+  // { resource: "shipment", eventSubType: "delivered" },
+   { resource: "shipment", eventSubType: "packed" },
+  { resource: "shipment", eventSubType: "ready_to_ship" },
+  { resource: "shipment", eventSubType: "out_for_delivery" },
+  { resource: "shipment", eventSubType: "failed_delivery" },
+  // { resource: "returnShipment", eventSubType: "out_for_delivery" },
+  // { resource: "returnShipment", eventSubType: "created" },
+  // { resource: "returnShipment", eventSubType: "picked_up" },
+  // { resource: "returnShipment", eventSubType: "pickup_failed" },
+  //  { resource: "returnShipment", eventSubType: "delivered" },
+  // { resource: "returnShipment", eventSubType: "complete" },
+  // { resource: "returnShipment", eventSubType: "picked_up" },
+  // { resource: "returnShipment", eventSubType: "return_cancelled" },
 ];
 
 async function main() {
@@ -64,7 +75,7 @@ async function main() {
         headers: { ProxyHost: ESHOPBOX_ACCOUNT_SLUG },
         body: {
           resource: event.resource,
-          eventType: "POST",
+          eventType: "PUT",
           eventSubType: event.eventSubType,
           version: "v1",
           ...(ESHOPBOX_CHANNEL_ID

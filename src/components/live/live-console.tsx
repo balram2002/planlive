@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ActionButton } from "@/components/ui/action-button";
+import { ActionButton, Spinner } from "@/components/ui/action-button";
+import { useToast } from "@/components/toast";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { LiveAddProduct } from "@/components/live/live-add-product";
 import {
   addProductToStream,
   adjustStock,
-  createProductInLive,
   removeProductFromStream,
   setFeaturedProduct,
+  type LiveProductState,
 } from "@/app/(seller)/go-live/actions";
 
 export type ConsoleProduct = {
@@ -95,6 +97,19 @@ export function LiveConsole({
           </Card>
         ))}
       </div>
+
+      {/* Quick-create sits directly under the stats: adding something new
+          mid-stream is the most common action, and it used to be buried
+          below the whole queue. */}
+      <Card className="p-4">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-faint">
+          Quick add
+        </h2>
+        <p className="mb-3 text-xs text-muted">
+          Create a product with a photo and drop it straight into the queue.
+        </p>
+        <LiveAddProduct streamId={streamId} variant="block" />
+      </Card>
 
       {/* Live queue */}
       <Card className="p-4">
@@ -206,7 +221,7 @@ export function LiveConsole({
           </ul>
         )}
 
-        {/* Add more products mid-stream */}
+        {/* Add existing products mid-stream */}
         {available.length > 0 ? (
           <div className="mt-4 border-t border-border pt-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">
@@ -221,66 +236,62 @@ export function LiveConsole({
                   <span className="min-w-0 truncate text-sm text-muted">
                     {product.title}
                   </span>
-                  <form action={addProductToStream}>
-                    <input type="hidden" name="streamId" value={streamId} />
-                    <input type="hidden" name="productId" value={product.id} />
-                    <ActionButton
-                      haptic="tap"
-                      className="rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium transition-all hover:bg-border active:scale-95"
-                    >
-                      + Add
-                    </ActionButton>
-                  </form>
+                  <AddToStreamButton
+                    streamId={streamId}
+                    productId={product.id}
+                  />
                 </li>
               ))}
             </ul>
           </div>
         ) : null}
-
-        {/* Create a brand-new product without leaving the stream */}
-        <div className="mt-4 border-t border-border pt-3">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">
-            Quick-create product
-          </h3>
-          <form action={createProductInLive} className="space-y-2">
-            <input type="hidden" name="streamId" value={streamId} />
-            <input
-              name="title"
-              required
-              minLength={2}
-              maxLength={100}
-              placeholder="Product title"
-              className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-faint focus:border-primary/60 focus:outline-none"
-            />
-            <div className="flex gap-2">
-              <input
-                name="price"
-                type="number"
-                min="1"
-                step="0.01"
-                required
-                placeholder="Price ₹"
-                className="w-full min-w-0 flex-1 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-faint focus:border-primary/60 focus:outline-none"
-              />
-              <input
-                name="stock"
-                type="number"
-                min="0"
-                step="1"
-                required
-                placeholder="Stock"
-                className="w-full min-w-0 flex-1 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm placeholder:text-faint focus:border-primary/60 focus:outline-none"
-              />
-              <ActionButton
-                haptic="tap"
-                className="shrink-0 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-all active:scale-95"
-              >
-                Add live
-              </ActionButton>
-            </div>
-          </form>
-        </div>
       </Card>
     </div>
+  );
+}
+
+/**
+ * One "+ Add" button with its own action state, so a refusal (product claimed
+ * by another live stream, stream already ended) surfaces as a toast instead of
+ * a button that appears to do nothing.
+ */
+function AddToStreamButton({
+  streamId,
+  productId,
+}: {
+  streamId: string;
+  productId: string;
+}) {
+  const [state, formAction, pending] = useActionState<LiveProductState, FormData>(
+    addProductToStream,
+    {},
+  );
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (state.error) toast({ title: state.error, variant: "error" });
+    else if (state.success) {
+      toast({ title: state.success, variant: "success" });
+    }
+  }, [state, toast]);
+
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="streamId" value={streamId} />
+      <input type="hidden" name="productId" value={productId} />
+      <ActionButton
+        haptic="tap"
+        disabled={pending}
+        className="rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium transition-all hover:bg-border active:scale-95 disabled:opacity-50"
+      >
+        {pending ? (
+          <span className="inline-flex items-center gap-1.5">
+            <Spinner /> Adding
+          </span>
+        ) : (
+          "+ Add"
+        )}
+      </ActionButton>
+    </form>
   );
 }

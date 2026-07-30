@@ -19,7 +19,10 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        // shrink-0 + nowrap: badges sit next to flexible text in card headers,
+        // and "Delivery attempt failed" would otherwise either wrap to two
+        // lines or squeeze the row past its container.
+        "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium",
         tones[tone],
         className,
       )}

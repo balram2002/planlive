@@ -96,7 +96,11 @@ export default async function OrderDetailPage({
               Qty {reservation.quantity} ·{" "}
               {order.paymentMethod === "COD" ? "Cash on delivery" : "Paid online"}
             </p>
-            <p className="mt-1 font-mono text-[10px] text-faint">#{order.id}</p>
+            {/* A 24-char ObjectId has no break opportunity, so it runs past
+                the card (and the phone frame) unless told it may break. */}
+            <p className="mt-1 break-all font-mono text-[10px] text-faint">
+              #{order.id}
+            </p>
           </div>
         </div>
       </Card>

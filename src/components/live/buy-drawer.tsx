@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useToast } from "@/components/toast";
+import { Spinner } from "@/components/ui/action-button";
 import { AddressForm, type SavedAddress } from "@/components/profile/address-form";
 import { ProductThumb } from "@/components/product-thumb";
 import { formatPrice } from "@/lib/format";
@@ -14,25 +15,34 @@ import type { PinnedProduct } from "./viewer-room";
 
 export type BuyFlow = {
   product: PinnedProduct;
-  reservationId: string;
-  expiresAt: string;
 };
 
 type Step = "address" | "payment" | "processing" | "success";
 
+/** The 10-minute hold, once a payment method has been chosen. */
+type Hold = { reservationId: string; expiresAt: string };
+
 /**
- * Post-reservation checkout funnel in a bottom drawer:
+ * Checkout funnel in a bottom drawer:
  * 1. pick (or create) a delivery address,
- * 2. choose Cash on Delivery or Pay online (Razorpay),
+ * 2. choose Cash on Delivery or Pay online (Razorpay) — this is what takes
+ *    the stock hold,
  * 3. beautiful success screen → back to live / home.
- * The 10-minute reservation countdown runs in the header the whole time.
+ *
+ * Nothing is reserved until step 2. Opening the drawer and browsing addresses
+ * is not a commitment, so the item stays in stock for other buyers until this
+ * one actually picks how they're paying; from there the 10-minute countdown
+ * runs in the header.
  */
 export function BuyDrawer({
   flow,
   onClose,
+  onStockChange,
 }: {
   flow: BuyFlow | null;
   onClose: () => void;
+  /** Keeps the live room's "n left" in sync when we take/keep a hold. */
+  onStockChange?: (productId: string, availableStock: number) => void;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -42,7 +52,11 @@ export function BuyDrawer({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [placing, setPlacing] = useState(false);
-  const [method, setMethod] = useState<"COD" | "ONLINE">("ONLINE");
+  // Starts unselected: picking a method is what reserves the stock, so we
+  // must never pre-select one on the buyer's behalf.
+  const [method, setMethod] = useState<"COD" | "ONLINE" | null>(null);
+  const [hold, setHold] = useState<Hold | null>(null);
+  const [reserving, setReserving] = useState(false);
   const [codOrder, setCodOrder] = useState<{ amountInPaise: number } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -51,9 +65,9 @@ export function BuyDrawer({
   const cod = priceBreakdown(items, "COD");
   const online = priceBreakdown(items, "ONLINE");
 
-  // Reset when a new reservation flow opens — render-phase adjustment
+  // Reset when a new buy flow opens — render-phase adjustment
   // (react.dev "adjusting state during render"), not an effect.
-  const flowKey = flow?.reservationId ?? null;
+  const flowKey = flow?.product.id ?? null;
   const [lastFlowKey, setLastFlowKey] = useState<string | null>(null);
   if (flowKey !== lastFlowKey) {
     setLastFlowKey(flowKey);
@@ -61,7 +75,9 @@ export function BuyDrawer({
       setStep("address");
       setCreating(false);
       setPlacing(false);
-      setMethod("ONLINE");
+      setMethod(null);
+      setHold(null);
+      setReserving(false);
       setCodOrder(null);
     }
   }
@@ -91,8 +107,82 @@ export function BuyDrawer({
 
   const loadAddresses = useCallback(() => setReloadKey((k) => k + 1), []);
 
+  /**
+   * Close handler that hands an unpaid hold back first.
+   *
+   * Only fires while the order hasn't been placed — on the success step the
+   * reservation is confirmed and must be left alone.
+   */
+  const closeAndRelease = useCallback(() => {
+    const abandoned = step !== "success" ? hold : null;
+    const productId = flow?.product.id;
+    onClose();
+    if (!abandoned) return;
+
+    void fetch(`/api/reservations/${abandoned.reservationId}`, {
+      method: "DELETE",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (body?.released && productId) {
+          onStockChange?.(productId, body.availableStock);
+        }
+      })
+      .catch(() => {
+        // The sweeper still expires it within 10 minutes.
+      });
+  }, [step, hold, flow, onClose, onStockChange]);
+
+  /**
+   * Takes the stock hold for this product, once.
+   *
+   * Called when the buyer picks a payment method — the first real signal of
+   * intent. Toggling between COD and online reuses the same hold rather than
+   * stacking a second one (which would trip the per-user pending cap).
+   */
+  async function ensureHold(next: "COD" | "ONLINE") {
+    haptics.tap();
+    if (!flow || reserving) return;
+    if (hold) {
+      setMethod(next);
+      return;
+    }
+
+    setReserving(true);
+    try {
+      const res = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: flow.product.id }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        toast({
+          title: "Couldn't reserve",
+          description: body.error ?? "Please try again.",
+          variant: "error",
+        });
+        // Sold out while they were choosing an address — the drawer is dead.
+        if (body.code === "SOLD_OUT") onClose();
+        return;
+      }
+      setHold({ reservationId: body.reservationId, expiresAt: body.expiresAt });
+      setMethod(next);
+      onStockChange?.(flow.product.id, body.availableStock);
+      toast({
+        title: "Reserved for you ⚡",
+        description: "Complete checkout within 10 minutes.",
+        variant: "success",
+      });
+    } catch {
+      toast({ title: "Network error", variant: "error" });
+    } finally {
+      setReserving(false);
+    }
+  }
+
   async function placeCod() {
-    if (!flow || !selectedId) return;
+    if (!flow || !selectedId || !hold) return;
     haptics.tap();
     setPlacing(true);
     try {
@@ -100,7 +190,7 @@ export function BuyDrawer({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          reservationId: flow.reservationId,
+          reservationId: hold.reservationId,
           addressId: selectedId,
         }),
       });
@@ -120,7 +210,7 @@ export function BuyDrawer({
   }
 
   async function payOnline() {
-    if (!flow || !selectedId) return;
+    if (!flow || !selectedId || !hold) return;
     haptics.tap();
     setPlacing(true);
     try {
@@ -128,7 +218,7 @@ export function BuyDrawer({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          reservationId: flow.reservationId,
+          reservationId: hold.reservationId,
           addressId: selectedId,
         }),
       });
@@ -152,7 +242,7 @@ export function BuyDrawer({
       setStep("processing");
       for (let i = 0; i < 30; i++) {
         await new Promise((r) => setTimeout(r, 2000));
-        const poll = await fetch(`/api/reservations/${flow.reservationId}`);
+        const poll = await fetch(`/api/reservations/${hold.reservationId}`);
         if (!poll.ok) continue;
         const status = await poll.json();
         if (status.status === "CONFIRMED") {
@@ -191,7 +281,7 @@ export function BuyDrawer({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={step === "processing" ? undefined : onClose}
+            onClick={step === "processing" ? undefined : closeAndRelease}
           />
           <motion.div
             role="dialog"
@@ -222,7 +312,13 @@ export function BuyDrawer({
                     {formatPrice(flow.product.priceInPaise)}
                   </p>
                 </div>
-                <HoldCountdown expiresAt={flow.expiresAt} onExpired={onClose} />
+                {hold ? (
+                  <HoldCountdown expiresAt={hold.expiresAt} onExpired={onClose} />
+                ) : (
+                  <span className="shrink-0 rounded-full bg-surface px-2.5 py-1 text-[10px] font-medium text-faint">
+                    In stock
+                  </span>
+                )}
               </div>
             ) : null}
 
@@ -359,6 +455,13 @@ export function BuyDrawer({
                     </p>
                   ) : null}
 
+                  {!hold ? (
+                    <p className="mb-3 text-[11px] leading-relaxed text-faint">
+                      Choosing a payment method holds this item for you for 10
+                      minutes.
+                    </p>
+                  ) : null}
+
                   <div className="space-y-2.5">
                     {/* Cash on delivery — carries a flat delivery charge, so
                         the full breakdown is shown before committing. */}
@@ -372,11 +475,9 @@ export function BuyDrawer({
                     >
                       <button
                         type="button"
-                        onClick={() => {
-                          haptics.tap();
-                          setMethod("COD");
-                        }}
-                        className="flex w-full items-center gap-3 p-4 text-left"
+                        disabled={reserving}
+                        onClick={() => ensureHold("COD")}
+                        className="flex w-full items-center gap-3 p-4 text-left disabled:opacity-60"
                       >
                         <span className="text-xl">💵</span>
                         <span className="flex-1">
@@ -388,7 +489,11 @@ export function BuyDrawer({
                             {formatPrice(COD_DELIVERY_FEE_PAISE)} delivery
                           </span>
                         </span>
-                        <Radio checked={method === "COD"} />
+                        {reserving && method === null ? (
+                          <Spinner />
+                        ) : (
+                          <Radio checked={method === "COD"} />
+                        )}
                       </button>
 
                       <AnimatePresence initial={false}>
@@ -443,11 +548,9 @@ export function BuyDrawer({
                     >
                       <button
                         type="button"
-                        onClick={() => {
-                          haptics.tap();
-                          setMethod("ONLINE");
-                        }}
-                        className="flex w-full items-center gap-3 p-4 text-left"
+                        disabled={reserving}
+                        onClick={() => ensureHold("ONLINE")}
+                        className="flex w-full items-center gap-3 p-4 text-left disabled:opacity-60"
                       >
                         <span className="text-xl">⚡</span>
                         <span className="flex-1">
@@ -458,7 +561,11 @@ export function BuyDrawer({
                             UPI, cards, netbanking · no delivery charge
                           </span>
                         </span>
-                        <Radio checked={method === "ONLINE"} />
+                        {reserving && method === null ? (
+                          <Spinner />
+                        ) : (
+                          <Radio checked={method === "ONLINE"} />
+                        )}
                       </button>
 
                       <AnimatePresence initial={false}>

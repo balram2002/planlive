@@ -60,7 +60,7 @@ export function TrackingTimeline({
       </div>
 
       {shipment.trackingId ? (
-        <p className="font-mono text-[11px] tabular-nums text-muted">
+        <p className="break-all font-mono text-[11px] tabular-nums text-muted">
           AWB {shipment.trackingId}
         </p>
       ) : null}

@@ -32,19 +32,27 @@ export function OrderTrack({
   if (reached < 0) return null; // Not in fulfilment (unpaid / failed).
 
   const lastIndex = TRACK_STAGES.length - 1;
-  const fillPercent = (reached / lastIndex) * 100;
+  // Each stage owns an equal slice, so its dot sits at the slice's centre.
+  // Deriving the inset from the stage count (rather than hardcoding it) keeps
+  // the rail glued to the dots if a stage is ever added or removed.
+  const halfSlice = 100 / TRACK_STAGES.length / 2;
+  const span = 100 - halfSlice * 2;
+  const fillPercent = (reached / lastIndex) * span;
 
   return (
     <div className={cn("pt-1", className)}>
       <div className="relative">
-        {/* Rail — inset by half a dot so it starts/ends at the dot centres. */}
-        <div className="absolute left-[10%] right-[10%] top-[7px] h-0.5 rounded-full bg-border" />
+        {/* Rail — inset by half a slice so it starts/ends at the dot centres. */}
         <div
-          className="absolute left-[10%] top-[7px] h-0.5 rounded-full bg-success transition-[width] duration-500"
-          style={{ width: `calc(${fillPercent} * 0.8%)` }}
+          className="absolute top-[7px] h-0.5 rounded-full bg-border"
+          style={{ left: `${halfSlice}%`, right: `${halfSlice}%` }}
+        />
+        <div
+          className="absolute top-[7px] h-0.5 rounded-full bg-success transition-[width] duration-500"
+          style={{ left: `${halfSlice}%`, width: `${fillPercent}%` }}
         />
 
-        <ol className="relative flex items-start justify-between">
+        <ol className="relative flex items-start">
           {TRACK_STAGES.map((stage, i) => {
             const done = i <= reached;
             const current = i === reached;
@@ -52,7 +60,7 @@ export function OrderTrack({
             return (
               <li
                 key={stage}
-                className="flex w-1/5 min-w-0 flex-col items-center gap-1.5 text-center"
+                className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center"
               >
                 <span
                   aria-hidden
@@ -83,7 +91,7 @@ export function OrderTrack({
                 </span>
                 <span
                   className={cn(
-                    "text-[10px] font-semibold leading-none",
+                    "w-full truncate text-[10px] font-semibold leading-none",
                     done ? "text-foreground" : "text-faint",
                   )}
                 >

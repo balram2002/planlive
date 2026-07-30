@@ -98,27 +98,38 @@ export async function startStream(
 }
 
 /** Create a brand-new product mid-stream and add it to the live queue. */
-export async function createProductInLive(formData: FormData): Promise<void> {
+export type LiveProductState = { error?: string; success?: string };
+
+/**
+ * Quick-create a product mid-stream and drop it straight into the live queue.
+ * A photo is required — the pinned card and product panel are image-first, so
+ * a photo-less product renders as a broken-looking placeholder to buyers.
+ */
+export async function createProductInLive(
+  _prev: LiveProductState,
+  formData: FormData,
+): Promise<LiveProductState> {
   const user = await requireSeller();
   const streamId = String(formData.get("streamId") ?? "");
 
   const stream = await ownedLiveStream(user.id, streamId);
-  if (!stream) return;
+  if (!stream) return { error: "Your stream isn't live." };
 
   const title = String(formData.get("title") ?? "").trim().slice(0, 100);
   const priceRupees = Number(formData.get("price"));
   const stock = Number(formData.get("stock"));
-  if (
-    title.length < 2 ||
-    !Number.isFinite(priceRupees) ||
-    priceRupees < 1 ||
-    priceRupees > 1_000_000 ||
-    !Number.isInteger(stock) ||
-    stock < 0 ||
-    stock > 100_000
-  ) {
-    return;
+
+  if (title.length < 2) return { error: "Enter a product title." };
+  if (!Number.isFinite(priceRupees) || priceRupees < 1 || priceRupees > 1_000_000) {
+    return { error: "Enter a valid price (at least ₹1)." };
   }
+  if (!Number.isInteger(stock) || stock < 0 || stock > 100_000) {
+    return { error: "Enter a valid stock count." };
+  }
+
+  // Reuses the same host-only allowlist as stream thumbnails.
+  const imageUrl = sanitizeThumbnail(formData.get("imageUrl"));
+  if (!imageUrl) return { error: "Add a product photo before adding it." };
 
   await prisma.product.create({
     data: {
@@ -126,12 +137,14 @@ export async function createProductInLive(formData: FormData): Promise<void> {
       title,
       priceInPaise: Math.round(priceRupees * 100),
       availableStock: stock,
+      imageUrl,
       streamId: stream.id,
     },
   });
 
   await broadcastToRoom(stream.livekitRoomName, { type: "products-changed" });
   revalidatePath(`/go-live/${stream.id}`);
+  return { success: `${title} added to your stream.` };
 }
 
 /** Ends a stream: marks it ENDED, unpins products, and closes the LiveKit room. */
@@ -176,24 +189,68 @@ async function ownedLiveStream(userId: string, streamId: string) {
   return stream;
 }
 
-/** Add one of the seller's products to the live queue. */
-export async function addProductToStream(formData: FormData): Promise<void> {
+/**
+ * Add one of the seller's products to the live queue.
+ *
+ * Returns state rather than void: every failure below used to be a silent
+ * `return`, so a button that refused to work looked identical to one that
+ * worked. The seller now always gets told why.
+ */
+export async function addProductToStream(
+  _prev: LiveProductState,
+  formData: FormData,
+): Promise<LiveProductState> {
   const user = await requireSeller();
   const streamId = String(formData.get("streamId") ?? "");
   const productId = String(formData.get("productId") ?? "");
 
   const stream = await ownedLiveStream(user.id, streamId);
-  if (!stream) return;
+  if (!stream) return { error: "Your stream isn't live any more." };
+
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) return { error: "That product no longer exists." };
+  if (product.sellerId !== user.id) {
+    return { error: "That product isn't yours." };
+  }
+  if (product.streamId === stream.id) {
+    return { success: `${product.title} is already in this stream.` };
+  }
+
+  // A product can carry a streamId belonging to an older stream — ending a
+  // stream clears it, but a seller who just closed the tab never ends it, so
+  // the row keeps pointing at a stream that is no longer LIVE. The previous
+  // `streamId: null` guard rejected exactly those products and said nothing,
+  // which is what made "Add" look broken for some items but not others. Only
+  // a genuinely *live* other stream is a real conflict.
+  if (product.streamId) {
+    const holder = await prisma.stream.findUnique({
+      where: { id: product.streamId },
+      select: { id: true, status: true },
+    });
+    if (holder && holder.status === "LIVE") {
+      return {
+        error: `${product.title} is already featured in another live stream.`,
+      };
+    }
+  }
 
   const updated = await prisma.product.updateMany({
-    // streamId null guard: can't steal a product from another live stream.
-    where: { id: productId, sellerId: user.id, streamId: null },
+    // Re-assert ownership and the observed streamId so two concurrent adds
+    // can't both claim it.
+    where: {
+      id: productId,
+      sellerId: user.id,
+      streamId: product.streamId,
+    },
     data: { streamId: stream.id },
   });
-  if (updated.count === 0) return;
+  if (updated.count === 0) {
+    return { error: "Couldn't add it just now — try again." };
+  }
 
   await broadcastToRoom(stream.livekitRoomName, { type: "products-changed" });
   revalidatePath(`/go-live/${stream.id}`);
+  return { success: `${product.title} added to your stream.` };
 }
 
 /** Remove a product from the live queue (unpins featured if needed). */

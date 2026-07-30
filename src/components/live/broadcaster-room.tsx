@@ -12,10 +12,12 @@ import {
   useTracks,
 } from "@livekit/components-react";
 import {
+  AudioPresets,
   ConnectionState,
   RoomEvent,
   Track,
   VideoPresets,
+  type AudioCaptureOptions,
   type LocalVideoTrack,
   type RemoteParticipant,
   type RoomOptions,
@@ -30,6 +32,7 @@ import { ChatOverlay } from "./chat";
 import { FloatingReactions, useReactions } from "./reactions";
 import { LiveNotices, useLiveNotices } from "./live-notices";
 import { OrderCelebration, type Celebration } from "./order-celebration";
+import { LiveAddProduct } from "./live-add-product";
 import { Elapsed } from "./elapsed";
 import { LiveBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
@@ -71,6 +74,27 @@ const CAPTURE_OPTIONS: VideoCaptureOptions = {
   facingMode: "user",
 };
 
+/**
+ * Full-quality audio capture.
+ *
+ * The browser's voice-processing chain (auto gain, echo cancellation, noise
+ * suppression) is tuned for phone calls: it ducks volume, pumps levels, and
+ * strips anything it decides is "noise" — which on a shopping stream means
+ * the very sound of the product (fabric, packaging, music). All three are
+ * turned OFF so the mic is captured faithfully. Stereo, 48 kHz, full-band.
+ *
+ * Trade-off: with echo cancellation off, a seller monitoring the stream on
+ * loudspeakers could feed audio back. The right setup is earphones/headset,
+ * which is how live sellers broadcast anyway.
+ */
+const AUDIO_CAPTURE_OPTIONS: AudioCaptureOptions = {
+  autoGainControl: false,
+  echoCancellation: false,
+  noiseSuppression: false,
+  channelCount: 2,
+  sampleRate: 48_000,
+};
+
 const PUBLISH_DEFAULTS: TrackPublishDefaults = {
   simulcast: true,
   // Bottom two rungs only; the third rung is the native capture (see above).
@@ -85,9 +109,15 @@ const PUBLISH_DEFAULTS: TrackPublishDefaults = {
   // Under congestion drop frame rate, never resolution.
   degradationPreference: "maintain-resolution",
   videoCodec: "h264",
-  // Audio resilience (RED) + bandwidth saving on silence (DTX).
-  red: true,
-  dtx: true,
+
+  // ---- Audio: highest-fidelity preset LiveKit ships ----
+  // 128 kbps stereo Opus. dtx OFF so quiet passages aren't gated and the
+  // first syllable/note after silence is never clipped. red OFF because it
+  // is mono-oriented packet redundancy that would override the stereo image;
+  // Opus in-band FEC still covers isolated packet loss.
+  audioPreset: AudioPresets.musicHighQualityStereo,
+  dtx: false,
+  red: false,
 };
 
 const ROOM_OPTIONS: RoomOptions = {
@@ -96,6 +126,7 @@ const ROOM_OPTIONS: RoomOptions = {
   // the publisher's own small preview never downgrades what we send.
   dynacast: true,
   videoCaptureDefaults: CAPTURE_OPTIONS,
+  audioCaptureDefaults: AUDIO_CAPTURE_OPTIONS,
   publishDefaults: PUBLISH_DEFAULTS,
 };
 
@@ -134,11 +165,11 @@ export function BroadcasterRoom({
       serverUrl={token.serverUrl}
       connect
       video={CAPTURE_OPTIONS}
-      audio
+      audio={AUDIO_CAPTURE_OPTIONS}
       options={ROOM_OPTIONS}
       className="block"
     >
-      <BroadcasterStage startedAt={startedAt} />
+      <BroadcasterStage streamId={streamId} startedAt={startedAt} />
       <RoomAudioRenderer />
     </LiveKitRoom>
   );
@@ -240,7 +271,13 @@ function FlipCameraButton() {
   );
 }
 
-function BroadcasterStage({ startedAt }: { startedAt: string }) {
+function BroadcasterStage({
+  streamId,
+  startedAt,
+}: {
+  streamId: string;
+  startedAt: string;
+}) {
   const connectionState = useConnectionState();
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
@@ -337,6 +374,12 @@ function BroadcasterStage({ startedAt }: { startedAt: string }) {
             <ViewerCount />
           </div>
         </div>
+      </div>
+
+      {/* Add-product shortcut — seller-only, lives in the live room itself so
+          a new product can be listed without opening the console. */}
+      <div className="pointer-events-none absolute left-3 top-14 z-30">
+        <LiveAddProduct streamId={streamId} variant="overlay" />
       </div>
 
       {/* Incoming reactions from viewers. */}

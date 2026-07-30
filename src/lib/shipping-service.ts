@@ -1,12 +1,17 @@
 import type { Order, Product, Shipment, ShipmentStatus, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/authz";
-import { EshopboxError, eshopboxConfigured } from "@/lib/eshopbox/client";
+import {
+  EshopboxError,
+  eshopboxConfigured,
+  ESHOPBOX_PICKUP_LOCATION_CODE,
+} from "@/lib/eshopbox/client";
 import {
   cancelShipment as cancelWithCourier,
   createShipment as bookWithCourier,
   getTrackingDetails,
   MAX_TRACKING_IDS,
+  type EshopboxPickupLocation,
   type TrackingDetail,
 } from "@/lib/eshopbox/shipping";
 import {
@@ -55,6 +60,103 @@ function parseAddress(json: string | null): AddressSnapshot | null {
   }
 }
 
+type ShopSnapshot = {
+  shopName: string;
+  phone: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string;
+  pincode: string;
+};
+
+function parseShopAddress(json: string | null): ShopSnapshot | null {
+  if (!json) return null;
+  try {
+    const parsed = JSON.parse(json);
+    if (typeof parsed?.shopName !== "string") return null;
+    return {
+      shopName: parsed.shopName,
+      phone: String(parsed.phone ?? ""),
+      line1: String(parsed.line1 ?? ""),
+      line2: parsed.line2 ?? null,
+      city: String(parsed.city ?? ""),
+      state: String(parsed.state ?? ""),
+      pincode: String(parsed.pincode ?? ""),
+    };
+  } catch {
+    return null;
+  }
+}
+
+type PickupResolution =
+  | { ok: true; pickupLocation: EshopboxPickupLocation }
+  | { ok: false; error: string };
+
+/**
+ * Works out where the courier collects from.
+ *
+ * A warehouse code is the happy path, but it only exists once someone has
+ * created the location inside the Eshopbox workspace — which most sellers
+ * never do. Their docs cover exactly this: every pickup address field is
+ * "*Mandatory if location code is blank or location is not created in
+ * Eshopbox". So when there's no code we send the seller's own shop address
+ * inline, and booking works with nothing configured in Eshopbox at all.
+ */
+function resolvePickupLocation(seller: User): PickupResolution {
+  const code =
+    seller.pickupLocationCode?.trim() || ESHOPBOX_PICKUP_LOCATION_CODE.trim();
+  if (code) return { ok: true, pickupLocation: { locationCode: code } };
+
+  const shop = parseShopAddress(seller.shopAddressJson);
+  if (!shop) {
+    return {
+      ok: false,
+      error:
+        "Add your shop address (Profile → Shop address) before booking a courier — that's where the parcel gets collected from.",
+    };
+  }
+
+  // Blank values here fail the same way a blank dimension does, so name the
+  // missing field instead of letting Eshopbox reject it generically.
+  const missing = (
+    [
+      ["shop name", shop.shopName],
+      ["pickup phone number", shop.phone],
+      ["address line 1", shop.line1],
+      ["city", shop.city],
+      ["state", shop.state],
+      ["PIN code", shop.pincode],
+    ] as const
+  )
+    .filter(([, value]) => !value.trim())
+    .map(([label]) => label);
+
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: `Your shop address is missing ${missing.join(", ")}. Fill it in on Profile → Shop address, then book again.`,
+    };
+  }
+
+  return {
+    ok: true,
+    pickupLocation: {
+      locationName: shop.shopName,
+      companyName: shop.shopName,
+      contactPerson: shop.shopName,
+      contactNumber: shop.phone,
+      addressLine1: shop.line1,
+      // Also mandatory when there's no code, so it can't be left empty.
+      addressLine2: shop.line2?.trim() || shop.line1,
+      city: shop.city,
+      state: shop.state,
+      country: "India",
+      pincode: shop.pincode,
+    },
+  };
+}
+
 export type BookResult =
   | { ok: true; shipment: Shipment }
   | { ok: false; error: string };
@@ -98,6 +200,32 @@ export async function bookShipment(input: {
       error: "This order has no delivery address — it can't be shipped.",
     };
   }
+
+  // Every one of these is required by Eshopbox; a blank sneaks through as an
+  // unhelpful generic rejection, so it's caught here with a readable message.
+  const missingDelivery = (
+    [
+      ["name", address.fullName],
+      ["phone number", address.phone],
+      ["address line 1", address.line1],
+      ["city", address.city],
+      ["state", address.state],
+      ["PIN code", address.pincode],
+    ] as const
+  )
+    .filter(([, value]) => !value.trim())
+    .map(([label]) => label);
+  if (missingDelivery.length > 0) {
+    return {
+      ok: false,
+      error: `The buyer's delivery address is missing ${missingDelivery.join(", ")} — it can't be shipped.`,
+    };
+  }
+
+  // Where the courier collects. Resolved before any API call so a missing
+  // shop address fails instantly rather than as a courier error.
+  const pickup = resolvePickupLocation(seller);
+  if (!pickup.ok) return { ok: false, error: pickup.error };
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: order.reservationId },
@@ -155,7 +283,7 @@ export async function bookShipment(input: {
           itemLength: product.lengthCm,
           itemBreadth: product.breadthCm,
           itemHeight: product.heightCm,
-          itemWeight: product.weightGrams.toFixed(2),
+          itemWeight: product.weightGrams,
         },
       ],
       // Parcel grows with quantity; dimensions stay the carton's.
@@ -163,8 +291,9 @@ export async function bookShipment(input: {
       shipmentLength: product.lengthCm,
       shipmentBreadth: product.breadthCm,
       shipmentHeight: product.heightCm,
-      pickupLocationCode: seller.pickupLocationCode ?? undefined,
+      pickupLocation: pickup.pickupLocation,
       orderDate: order.createdAt,
+      invoiceNumber: `INV-${order.id.slice(-10).toUpperCase()}`,
     });
 
     const data = {

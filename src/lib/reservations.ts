@@ -131,6 +131,65 @@ function runReserveTransaction(
   );
 }
 
+export type ReleaseResult = {
+  productId: string;
+  availableStock: number;
+  roomName: string | null;
+} | null;
+
+/**
+ * Cancels a still-PENDING hold and puts the stock straight back.
+ *
+ * The sweeper would get there eventually, but "eventually" is up to ten
+ * minutes of an item looking sold out because someone opened the checkout and
+ * changed their mind. Returns null when there is nothing to release — the
+ * hold was already confirmed, expired or isn't this user's.
+ *
+ * Mirrors the sweeper's conditional flip exactly, so racing the Razorpay
+ * confirmation webhook is safe: whichever lands second sees status !== PENDING
+ * and does nothing.
+ */
+export async function releaseReservation(opts: {
+  reservationId: string;
+  userId: string;
+}): Promise<ReleaseResult> {
+  return prisma.$transaction(async (tx) => {
+    const reservation = await tx.reservation.findUnique({
+      where: { id: opts.reservationId },
+    });
+    if (!reservation || reservation.userId !== opts.userId) return null;
+
+    const flipped = await tx.reservation.updateMany({
+      where: { id: reservation.id, status: "PENDING" },
+      data: { status: "CANCELLED" },
+    });
+    if (flipped.count === 0) return null;
+
+    // updateMany for the same reason the sweeper uses it: a deleted product
+    // must not abort the cancellation.
+    await tx.product.updateMany({
+      where: { id: reservation.productId },
+      data: { availableStock: { increment: reservation.quantity } },
+    });
+    const product = await tx.product.findUnique({
+      where: { id: reservation.productId },
+      select: { id: true, availableStock: true },
+    });
+    if (!product) return null;
+
+    const stream = await tx.stream.findUnique({
+      where: { id: reservation.streamId },
+      select: { livekitRoomName: true, status: true },
+    });
+
+    return {
+      productId: product.id,
+      availableStock: product.availableStock,
+      roomName: stream?.status === "LIVE" ? stream.livekitRoomName : null,
+    };
+  });
+}
+
 export type ExpiredSweepResult = { expired: number };
 
 /**

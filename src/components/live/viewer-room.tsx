@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { useClerk } from "@clerk/nextjs";
+import { useAuth, useClerk } from "@clerk/nextjs";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -192,6 +192,7 @@ function ViewerStage({
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
   const { openSignIn } = useClerk();
+  const { isSignedIn } = useAuth();
   const { toast } = useToast();
 
   const [products, setProducts] = useState<PinnedProduct[]>(initialProducts);
@@ -202,7 +203,6 @@ function ViewerStage({
   const [following, setFollowing] = useState(initiallyFollowing);
   const [followBusy, setFollowBusy] = useState(false);
   const [buyFlow, setBuyFlow] = useState<BuyFlow | null>(null);
-  const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const { floats, remove, react } = useReactions();
   const { notices, push: pushNotice } = useLiveNotices();
@@ -361,45 +361,22 @@ function ViewerStage({
     }
   }
 
-  /** Central Buy Now: reserve the stock, then open the checkout funnel. */
-  async function startBuy(product: PinnedProduct) {
+  /**
+   * Central Buy Now: opens the checkout funnel only.
+   *
+   * Stock is deliberately NOT reserved here. Browsing the address step is not
+   * a commitment, and holding stock for everyone who merely opened the drawer
+   * showed items as sold out to buyers who were ready to pay. The hold is
+   * taken in the drawer, at the moment a payment method is chosen.
+   */
+  function startBuy(product: PinnedProduct) {
     haptics.tap();
-    setBuyingId(product.id);
-    try {
-      const res = await fetch("/api/reservations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id }),
-      });
-      if (res.status === 401) {
-        openSignIn();
-        return;
-      }
-      const body = await res.json();
-      if (!res.ok) {
-        toast({
-          title: "Couldn't reserve",
-          description: body.error ?? "Please try again.",
-          variant: "error",
-        });
-        return;
-      }
-      setPanelOpen(false);
-      setBuyFlow({
-        product,
-        reservationId: body.reservationId,
-        expiresAt: body.expiresAt,
-      });
-      toast({
-        title: "Reserved for you ⚡",
-        description: "Complete checkout within 10 minutes.",
-        variant: "success",
-      });
-    } catch {
-      toast({ title: "Network error", variant: "error" });
-    } finally {
-      setBuyingId(null);
+    if (!isSignedIn) {
+      openSignIn();
+      return;
     }
+    setPanelOpen(false);
+    setBuyFlow({ product });
   }
 
   // Ended-state latch (see render-phase adjustment note in react.dev docs).
@@ -588,19 +565,12 @@ function ViewerStage({
                 </p>
                 <motion.button
                   type="button"
-                  disabled={
-                    featuredProduct.availableStock <= 0 ||
-                    buyingId === featuredProduct.id
-                  }
+                  disabled={featuredProduct.availableStock <= 0}
                   onClick={() => startBuy(featuredProduct)}
                   whileTap={{ scale: 0.95 }}
                   className="mt-1.5 w-full rounded-full bg-primary py-1.5 text-[11px] font-bold text-white transition-colors disabled:bg-white/10 disabled:text-white/40"
                 >
-                  {featuredProduct.availableStock <= 0
-                    ? "Sold out"
-                    : buyingId === featuredProduct.id
-                      ? "Reserving…"
-                      : "Buy Now"}
+                  {featuredProduct.availableStock <= 0 ? "Sold out" : "Buy Now"}
                 </motion.button>
               </div>
             </div>
@@ -666,9 +636,16 @@ function ViewerStage({
         products={products}
         featuredId={featuredId}
         onBuy={startBuy}
-        buyingId={buyingId}
       />
-      <BuyDrawer flow={buyFlow} onClose={() => setBuyFlow(null)} />
+      <BuyDrawer
+        flow={buyFlow}
+        onClose={() => setBuyFlow(null)}
+        onStockChange={(productId, availableStock) =>
+          setProducts((prev) =>
+            prev.map((p) => (p.id === productId ? { ...p, availableStock } : p)),
+          )
+        }
+      />
     </div>
   );
 }

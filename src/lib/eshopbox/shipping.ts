@@ -1,8 +1,4 @@
-import {
-  eshopboxRequest,
-  ESHOPBOX_CHANNEL_ID,
-  ESHOPBOX_PICKUP_LOCATION_CODE,
-} from "./client";
+import { eshopboxRequest, ESHOPBOX_CHANNEL_ID } from "./client";
 
 /**
  * Typed wrappers over the three Eshopbox shipping endpoints we use:
@@ -34,11 +30,37 @@ export type EshopboxItem = {
   quantity: number;
   itemTotal: number;
   productImageUrl?: string;
-  /** Per-unit dimensions (cm) and weight (grams), as decimal strings. */
+  /**
+   * Per-unit dimensions (cm) and weight (grams). Their example sends these as
+   * plain numbers (`"itemWeight": 200.64`) — unlike the parcel-level fields,
+   * which the parameter table types as decimal strings.
+   */
   itemLength?: number;
   itemBreadth?: number;
   itemHeight?: number;
-  itemWeight?: string;
+  itemWeight?: number;
+};
+
+/**
+ * Where the courier collects the parcel.
+ *
+ * `locationCode` alone is enough when the warehouse already exists in the
+ * Eshopbox workspace. When it doesn't, their docs mark every address field
+ * "*Mandatory if location code is blank or location is not created in
+ * Eshopbox" — so we send the seller's shop address inline instead.
+ */
+export type EshopboxPickupLocation = {
+  locationCode?: string;
+  locationName?: string;
+  companyName?: string;
+  contactPerson?: string;
+  contactNumber?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
 };
 
 /**
@@ -69,8 +91,8 @@ export type CreateShipmentInput = {
   shipmentHeight: number;
   /** Grams. */
   shipmentWeight: number;
-  /** Seller's warehouse code; falls back to the account-wide default. */
-  pickupLocationCode?: string;
+  /** Warehouse code, or the full pickup address when no code exists. */
+  pickupLocation: EshopboxPickupLocation;
   orderDate?: Date;
   /** Buyer's email, for the courier's own delivery notifications. */
   customerEmail?: string;
@@ -100,10 +122,15 @@ export type CreateShipmentResult = {
 export async function createShipment(
   input: CreateShipmentInput,
 ): Promise<CreateShipmentResult> {
-  const locationCode =
-    input.pickupLocationCode || ESHOPBOX_PICKUP_LOCATION_CODE;
-
   const orderDate = input.orderDate ?? new Date();
+
+  // Eshopbox rejects the whole booking if any parcel dimension arrives blank,
+  // zero or non-numeric, so each one is floored to a small-packet default
+  // rather than trusted straight from the caller.
+  const length = positiveOr(input.shipmentLength, 25);
+  const breadth = positiveOr(input.shipmentBreadth, 20);
+  const height = positiveOr(input.shipmentHeight, 5);
+  const weight = positiveOr(input.shipmentWeight, 500);
 
   return eshopboxRequest<CreateShipmentResult>({
     method: "POST",
@@ -129,14 +156,32 @@ export async function createShipment(
       // We collect one address, so billing mirrors shipping.
       billingIsShipping: true,
       items: input.items,
-      // Their API types every parcel dimension as a decimal string.
-      shipmentLength: input.shipmentLength.toFixed(2),
-      shipmentBreadth: input.shipmentBreadth.toFixed(2),
-      shipmentHeight: input.shipmentHeight.toFixed(2),
-      shipmentWeight: input.shipmentWeight.toFixed(2),
-      pickupLocation: { locationCode },
+
+      // Both dimension shapes go out together, deliberately.
+      //
+      // Eshopbox's parameter table documents flat decimal *strings*
+      // (`shipmentLength`…), but the cURL example on the same page nests them
+      // under `shipmentDimension` as *numbers*. Their validator reads the
+      // nested object, so sending only the flat fields is what produced
+      // "dimensions cannot be blank" on every booking. Sending both satisfies
+      // either reading, and the unused one is ignored.
+      shipmentLength: length.toFixed(2),
+      shipmentBreadth: breadth.toFixed(2),
+      shipmentHeight: height.toFixed(2),
+      shipmentWeight: weight.toFixed(2),
+      shipmentDimension: { length, breadth, height, weight },
+
+      pickupLocation: input.pickupLocation,
     },
   });
+}
+
+/** Guards a dimension against 0, NaN and undefined — all of which Eshopbox
+ *  reports as a blank dimension. */
+function positiveOr(value: number | undefined, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : fallback;
 }
 
 // ----------------------------------------------------------------- tracking

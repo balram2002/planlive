@@ -8,7 +8,7 @@ import type { PinnedProduct } from "./viewer-room";
 
 /**
  * Full-height right-side products panel for the live room. Buy Now hands off
- * to the shared buy funnel (reserve → address → payment → success).
+ * to the shared buy funnel (address → payment → reserve → success).
  */
 export function ProductsPanel({
   open,
@@ -16,15 +16,12 @@ export function ProductsPanel({
   products,
   featuredId,
   onBuy,
-  buyingId,
 }: {
   open: boolean;
   onClose: () => void;
   products: PinnedProduct[];
   featuredId: string | null;
   onBuy: (product: PinnedProduct) => void;
-  /** Product currently being reserved (spinner state). */
-  buyingId: string | null;
 }) {
   const ordered = featuredId
     ? [
@@ -82,7 +79,6 @@ export function ProductsPanel({
                   {ordered.map((product) => {
                     const featured = product.id === featuredId;
                     const soldOut = product.availableStock <= 0;
-                    const busy = buyingId === product.id;
                     return (
                       <motion.div
                         key={product.id}
@@ -137,12 +133,12 @@ export function ProductsPanel({
 
                         <motion.button
                           type="button"
-                          disabled={soldOut || busy}
+                          disabled={soldOut}
                           onClick={() => onBuy(product)}
                           whileTap={{ scale: 0.97 }}
                           className="mt-3 w-full rounded-full bg-primary py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:bg-surface-2 disabled:text-faint"
                         >
-                          {soldOut ? "Sold out" : busy ? "Reserving…" : "Buy Now"}
+                          {soldOut ? "Sold out" : "Buy Now"}
                         </motion.button>
                       </motion.div>
                     );

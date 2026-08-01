@@ -138,10 +138,31 @@ body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: contain;
   -webkit-tap-highlight-color: transparent;
+  /* Last-resort guard against sideways page scroll. `clip` rather than
+     `hidden` on purpose: `hidden` turns the body into a scroll container,
+     which silently breaks every `position: sticky` header in the app. */
+  overflow-x: clip;
   /* Ultra-smooth theme switching. */
   transition:
     background-color 0.25s ease,
     color 0.25s ease;
+}
+
+/* Media can't push a layout wider than its column. Content that genuinely
+   needs more room (tables, code) opts in via its own overflow-x container. */
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+/* Long unbroken strings — order ids, AWBs, emails, URLs — are the single
+   most common source of a blown-out card. Wrap them by default; anything
+   that should ellipsize instead still opts in with `truncate`. */
+:where(td, dd, p, li, span, h1, h2, h3, h4) {
+  overflow-wrap: anywhere;
 }
 
 /* Hide scrollbars for horizontal rails / chat panels while keeping scroll. */

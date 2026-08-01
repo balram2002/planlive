@@ -41,6 +41,17 @@ export const COURIER_STATUSES = [
 ] as const;
 
 /**
+ * Which leg of the journey a status describes.
+ *
+ * This matters more than it looks: Eshopbox's `shipment` and `returnShipment`
+ * resources reuse the SAME subtype names for opposite meanings. On a forward
+ * shipment "delivered" means the buyer received their order; on a return it
+ * means the parcel got back to the warehouse. Mapping both through one table
+ * marked buyers' orders DELIVERED (and emailed them so) when a return landed.
+ */
+export type ShipmentJourney = "forward" | "return";
+
+/**
  * Webhook `status` values, which are NOT the same vocabulary as the tracking
  * API's `currentStatus`.
  *
@@ -63,6 +74,47 @@ const WEBHOOK_ONLY: Record<string, ShipmentStatus> = {
   UNHOLD: "IN_TRANSIT",
   // Seller/ops responded to a non-delivery report; still undelivered.
   NDR_RESOLUTION_SUBMITTED: "FAILED_DELIVERY",
+  // Seen in statusLogs rather than as an event, but worth mapping so the
+  // reconciliation job never treats it as unknown.
+  ACCEPTED: "BOOKED",
+  NDR_RESOLUTION: "FAILED_DELIVERY",
+};
+
+/**
+ * The `returnShipment` resource, whose full subtype list is:
+ * created, pickup_pending, out_for_pickup, pickup_cancelled, pickup_failed,
+ * picked_up, intransit, out_for_delivery, delivered, delivered_warehouse,
+ * failed_delivery, complete, return_cancelled, approved, lost.
+ *
+ * Every movement here means "heading back to the seller", so the whole live
+ * portion collapses onto RTO and the arrival onto RTO_DELIVERED.
+ */
+const RETURN_TO_SHIPMENT: Record<string, ShipmentStatus> = {
+  // Return raised and being collected from the buyer.
+  CREATED: "RTO",
+  APPROVED: "RTO",
+  PICKUP_PENDING: "RTO",
+  OUT_FOR_PICKUP: "RTO",
+  // On its way back.
+  PICKED_UP: "RTO",
+  INTRANSIT: "RTO",
+  OUT_FOR_DELIVERY: "RTO",
+  RETURN_EXPECTED: "RTO",
+  // Arrived back with the seller/warehouse — the return is complete.
+  DELIVERED: "RTO_DELIVERED",
+  DELIVERED_WAREHOUSE: "RTO_DELIVERED",
+  RECEIVED: "RTO_DELIVERED",
+  COMPLETE: "RTO_DELIVERED",
+  // Called off: the buyer keeps the item, so the order must not move.
+  PICKUP_CANCELLED: "RETURN_CANCELLED",
+  RETURN_CANCELLED: "RETURN_CANCELLED",
+  CANCELLED_ORDER: "RETURN_CANCELLED",
+  // Went wrong on the way back — needs a human.
+  PICKUP_FAILED: "EXCEPTION",
+  FAILED_DELIVERY: "EXCEPTION",
+  LOST: "EXCEPTION",
+  DAMAGED: "EXCEPTION",
+  DAMAGE: "EXCEPTION",
 };
 
 const COURIER_TO_SHIPMENT: Record<string, ShipmentStatus> = {
@@ -103,20 +155,35 @@ const COURIER_TO_SHIPMENT: Record<string, ShipmentStatus> = {
   DELIVERED: "DELIVERED",
   RECEIVED: "RTO_DELIVERED",
   DELIVERED_WAREHOUSE: "RTO_DELIVERED",
+  // Forward leg has no notion of "complete" beyond delivery, but the reverse
+  // resource can fire it against a forward-registered hook during an RTO.
+  COMPLETE: "RTO_DELIVERED",
 
   CANCELLED_ORDER: "CANCELLED",
+  // Reverse-pickup subtypes that can arrive on the forward hook mid-RTO.
+  PICKUP_CANCELLED: "RETURN_CANCELLED",
+  RETURN_CANCELLED: "RETURN_CANCELLED",
 };
 
 /**
  * Maps a raw courier status (from either the tracking API or a webhook) to
  * ours. An unrecognised string is surfaced as EXCEPTION rather than silently
  * ignored — and logged, because it means Eshopbox added a state we should map.
+ *
+ * `journey` selects the table: the same subtype means opposite things on the
+ * forward and reverse legs (see ShipmentJourney).
  */
-export function toShipmentStatus(courierStatus: string): ShipmentStatus {
+export function toShipmentStatus(
+  courierStatus: string,
+  journey: ShipmentJourney = "forward",
+): ShipmentStatus {
   const key = courierStatus.trim().toUpperCase();
-  const mapped = COURIER_TO_SHIPMENT[key];
+  const table = journey === "return" ? RETURN_TO_SHIPMENT : COURIER_TO_SHIPMENT;
+  const mapped = table[key];
   if (!mapped) {
-    console.warn(`[eshopbox] unmapped courier status: "${courierStatus}"`);
+    console.warn(
+      `[eshopbox] unmapped ${journey} status: "${courierStatus}"`,
+    );
     return "EXCEPTION";
   }
   return mapped;
@@ -143,7 +210,9 @@ export function toOrderStatus(status: ShipmentStatus): OrderStatus | null {
     case "CANCELLED":
       return "CANCELLED";
     default:
-      // BOOKED / PICKUP_PENDING / EXCEPTION — no order-level change.
+      // BOOKED / PICKUP_PENDING / EXCEPTION / RETURN_CANCELLED — no
+      // order-level change. A called-off return in particular must leave the
+      // order exactly where it was (usually DELIVERED).
       return null;
   }
 }
@@ -159,6 +228,7 @@ export const SHIPMENT_LABELS: Record<ShipmentStatus, string> = {
   FAILED_DELIVERY: "Delivery attempt failed",
   RTO: "Returning to seller",
   RTO_DELIVERED: "Returned to seller",
+  RETURN_CANCELLED: "Return cancelled",
   CANCELLED: "Cancelled",
   EXCEPTION: "Needs attention",
 };
@@ -177,6 +247,7 @@ export const SHIPMENT_TONES: Record<
   FAILED_DELIVERY: "live",
   RTO: "warning",
   RTO_DELIVERED: "neutral",
+  RETURN_CANCELLED: "neutral",
   CANCELLED: "neutral",
   EXCEPTION: "live",
 };

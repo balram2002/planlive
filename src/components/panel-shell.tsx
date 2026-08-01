@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { AnimatePresence, motion, type PanInfo } from "motion/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MenuSheet } from "@/components/menu-sheet";
-import { SwipeNav } from "@/components/swipe-nav";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
 
@@ -18,10 +18,14 @@ export type PanelNavItem = {
   exact?: boolean;
 };
 
+const DRAWER_WIDTH = 288; // w-72
+
 /**
  * Responsive panel shell shared by the seller and admin areas.
  * - Desktop (lg+): fixed sidebar + full-width content area.
- * - Mobile: sticky top bar + bottom tab bar (native-app feel).
+ * - Mobile: sticky top bar with a hamburger that opens a drag-dismissable
+ *   drawer. A thin left-edge strip opens it by swipe, matching the gesture
+ *   people already expect from native apps.
  */
 export function PanelShell({
   brand,
@@ -42,11 +46,95 @@ export function PanelShell({
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isActive = (item: PanelNavItem) =>
     item.exact
       ? pathname === item.href
       : pathname === item.href || pathname.startsWith(item.href + "/");
+
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  // Navigating always dismisses the drawer — otherwise tapping a link leaves
+  // it hanging over the page it just opened.
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
+
+  // Escape closes it, matching every other overlay in the app.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
+
+  // Lock the page behind the drawer so the backdrop doesn't scroll with it.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [drawerOpen]);
+
+  /** Close when dragged far enough left, or flicked left at any distance. */
+  const onDragEnd = (_e: unknown, info: PanInfo) => {
+    if (info.offset.x < -DRAWER_WIDTH / 3 || info.velocity.x < -400) {
+      haptics.tap();
+      setDrawerOpen(false);
+    }
+  };
+
+  /** Left-edge strip: drag right to reveal the drawer. */
+  const onEdgeDragEnd = (_e: unknown, info: PanInfo) => {
+    if (info.offset.x > 40 || info.velocity.x > 300) {
+      haptics.tap();
+      setDrawerOpen(true);
+    }
+  };
+
+  const navList = (
+    <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      {items.map((item) => {
+        const active = isActive(item);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => haptics.tap()}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              active
+                ? "bg-primary/10 text-primary"
+                : "text-muted hover:bg-surface-2 hover:text-foreground active:scale-[0.98]",
+            )}
+          >
+            {active ? (
+              <motion.span
+                layoutId="panel-nav-active"
+                className="absolute inset-y-1 left-0 w-1 rounded-full bg-primary"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            <span
+              className={cn(
+                "shrink-0 transition-transform duration-200",
+                !active && "group-hover:scale-110",
+              )}
+            >
+              {item.icon}
+            </span>
+            <span className="min-w-0 truncate">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
 
   return (
     <div className={cn("min-h-dvh bg-background", themeClass)}>
@@ -62,33 +150,7 @@ export function PanelShell({
           </span>
         </Link>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {items.map((item) => {
-            const active = isActive(item);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted hover:bg-surface-2 hover:text-foreground",
-                )}
-              >
-                <span
-                  className={cn(
-                    "transition-transform duration-200",
-                    !active && "group-hover:scale-110",
-                  )}
-                >
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        {navList}
 
         <div className="flex items-center justify-between border-t border-border p-4">
           <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
@@ -96,77 +158,169 @@ export function PanelShell({
         </div>
       </aside>
 
-      {/* ---------- Mobile top bar (theme toggle lives in the More sheet) ---------- */}
+      {/* ---------- Mobile top bar ---------- */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
-        <div className="flex h-14 items-center justify-between px-4">
-          <Link href={brandHref} className="flex items-center gap-2">
-            <span className="text-lg font-bold tracking-tight">{brand}</span>
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+        <div className="flex h-14 items-center gap-2 px-3">
+          <button
+            type="button"
+            aria-label="Open menu"
+            aria-expanded={drawerOpen}
+            onClick={() => {
+              haptics.tap();
+              setDrawerOpen(true);
+            }}
+            className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground transition-all duration-200 hover:bg-surface-2 active:scale-90"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+              <path
+                d="M4 7h16M4 12h16M4 17h16"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+
+          <Link href={brandHref} className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-lg font-bold tracking-tight">
+              {brand}
+            </span>
+            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
               {accent}
             </span>
           </Link>
-          <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+
+          <div className="ml-auto shrink-0">
+            <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+          </div>
         </div>
       </header>
 
-      {/* ---------- Content (swipe between tabs on mobile) ---------- */}
-      <main className="lg:pl-60">
-        <SwipeNav routes={items.map((i) => i.href)}>
-          <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-4 lg:px-8 lg:pb-10 lg:pt-8">
-            {children}
-          </div>
-        </SwipeNav>
-      </main>
+      {/* Edge strip: the swipe-to-open target. Invisible, and only while the
+          drawer is closed, so it never sits over the open drawer. */}
+      {!drawerOpen ? (
+        <motion.div
+          aria-hidden
+          drag="x"
+          dragSnapToOrigin
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={{ left: 0, right: 0.6 }}
+          onDragEnd={onEdgeDragEnd}
+          className="fixed inset-y-0 left-0 z-20 w-5 lg:hidden"
+          style={{ touchAction: "pan-y" }}
+        />
+      ) : null}
 
-      {/* ---------- Mobile bottom tabs ---------- */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-        <ul className="flex items-stretch">
-          {items.map((item) => {
-            const active = isActive(item);
-            return (
-              <li key={item.href} className="flex-1">
-                <Link
-                  href={item.href}
-                  onClick={() => haptics.tap()}
-                  className={cn(
-                    "relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all duration-200 active:scale-90",
-                    active ? "text-primary" : "text-faint hover:text-muted",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0 h-0.5 w-8 rounded-full bg-primary transition-all duration-300",
-                      active ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0",
-                    )}
-                  />
-                  {item.icon}
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-          <li className="flex-1">
-            <button
-              type="button"
-              onClick={() => {
-                haptics.tap();
-                setMenuOpen(true);
-              }}
-              className="flex w-full flex-col items-center gap-1 py-2.5 text-[11px] font-medium text-faint transition-all duration-200 hover:text-muted active:scale-90"
+      {/* ---------- Mobile drawer ---------- */}
+      <AnimatePresence>
+        {drawerOpen ? (
+          <>
+            <motion.button
+              aria-label="Close menu"
+              onClick={closeDrawer}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] lg:hidden"
+            />
+            <motion.aside
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${brand} menu`}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={{ left: 0.6, right: 0 }}
+              onDragEnd={onDragEnd}
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 40 }}
+              className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85%] flex-col border-r border-border bg-surface shadow-pop lg:hidden"
             >
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
-                <path
-                  d="M4 7h16M4 12h16M4 17h10"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-              More
-            </button>
-          </li>
-        </ul>
-      </nav>
+              <div className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4 pt-[env(safe-area-inset-top)]">
+                <Link
+                  href={brandHref}
+                  className="flex min-w-0 items-center gap-2"
+                >
+                  <span className="truncate text-lg font-bold tracking-tight">
+                    {brand}
+                  </span>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                    {accent}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  aria-label="Close menu"
+                  onClick={closeDrawer}
+                  className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-all hover:bg-surface-2 hover:text-foreground active:scale-90"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-4 w-4"
+                    aria-hidden
+                  >
+                    <path
+                      d="m6 6 12 12M18 6 6 18"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {navList}
+
+              <div className="shrink-0 border-t border-border p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptics.tap();
+                    setDrawerOpen(false);
+                    setMenuOpen(true);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-5 w-5 shrink-0"
+                    aria-hidden
+                  >
+                    <path
+                      d="M4 7h16M4 12h16M4 17h10"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Account &amp; more
+                </button>
+
+                <div className="mt-2 flex items-center justify-between rounded-xl px-3 py-2">
+                  <span className="text-sm font-medium text-muted">Theme</span>
+                  <ThemeToggle />
+                </div>
+
+                {/* Affordance for the gesture, so it's discoverable. */}
+                <p className="mt-1 px-3 text-[10px] text-faint">
+                  Swipe left to close
+                </p>
+              </div>
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
+
+      {/* ---------- Content ---------- */}
+      <main className="lg:pl-60">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-4 lg:px-8 lg:pt-8">
+          {children}
+        </div>
+      </main>
 
       <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
     </div>

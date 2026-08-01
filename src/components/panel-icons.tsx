@@ -50,6 +50,31 @@ export const IconShield = () =>
   base({ d: "M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm-2.5 9 2 2 3.5-4" });
 
 /** Delivery truck — shipments / courier. */
+/** Price tag — the seller's product catalogue. */
+export const IconTag = () =>
+  base({
+    d: "M3.5 11.2V4.5a1 1 0 0 1 1-1h6.7a1 1 0 0 1 .7.3l8.1 8.1a1 1 0 0 1 0 1.4l-6.7 6.7a1 1 0 0 1-1.4 0L3.8 11.9a1 1 0 0 1-.3-.7Z",
+    extra: (
+      <circle cx="7.75" cy="7.75" r="1.25" fill="currentColor" />
+    ),
+  });
+
+/** Map pin — serviceability / pincode coverage. */
+export const IconPin = () =>
+  base({
+    d: "M12 21s7-5.3 7-11a7 7 0 1 0-14 0c0 5.7 7 11 7 11Z",
+    extra: (
+      <circle
+        cx="12"
+        cy="10"
+        r="2.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+      />
+    ),
+  });
+
 export const IconTruck = () =>
   base({
     d: "M3 7a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9H3V7Zm11 3h3.5l2.5 3v3h-6v-6Z",

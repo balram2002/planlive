@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
@@ -265,6 +266,7 @@ type Row = {
   reservation: { quantity: number; createdAt: Date };
   product: { title: string; imageUrl: string | null } | null;
   shipment: {
+    id: string;
     status: keyof typeof SHIPMENT_LABELS;
     trackingId: string | null;
     courierName: string | null;
@@ -323,6 +325,16 @@ function ShipmentRow({ row, shippable }: { row: Row; shippable: boolean }) {
             }
           />
         </div>
+
+        {/* Booked parcels get a full detail view: scans, both legs, record. */}
+        {row.shipment ? (
+          <Link
+            href={`/dashboard/shipments/${row.shipment.id}`}
+            className="mt-2 block rounded-full py-1.5 text-center text-xs font-semibold text-muted transition-colors hover:text-primary"
+          >
+            View details →
+          </Link>
+        ) : null}
       </Card>
     </li>
   );

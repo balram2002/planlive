@@ -8,7 +8,9 @@ import { OrderTrack } from "@/components/order-track";
 import { TrackingTimeline } from "@/components/shipping/tracking-timeline";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { CancelOrderButton } from "@/components/orders/cancel-order-button";
 import { formatPrice } from "@/lib/format";
+import { isCancellable } from "@/lib/eshopbox/status-map";
 import { stageTimestamps, trackStage } from "@/lib/order-status";
 
 export const dynamic = "force-dynamic";
@@ -170,6 +172,21 @@ export default async function OrderDetailPage({
             {address.city}
             {address.state ? `, ${address.state}` : ""} — {address.pincode}
           </p>
+        </Card>
+      ) : null}
+
+      {/* Cancellation — only while the parcel is still with the seller. */}
+      {["PAID", "PLACED"].includes(order.status) ? (
+        <Card className="p-4">
+          <h2 className="mb-2 text-sm font-semibold">Changed your mind?</h2>
+          <CancelOrderButton
+            orderId={order.id}
+            disabledReason={
+              shipment?.trackingId && !isCancellable(shipment.status)
+                ? "The courier already has this parcel. Refuse delivery and it will come back to the seller."
+                : undefined
+            }
+          />
         </Card>
       ) : null}
 

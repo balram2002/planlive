@@ -13,6 +13,7 @@ import {
   IconBox,
   IconBroadcast,
   IconChart,
+  IconPin,
   IconReceipt,
   IconTruck,
   IconUsers,
@@ -46,6 +47,11 @@ export default async function AdminLayout({
         { href: "/admin/products", label: "Products", icon: <IconBox /> },
         { href: "/admin/orders", label: "Orders", icon: <IconReceipt /> },
         { href: "/admin/shipments", label: "Shipments", icon: <IconTruck /> },
+        {
+          href: "/admin/serviceability",
+          label: "Serviceability",
+          icon: <IconPin />,
+        },
       ]}
     >
       {children}

@@ -5,7 +5,9 @@ import {
   IconBroadcast,
   IconCalendar,
   IconChart,
+  IconPin,
   IconReceipt,
+  IconTag,
   IconTruck,
 } from "@/components/panel-icons";
 
@@ -34,10 +36,16 @@ export default function SellerLayout({
       items={[
         { href: "/dashboard", label: "Dashboard", icon: <IconChart />, exact: true },
         { href: "/go-live", label: "Go live", icon: <IconBroadcast /> },
+        { href: "/dashboard/products", label: "Products", icon: <IconTag /> },
         { href: "/dashboard/schedule", label: "Schedule", icon: <IconCalendar /> },
         { href: "/dashboard/categories", label: "Categories", icon: <IconBox /> },
         { href: "/dashboard/sales", label: "Sales", icon: <IconReceipt /> },
         { href: "/dashboard/shipments", label: "Shipments", icon: <IconTruck /> },
+        {
+          href: "/dashboard/serviceability",
+          label: "Serviceability",
+          icon: <IconPin />,
+        },
       ]}
     >
       {children}

@@ -218,9 +218,15 @@ model Shipment {
   statusLogsJson       String?
   expectedDeliveryDate DateTime?
 
+  /// The reverse leg carries its OWN AWB, different from `trackingId`. Stored
+  /// so later returnShipment webhooks can be matched on it directly.
+  returnTrackingId  String?
+  returnCourierName String?
+
   bookedAt    DateTime  @default(now())
   pickedUpAt  DateTime?
   deliveredAt DateTime?
+  returnedAt  DateTime?
   cancelledAt DateTime?
   /// Last time we successfully reconciled against Eshopbox.
   syncedAt    DateTime?
@@ -240,6 +246,9 @@ enum ShipmentStatus {
   FAILED_DELIVERY
   RTO
   RTO_DELIVERED
+  /// A raised return was called off — the buyer keeps the item, so the order
+  /// itself must NOT move. Distinct from CANCELLED (which cancels the order).
+  RETURN_CANCELLED
   CANCELLED
   EXCEPTION
 }

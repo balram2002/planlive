@@ -18,6 +18,7 @@ import {
   isCancellable,
   toOrderStatus,
   toShipmentStatus,
+  type ShipmentJourney,
 } from "@/lib/eshopbox/status-map";
 import { announceOrderReturning, announceOrderStatus } from "@/lib/order-events";
 import { notifySellerShipmentIssue } from "@/lib/notify";
@@ -410,40 +411,83 @@ export async function cancelShipmentForOrder(input: {
  * terminal state, and the order status only ever advances.
  */
 export async function applyTrackingUpdate(input: {
-  trackingId: string;
+  /** Forward AWB, or the reverse AWB on a return event. May be absent. */
+  trackingId: string | null;
+  /** Our order id, echoed back by Eshopbox as `customerOrderNumber`. */
+  customerOrderId?: string | null;
+  journey?: ShipmentJourney;
   courierStatus: string;
   courierName?: string | null;
   expectedDeliveryDate?: string | null;
   statusLogs?: unknown;
   source: "webhook" | "poll";
 }): Promise<void> {
-  const shipment = await prisma.shipment.findFirst({
-    where: { trackingId: input.trackingId },
-  });
+  const journey = input.journey ?? "forward";
+
+  // Match widest-first. A return event carries its OWN AWB, so looking only
+  // at `trackingId` found nothing and the update was dropped — the order id
+  // is the only stable link across both legs.
+  const shipment =
+    (input.trackingId
+      ? await prisma.shipment.findFirst({
+          where: {
+            OR: [
+              { trackingId: input.trackingId },
+              { returnTrackingId: input.trackingId },
+            ],
+          },
+        })
+      : null) ??
+    (input.customerOrderId
+      ? await prisma.shipment.findUnique({
+          where: { orderId: input.customerOrderId },
+        })
+      : null);
+
   if (!shipment) {
     console.warn(
-      `[shipping] tracking update for unknown AWB ${input.trackingId}`,
+      `[shipping] ${journey} update for unknown parcel (awb=${input.trackingId ?? "—"}, order=${input.customerOrderId ?? "—"})`,
     );
     return;
   }
 
-  const next = toShipmentStatus(input.courierStatus);
+  const next = toShipmentStatus(input.courierStatus, journey);
 
-  // A delivered/returned parcel is done; late scans can't undo that.
-  const settled =
+  // Terminal states can't be undone by a late forward scan — but a return
+  // legitimately happens AFTER a delivery, so the reverse leg is allowed to
+  // move a DELIVERED parcel onward. Without this carve-out every return
+  // update against a delivered order was discarded.
+  const forwardSettled =
     shipment.status === "DELIVERED" || shipment.status === "RTO_DELIVERED";
-  const status = settled ? shipment.status : next;
+  const frozen = forwardSettled && journey === "forward";
+  const status = frozen ? shipment.status : next;
 
   const expected = input.expectedDeliveryDate
     ? new Date(input.expectedDeliveryDate)
     : null;
 
+  const now = new Date();
   await prisma.shipment.update({
     where: { id: shipment.id },
     data: {
       status,
       courierStatus: input.courierStatus,
-      courierName: input.courierName ?? shipment.courierName,
+      // Keep the two legs' carriers apart: a return is often a different
+      // courier, and overwriting `courierName` would relabel the original.
+      courierName:
+        journey === "forward"
+          ? (input.courierName ?? shipment.courierName)
+          : shipment.courierName,
+      returnCourierName:
+        journey === "return"
+          ? (input.courierName ?? shipment.returnCourierName)
+          : shipment.returnCourierName,
+      // Remember the reverse AWB the first time we see it, so later return
+      // events match on tracking id directly.
+      returnTrackingId:
+        journey === "return" && input.trackingId
+          ? input.trackingId
+          : shipment.returnTrackingId,
       expectedDeliveryDate:
         expected && !Number.isNaN(expected.getTime())
           ? expected
@@ -452,14 +496,16 @@ export async function applyTrackingUpdate(input: {
         ? JSON.stringify(input.statusLogs).slice(0, 20_000)
         : shipment.statusLogsJson,
       pickedUpAt:
-        shipment.pickedUpAt ?? (status === "PICKED_UP" ? new Date() : null),
+        shipment.pickedUpAt ?? (status === "PICKED_UP" ? now : null),
       deliveredAt:
-        shipment.deliveredAt ?? (status === "DELIVERED" ? new Date() : null),
-      syncedAt: new Date(),
+        shipment.deliveredAt ?? (status === "DELIVERED" ? now : null),
+      returnedAt:
+        shipment.returnedAt ?? (status === "RTO_DELIVERED" ? now : null),
+      syncedAt: now,
     },
   });
 
-  if (settled) return;
+  if (frozen) return;
   await syncOrderStatus(shipment, status);
 }
 
@@ -554,7 +600,7 @@ export async function reconcileShipments(): Promise<{
     where: {
       trackingId: { not: null },
       status: {
-        notIn: ["DELIVERED", "RTO_DELIVERED", "CANCELLED"],
+        notIn: ["DELIVERED", "RTO_DELIVERED", "CANCELLED", "RETURN_CANCELLED"],
       },
     },
     orderBy: { bookedAt: "asc" },
@@ -585,6 +631,14 @@ export async function reconcileShipments(): Promise<{
       try {
         await applyTrackingUpdate({
           trackingId: detail.trackingId,
+          customerOrderId: detail.customerOrderNumber ?? null,
+          // The tracking API labels the leg for us; anything other than an
+          // explicit reverse journey is treated as forward.
+          journey:
+            detail.journeyType?.toLowerCase() === "return" ||
+            detail.journeyType?.toLowerCase() === "reverse"
+              ? "return"
+              : "forward",
           courierStatus: detail.currentStatus,
           courierName: detail.courierPartnerName,
           expectedDeliveryDate: detail.expectedDeliveryDate,

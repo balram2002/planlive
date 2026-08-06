@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { signInPath } from "@/lib/back-to";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
 import { BroadcasterRoom } from "@/components/live/broadcaster-room";
@@ -15,7 +16,7 @@ export default async function StudioPage({
   const { streamId } = await params;
 
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath(`/go-live/${streamId}`));
 
   const stream = await prisma.stream.findUnique({ where: { id: streamId } });
   if (!stream || stream.sellerId !== user.id) notFound();

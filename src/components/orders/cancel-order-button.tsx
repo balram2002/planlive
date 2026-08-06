@@ -32,14 +32,18 @@ export function CancelOrderButton({
   const [confirming, setConfirming] = useState(false);
   const { toast } = useToast();
 
+  // Collapse the confirm step as soon as the action answers. Render-phase
+  // adjustment, not an effect — the effect below is only for the toast,
+  // which is an external system and belongs there.
+  const [handled, setHandled] = useState(state);
+  if (state !== handled) {
+    setHandled(state);
+    if (state.error || state.success) setConfirming(false);
+  }
+
   useEffect(() => {
-    if (state.error) {
-      toast({ title: state.error, variant: "error" });
-      setConfirming(false);
-    } else if (state.success) {
-      toast({ title: state.success, variant: "success" });
-      setConfirming(false);
-    }
+    if (state.error) toast({ title: state.error, variant: "error" });
+    else if (state.success) toast({ title: state.success, variant: "success" });
   }, [state, toast]);
 
   if (disabledReason) {

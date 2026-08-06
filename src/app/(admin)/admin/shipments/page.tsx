@@ -285,6 +285,7 @@ export default async function AdminShipmentsPage({
                         hasTracking={Boolean(shipment.trackingId)}
                         cancellable={isCancellable(shipment.status)}
                         labelUrl={shipment.labelUrl}
+                        trackingId={shipment.trackingId}
                       />
                     </div>
                   </Card>
@@ -357,6 +358,7 @@ export default async function AdminShipmentsPage({
                             hasTracking={Boolean(shipment.trackingId)}
                             cancellable={isCancellable(shipment.status)}
                             labelUrl={shipment.labelUrl}
+                        trackingId={shipment.trackingId}
                           />
                         </td>
                       </tr>

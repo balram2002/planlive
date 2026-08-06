@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/current-user";
 import { audit } from "@/lib/authz";
 import { priceBreakdown } from "@/lib/pricing";
 import { announceOrder } from "@/lib/order-events";
+import { releaseReservation } from "@/lib/reservations";
+import { broadcastToRoom } from "@/lib/livekit";
 
 /**
  * POST /api/checkout/cod  { reservationId, addressId }
@@ -81,8 +83,13 @@ export async function POST(req: NextRequest) {
     pincode: address.pincode,
   });
 
+  // The order is created in its own try. Announcements happen strictly after,
+  // so a failed email or LiveKit broadcast can never be mistaken for a failed
+  // order — which would otherwise release the stock out from under a buyer
+  // whose order was placed successfully.
+  let order;
   try {
-    const order = await prisma.$transaction(async (tx) => {
+    order = await prisma.$transaction(async (tx) => {
       // Conditional flip — loses cleanly against the sweeper or a double tap.
       const flipped = await tx.reservation.updateMany({
         where: { id: reservation.id, status: "PENDING" },
@@ -103,31 +110,11 @@ export async function POST(req: NextRequest) {
         },
       });
     });
-
-    audit("order.cod-placed", {
-      userId: user.id,
-      orderId: order.id,
-      reservationId: reservation.id,
-    });
-
-    // Celebration in the live room + the buyer's receipt. Both fail-soft.
-    await announceOrder({
-      order,
-      reservation,
-      product,
-      buyer: user,
-      address,
-    });
-
-    return NextResponse.json({
-      orderId: order.id,
-      itemsInPaise: totals.itemsInPaise,
-      deliveryFeeInPaise: totals.deliveryFeeInPaise,
-      amountInPaise: order.amountInPaise,
-    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "";
     if (message === "RESERVATION_GONE") {
+      // Someone else's sweep or a double-tap already resolved it; the stock
+      // is either theirs or already back on the shelf. Nothing to release.
       return NextResponse.json(
         { error: "Reservation expired — reserve again." },
         { status: 410 },
@@ -142,10 +129,48 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json({ error: "Already ordered." }, { status: 409 });
     }
+
+    // A genuine failure: the transaction rolled back, so the hold is still
+    // PENDING and the item is invisible to everyone else. The buyer has to
+    // start over regardless, so hand the stock back now instead of letting it
+    // sit out the rest of the TTL.
     console.error("COD order failed:", err);
+    const released = await releaseReservation({
+      reservationId: reservation.id,
+      userId: user.id,
+    }).catch(() => null);
+    if (released?.roomName) {
+      await broadcastToRoom(released.roomName, {
+        type: "stock",
+        productId: released.productId,
+        availableStock: released.availableStock,
+      });
+    }
+
     return NextResponse.json(
-      { error: "Something went wrong. Try again." },
+      { error: "Couldn't place the order — the item is back on sale." },
       { status: 500 },
     );
   }
+
+  audit("order.cod-placed", {
+    userId: user.id,
+    orderId: order.id,
+    reservationId: reservation.id,
+  });
+
+  // Celebration in the live room + the buyer's receipt. Both fail-soft, and
+  // deliberately outside the block above.
+  try {
+    await announceOrder({ order, reservation, product, buyer: user, address });
+  } catch (err) {
+    console.error("COD order announce failed:", err);
+  }
+
+  return NextResponse.json({
+    orderId: order.id,
+    itemsInPaise: totals.itemsInPaise,
+    deliveryFeeInPaise: totals.deliveryFeeInPaise,
+    amountInPaise: order.amountInPaise,
+  });
 }

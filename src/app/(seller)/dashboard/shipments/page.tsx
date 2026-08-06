@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,7 @@ const SHIPPABLE = new Set(["PAID", "PLACED"]);
  */
 export default async function SellerShipmentsPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath("/dashboard/shipments"));
   if (!isSeller(user)) redirect("/dashboard");
 
   const myProducts = await prisma.product.findMany({
@@ -309,6 +310,7 @@ function ShipmentRow({ row, shippable }: { row: Row; shippable: boolean }) {
         <div className="mt-3">
           <ShipmentPanel
             orderId={row.order.id}
+            productTitle={row.product?.title}
             shippable={shippable && SHIPPABLE.has(row.order.status)}
             shipment={
               row.shipment

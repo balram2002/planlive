@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { ScheduleForm } from "@/components/seller/schedule-form";
 import { ButtonLink } from "@/components/ui/button";
@@ -37,7 +38,7 @@ async function loadScheduleData(sellerId: string) {
 /** Plan streams ahead: create, review, start-now, or drop planned lives. */
 export default async function SchedulePage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath("/dashboard/schedule"));
   if (!isSeller(user) || !user.isActive) redirect("/dashboard");
 
   const { schedules, products } = await loadScheduleData(user.id);

@@ -12,6 +12,7 @@ import {
   type ShippingActionState,
 } from "@/app/(seller)/dashboard/sales/shipping-actions";
 import { SHIPMENT_LABELS, SHIPMENT_TONES } from "@/lib/eshopbox/status-map";
+import { LabelViewer } from "@/components/shipping/label-viewer";
 
 export type ShipmentSummary = {
   status: ShipmentStatus;
@@ -35,11 +36,14 @@ export function ShipmentPanel({
   orderId,
   shipment,
   shippable,
+  productTitle,
 }: {
   orderId: string;
   shipment: ShipmentSummary;
   /** False until the order is paid (or COD-placed). */
   shippable: boolean;
+  /** Shown in the label preview so a stack of labels stays identifiable. */
+  productTitle?: string | null;
 }) {
   const [bookState, bookAction, booking] = useActionState<
     ShippingActionState,
@@ -133,14 +137,32 @@ export function ShipmentPanel({
 
       <div className="flex flex-wrap gap-2">
         {shipment.labelUrl ? (
-          <a
-            href={shipment.labelUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-full bg-foreground px-3 py-2 text-center text-xs font-semibold text-background transition-opacity hover:opacity-90"
-          >
-            🖨️ Print label
-          </a>
+          <LabelViewer
+            labelUrl={shipment.labelUrl}
+            trackingId={shipment.trackingId}
+            courierName={shipment.courierName}
+            productTitle={productTitle}
+          />
+        ) : shipment.trackingId ? (
+          // Booked, but the label didn't come back. Re-posting is safe —
+          // Eshopbox treats our shipmentId as an idempotency key, so this
+          // returns the same parcel with its label rather than a new one.
+          <form action={bookAction} className="flex-1">
+            <input type="hidden" name="orderId" value={orderId} />
+            <button
+              type="submit"
+              disabled={booking}
+              className="w-full rounded-full border border-border py-2 text-xs font-semibold text-muted transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-50"
+            >
+              {booking ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Spinner /> Fetching…
+                </span>
+              ) : (
+                "⬇ Get label"
+              )}
+            </button>
+          </form>
         ) : null}
 
         {shipment.cancellable ? (

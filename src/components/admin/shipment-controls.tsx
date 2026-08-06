@@ -8,6 +8,7 @@ import {
   adminCancelShipment,
   type AdminShippingState,
 } from "@/app/(admin)/admin/shipments/actions";
+import { LabelViewer } from "@/components/shipping/label-viewer";
 
 /**
  * Admin row controls: retry a failed booking, reprint a label, or cancel a
@@ -18,11 +19,13 @@ export function AdminShipmentControls({
   hasTracking,
   cancellable,
   labelUrl,
+  trackingId,
 }: {
   orderId: string;
   hasTracking: boolean;
   cancellable: boolean;
   labelUrl: string | null;
+  trackingId?: string | null;
 }) {
   const [bookState, bookAction, booking] = useActionState<
     AdminShippingState,
@@ -51,14 +54,11 @@ export function AdminShipmentControls({
   return (
     <div className="flex items-center gap-1">
       {labelUrl ? (
-        <a
-          href={labelUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-full px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
-        >
-          Label
-        </a>
+        <LabelViewer
+          labelUrl={labelUrl}
+          trackingId={trackingId ?? null}
+          trigger="link"
+        />
       ) : null}
 
       {!hasTracking ? (

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isAdmin, isSeller } from "@/lib/current-user";
 import { CategoryForm } from "@/components/seller/category-form";
 import { CategoryList } from "@/components/seller/category-list";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 /** Seller-facing category management (admins get the same page in /admin). */
 export default async function SellerCategoriesPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath("/dashboard/categories"));
   if (!isSeller(user) || !user.isActive) redirect("/dashboard");
 
   const categories = await prisma.category.findMany({

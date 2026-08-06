@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +54,7 @@ export default async function SellerProductsPage({
   searchParams: Promise<{ q?: string; filter?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath("/dashboard/products"));
   if (!isSeller(user)) redirect("/dashboard");
 
   const { q, filter } = await searchParams;

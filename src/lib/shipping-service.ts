@@ -10,6 +10,7 @@ import {
   cancelShipment as cancelWithCourier,
   createShipment as bookWithCourier,
   getTrackingDetails,
+  pickLabelUrl,
   MAX_TRACKING_IDS,
   type EshopboxPickupLocation,
   type TrackingDetail,
@@ -191,8 +192,13 @@ export async function bookShipment(input: {
   const existing = await prisma.shipment.findUnique({
     where: { orderId: order.id },
   });
-  // A live booking is returned as-is; only a failed one is retried.
-  if (existing?.trackingId) return { ok: true, shipment: existing };
+  // A live booking with its label is returned as-is; only a failed one — or
+  // one missing its label — goes back to Eshopbox. Re-posting is safe: their
+  // `shipmentId` is a true idempotency key (verified against the live API),
+  // so the same AWB comes back rather than a second, chargeable parcel.
+  if (existing?.trackingId && existing.labelUrl) {
+    return { ok: true, shipment: existing };
+  }
 
   const address = parseAddress(order.addressJson);
   if (!address) {
@@ -297,17 +303,26 @@ export async function bookShipment(input: {
       invoiceNumber: `INV-${order.id.slice(-10).toUpperCase()}`,
     });
 
+    // A label-only refresh re-posts an already-live parcel, so its progress
+    // must survive: resetting an IN_TRANSIT shipment to BOOKED would walk the
+    // buyer's order backwards. Only a genuinely new booking starts at BOOKED.
+    const refreshingLabel = Boolean(existing?.trackingId);
+
     const data = {
       orderId: order.id,
       sellerId: seller.id,
       externalShipmentId,
       trackingId: result.trackingId,
       courierName: result.courierName,
-      shippingMode: result.shippingMode ?? null,
-      labelUrl: result.label_url,
-      routingCode: result.routingCode ?? null,
-      status: "BOOKED" as ShipmentStatus,
-      courierStatus: null,
+      shippingMode: result.shippingMode ?? existing?.shippingMode ?? null,
+      labelUrl: pickLabelUrl(result) ?? existing?.labelUrl ?? null,
+      // Eshopbox sometimes omits routingCode on a repeat call — don't blank
+      // out one we already have.
+      routingCode: result.routingCode || existing?.routingCode || null,
+      status: refreshingLabel
+        ? (existing!.status as ShipmentStatus)
+        : ("BOOKED" as ShipmentStatus),
+      courierStatus: refreshingLabel ? existing!.courierStatus : null,
       lastError: null,
       syncedAt: new Date(),
     };

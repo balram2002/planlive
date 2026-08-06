@@ -35,6 +35,7 @@ import { OrderCelebration, type Celebration } from "./order-celebration";
 import { ProductsPanel } from "./products-panel";
 import { BuyDrawer, type BuyFlow } from "./buy-drawer";
 import { ViewerMenu } from "./viewer-menu";
+import { ShareModal } from "@/components/share/share-modal";
 import { Elapsed } from "./elapsed";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
@@ -86,6 +87,7 @@ export function ViewerRoom({
   products,
   featuredProductId,
   startedAt,
+  thumbnailUrl,
 }: {
   streamId: string;
   sellerId: string;
@@ -96,6 +98,8 @@ export function ViewerRoom({
   products: PinnedProduct[];
   featuredProductId: string | null;
   startedAt: string;
+  /** Stream cover, used as the share preview image. */
+  thumbnailUrl: string | null;
 }) {
   const token = useLivekitToken(streamId);
 
@@ -126,6 +130,7 @@ export function ViewerRoom({
         initialProducts={products}
         initialFeaturedId={featuredProductId}
         startedAt={startedAt}
+        thumbnailUrl={thumbnailUrl}
       />
     </LiveKitRoom>
   );
@@ -177,6 +182,7 @@ function ViewerStage({
   initialProducts,
   initialFeaturedId,
   startedAt,
+  thumbnailUrl,
 }: {
   streamId: string;
   sellerId: string;
@@ -187,6 +193,7 @@ function ViewerStage({
   initialProducts: PinnedProduct[];
   initialFeaturedId: string | null;
   startedAt: string;
+  thumbnailUrl: string | null;
 }) {
   const connectionState = useConnectionState();
   const room = useRoomContext();
@@ -203,6 +210,7 @@ function ViewerStage({
   const [following, setFollowing] = useState(initiallyFollowing);
   const [followBusy, setFollowBusy] = useState(false);
   const [buyFlow, setBuyFlow] = useState<BuyFlow | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const { floats, remove, react } = useReactions();
   const { notices, push: pushNotice } = useLiveNotices();
@@ -482,13 +490,34 @@ function ViewerStage({
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <Elapsed startedAt={startedAt} />
             <ViewerCount />
+            {/* Share is a first-class action, not buried in the menu — it's
+                how a stream actually finds an audience. */}
+            <motion.button
+              type="button"
+              onClick={() => {
+                haptics.tap();
+                setShareOpen(true);
+              }}
+              whileTap={{ scale: 0.9 }}
+              aria-label="Share stream"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition-all duration-200"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+                <path
+                  d="M12 3v12m0-12L8 7m4-4 4 4M6 12v7a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-7"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </motion.button>
             <ViewerMenu
               audioMuted={audioMuted}
               onToggleAudio={() => setAudioMuted((v) => !v)}
               videoHidden={videoHidden}
               onToggleVideo={() => setVideoHidden((v) => !v)}
-              shareTitle={`@${sellerName} is live on liveWAB`}
-              onShared={announceShare}
+              onOpenShare={() => setShareOpen(true)}
             />
             {/* Close */}
             <Link
@@ -637,6 +666,26 @@ function ViewerStage({
         featuredId={featuredId}
         onBuy={startBuy}
       />
+      <ShareModal
+        open={shareOpen}
+        onClose={() => {
+          setShareOpen(false);
+          // Announce optimistically: the sheet only closes after the viewer
+          // engaged with it, and we can't observe which channel they picked.
+          announceShare();
+        }}
+        target={{
+          url: `/live/${streamId}`,
+          title: `@${sellerName} is live on liveWAB`,
+          description:
+            products.length > 0
+              ? `${products.length} ${products.length === 1 ? "product" : "products"} up for grabs — reserve instantly with Buy Now.`
+              : "Watch live and shop in real time.",
+          imageUrl: thumbnailUrl,
+          badge: "Live now",
+        }}
+      />
+
       <BuyDrawer
         flow={buyFlow}
         onClose={() => setBuyFlow(null)}

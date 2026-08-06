@@ -42,11 +42,26 @@ export async function generateMetadata({
       productCount === 1 ? "product" : "products"
     } up for grabs. Reserve instantly with Buy Now.`;
 
+    // The stream cover is what makes a shared link look like something worth
+    // tapping; without it every share renders as a bare grey card.
+    const images = stream.thumbnailUrl ? [{ url: stream.thumbnailUrl }] : undefined;
+
     return {
       title,
       description,
-      openGraph: { title: `${title} · liveWAB`, description, url: `/live/${stream.id}` },
-      twitter: { card: "summary", title: `${title} · liveWAB`, description },
+      openGraph: {
+        title: `${title} · liveWAB`,
+        description,
+        url: `/live/${stream.id}`,
+        type: "video.other",
+        images,
+      },
+      twitter: {
+        card: images ? "summary_large_image" : "summary",
+        title: `${title} · liveWAB`,
+        description,
+        images,
+      },
     };
   } catch {
     return fallback;
@@ -120,6 +135,7 @@ export default async function LiveStreamPage({
         initiallyFollowing={Boolean(follow)}
         featuredProductId={stream.featuredProductId}
         startedAt={stream.startedAt.toISOString()}
+        thumbnailUrl={stream.thumbnailUrl}
         products={products.map((p) => ({
           id: p.id,
           title: p.title,

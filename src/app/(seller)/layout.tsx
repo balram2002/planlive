@@ -9,6 +9,7 @@ import {
   IconReceipt,
   IconTag,
   IconTruck,
+  IconWallet,
 } from "@/components/panel-icons";
 
 // Seller tooling is private — keep it out of search engines.
@@ -40,6 +41,7 @@ export default function SellerLayout({
         { href: "/dashboard/schedule", label: "Schedule", icon: <IconCalendar /> },
         { href: "/dashboard/categories", label: "Categories", icon: <IconBox /> },
         { href: "/dashboard/sales", label: "Sales", icon: <IconReceipt /> },
+        { href: "/dashboard/wallet", label: "Wallet", icon: <IconWallet /> },
         { href: "/dashboard/shipments", label: "Shipments", icon: <IconTruck /> },
         {
           href: "/dashboard/serviceability",

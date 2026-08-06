@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { loadOrderRows } from "@/lib/order-rows";
 import { OrderList } from "@/components/order-list";
@@ -39,7 +40,7 @@ function shopAddressComplete(json: string | null): boolean {
 /** Seller sales history: every reservation/order against their products. */
 export default async function SalesPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath("/dashboard/sales"));
   if (!isSeller(user)) redirect("/dashboard");
 
   const myProducts = await prisma.product.findMany({
@@ -191,6 +192,7 @@ export default async function SalesPage() {
             return (
               <ShipmentPanel
                 orderId={row.order.id}
+                productTitle={row.product?.title}
                 shippable={
                   shippingReady && canPickUp && SHIPPABLE.has(row.order.status)
                 }

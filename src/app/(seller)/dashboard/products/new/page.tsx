@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
+import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { ProductForm } from "@/components/product-form";
 import { createProduct } from "../../actions";
 
 export default async function NewProductPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath("/dashboard/products/new"));
   if (!isSeller(user)) redirect("/dashboard");
 
   return (

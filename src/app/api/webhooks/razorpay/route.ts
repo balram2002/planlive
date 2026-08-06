@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { broadcastToRoom } from "@/lib/livekit";
 import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 import { announceOrder, announcePaymentFailed } from "@/lib/order-events";
+import { releaseReservation } from "@/lib/reservations";
 
 /**
  * Razorpay webhook (configure `payment.captured` + `payment.failed` events).
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
         });
         if (flipped.count === 1) return { ok: true as const, reclaimed: false };
 
-        // Sweeper expired it first — try to take the stock back.
+        // We already handed the stock back — try to take it again.
         const reclaim = await tx.product.updateMany({
           where: {
             id: reservation.productId,
@@ -74,12 +75,21 @@ export async function POST(req: NextRequest) {
         });
         if (reclaim.count === 0) return { ok: false as const, reclaimed: false };
 
+        // EXPIRED *or* CANCELLED: the hold is released explicitly now (an
+        // abandoned drawer, or a payment.failed that arrived before this
+        // capture), not only by the sweeper. Both mean "stock was returned",
+        // so both are reclaimable. Matching EXPIRED alone made a late capture
+        // throw, roll back, and 500 — which Razorpay then retried forever.
         const reflipped = await tx.reservation.updateMany({
-          where: { id: reservation.id, status: "EXPIRED" },
+          where: {
+            id: reservation.id,
+            status: { in: ["EXPIRED", "CANCELLED"] },
+          },
           data: { status: "CONFIRMED" },
         });
         if (reflipped.count === 0) {
-          // Unexpected state (e.g. CANCELLED) — roll everything back.
+          // Genuinely unexpected (already CONFIRMED by a concurrent capture)
+          // — roll back so we don't double-decrement the stock.
           throw new Error(
             `Reservation ${reservation.id} in unexpected state during capture`,
           );
@@ -130,18 +140,33 @@ export async function POST(req: NextRequest) {
     }
 
     case "payment.failed": {
-      // Reservation stays PENDING so the buyer can retry until it expires.
       const flipped = await prisma.order.updateMany({
         where: { id: order.id, status: "CREATED" },
         data: { status: "FAILED" },
       });
-      // Only notify on the first failure — Razorpay retries this event.
+      // Only act on the first failure — Razorpay retries this event.
       if (flipped.count === 0) break;
 
       const reservation = await prisma.reservation.findUnique({
         where: { id: order.reservationId },
       });
       if (!reservation) break;
+
+      // Put the stock straight back rather than leaving the hold PENDING
+      // until the sweeper catches it. A failed payment is a finished attempt:
+      // holding the item for several more minutes only hides it from buyers
+      // who can actually pay. The buyer's email tells them to grab it again.
+      const released = await releaseReservation({
+        reservationId: reservation.id,
+        userId: reservation.userId,
+      });
+      if (released?.roomName) {
+        await broadcastToRoom(released.roomName, {
+          type: "stock",
+          productId: released.productId,
+          availableStock: released.availableStock,
+        });
+      }
 
       const [product, buyer] = await Promise.all([
         prisma.product.findUnique({ where: { id: reservation.productId } }),

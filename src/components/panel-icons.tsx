@@ -50,6 +50,21 @@ export const IconShield = () =>
   base({ d: "M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm-2.5 9 2 2 3.5-4" });
 
 /** Delivery truck — shipments / courier. */
+/** Wallet — seller earnings and balances. */
+export const IconWallet = () =>
+  base({
+    d: "M3 8.5A2 2 0 0 1 5 6.5h12a2 2 0 0 1 2 2v1M3 8.5V17a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-2.5M3 8.5 16 4.2",
+    extra: (
+      <path
+        d="M20 9.5h-3.5a2.5 2.5 0 0 0 0 5H20a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    ),
+  });
+
 /** Price tag — the seller's product catalogue. */
 export const IconTag = () =>
   base({

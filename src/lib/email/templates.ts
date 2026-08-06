@@ -310,7 +310,11 @@ ${appUrl("/orders")}`,
   };
 }
 
-/** Payment failed — urgent, and the reservation is still recoverable. */
+/**
+ * Payment failed. The hold is released the moment this fires, so the copy
+ * must NOT promise the item is still reserved — it is back on sale, and
+ * saying otherwise sends buyers to an item someone else may already have.
+ */
 export function paymentFailedEmail(input: {
   buyerName: string;
   productTitle: string;
@@ -320,21 +324,45 @@ export function paymentFailedEmail(input: {
   return {
     subject: `Payment didn't go through — ${input.productTitle}`,
     html: layout({
-      preheader: `Retry your payment for ${input.productTitle}.`,
+      preheader: `Your payment for ${input.productTitle} didn't complete.`,
       emoji: "⚠️",
       eyebrow: "Action needed",
       heading: "Your payment didn't go through",
       accent,
       body: `<p style="margin:0 0 16px 0;">Hi ${esc(input.buyerName)}, we couldn't complete your payment of <strong>${formatPrice(input.totalInPaise)}</strong> for <strong>${esc(input.productTitle)}</strong>.</p>
-      <p style="margin:0;">Nothing was charged. Your item is still reserved for a few more minutes — retry now and it's yours.</p>
+      <p style="margin:0;">Nothing was charged, and the item has gone back on sale so others can buy it. If it's still in stock you can grab it again from the stream.</p>
       ${callout(
         `If money did leave your account, it was only an authorisation hold and your bank will release it automatically within 5–7 working days.`,
         accent,
       )}
-      ${button(appUrl("/orders"), "Retry payment", accent)}`,
+      ${button(appUrl("/orders"), "View your orders", accent)}`,
     }),
-    text: `Hi ${input.buyerName}, your payment of ${formatPrice(input.totalInPaise)} for ${input.productTitle} didn't go through. Nothing was charged and your item is still reserved for a few more minutes.
-Retry: ${appUrl("/orders")}`,
+    text: `Hi ${input.buyerName}, your payment of ${formatPrice(input.totalInPaise)} for ${input.productTitle} didn't go through. Nothing was charged, and the item is back on sale.
+Your orders: ${appUrl("/orders")}`,
+  };
+}
+
+/** An unpaid hold ran out and the item went back on sale. */
+export function holdExpiredEmail(input: {
+  buyerName: string;
+  productTitle: string;
+  minutes: number;
+}): EmailContent {
+  const accent = COLORS.rose;
+  return {
+    subject: `Your hold on ${input.productTitle} expired`,
+    html: layout({
+      preheader: `${input.productTitle} is back on sale.`,
+      emoji: "⏳",
+      eyebrow: "Hold expired",
+      heading: "Your reservation timed out",
+      accent,
+      body: `<p style="margin:0 0 16px 0;">Hi ${esc(input.buyerName)}, checkout wasn't completed within ${input.minutes} minutes, so we released your hold on <strong>${esc(input.productTitle)}</strong>.</p>
+      <p style="margin:0;">Nothing was charged. The item is back on sale — if it's still in stock, you can reserve it again in a tap.</p>
+      ${button(appUrl("/discover"), "Back to live streams", accent)}`,
+    }),
+    text: `Hi ${input.buyerName}, your ${input.minutes}-minute hold on ${input.productTitle} expired and the item is back on sale. Nothing was charged.
+${appUrl("/discover")}`,
   };
 }
 

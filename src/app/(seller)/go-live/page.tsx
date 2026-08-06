@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { GoLiveForm } from "@/components/go-live-form";
 import { ButtonLink } from "@/components/ui/button";
@@ -12,7 +13,7 @@ export default async function GoLivePage({
 }) {
   const { from } = await searchParams;
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath("/go-live"));
   if (!isSeller(user)) redirect("/dashboard");
 
   // Already broadcasting? Straight back to the studio.

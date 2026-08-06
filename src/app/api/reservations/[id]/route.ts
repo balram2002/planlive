@@ -40,7 +40,7 @@ export async function GET(
  * DELETE /api/reservations/:id — owner-only release of an unpaid hold.
  *
  * Called when a buyer abandons checkout, so the item goes back in stock for
- * everyone else immediately instead of sitting out the 10-minute TTL. Always
+ * everyone else immediately instead of sitting out the rest of the TTL. Always
  * 200s: a hold that was already paid, expired or released is not an error
  * from the caller's point of view, there's simply nothing left to give back.
  */

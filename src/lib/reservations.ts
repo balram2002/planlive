@@ -1,7 +1,14 @@
 import type { Reservation } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { notifyHoldExpired } from "@/lib/notify";
+import {
+  RESERVATION_TTL_MS,
+  RESERVATION_TTL_MINUTES,
+} from "@/lib/reservation-window";
 
-export const RESERVATION_TTL_MS = 10 * 60 * 1000;
+// Defined in a client-safe module so the buy drawer can show the same window
+// this file enforces; re-exported here so existing importers keep working.
+export { RESERVATION_TTL_MS, RESERVATION_TTL_MINUTES };
 
 /** Max concurrent unpaid holds per user — stops one buyer locking all stock. */
 export const MAX_PENDING_PER_USER = 5;
@@ -214,6 +221,9 @@ export async function sweepExpiredReservations(): Promise<
     availableStock: number;
     roomName: string | null;
   }> = [];
+  // Buyers to tell, collected during the sweep and emailed after it. Doing it
+  // inside the transaction would hold the write lock open on SMTP latency.
+  const notify: Array<{ userId: string; productId: string }> = [];
 
   for (const reservation of overdue) {
     const result = await prisma.$transaction(async (tx) => {
@@ -257,6 +267,42 @@ export async function sweepExpiredReservations(): Promise<
     if (result) {
       expired += 1;
       if (result.restock) restocked.push(result.restock);
+      notify.push({
+        userId: reservation.userId,
+        productId: reservation.productId,
+      });
+    }
+  }
+
+  // Tell the buyers their hold lapsed. Best-effort and outside the loop's
+  // transactions: an SMTP failure must never wedge an expiry.
+  if (notify.length > 0) {
+    try {
+      const [buyers, products] = await Promise.all([
+        prisma.user.findMany({
+          where: { id: { in: [...new Set(notify.map((n) => n.userId))] } },
+          select: { id: true, email: true, name: true, username: true },
+        }),
+        prisma.product.findMany({
+          where: { id: { in: [...new Set(notify.map((n) => n.productId))] } },
+          select: { id: true, title: true },
+        }),
+      ]);
+      const buyerById = new Map(buyers.map((b) => [b.id, b]));
+      const titleById = new Map(products.map((p) => [p.id, p.title]));
+
+      for (const entry of notify) {
+        const buyer = buyerById.get(entry.userId);
+        const title = titleById.get(entry.productId);
+        if (!buyer || !title) continue;
+        notifyHoldExpired({
+          buyer,
+          productTitle: title,
+          minutes: RESERVATION_TTL_MINUTES,
+        });
+      }
+    } catch (err) {
+      console.error("[sweeper] expiry notifications failed:", err);
     }
   }
 

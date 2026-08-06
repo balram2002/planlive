@@ -17,7 +17,7 @@ const errorResponses: Record<string, { status: number; message: string }> = {
 /**
  * POST /api/reservations  { productId: string, quantity?: number }
  *
- * Reserves stock for the signed-in buyer for 10 minutes (Buy Now). Confirmation
+ * Reserves stock for the signed-in buyer for RESERVATION_TTL_MS (Buy Now). Confirmation
  * into an Order happens only via the Razorpay webhook (Milestone 6); expiry is
  * handled by the sweeper job.
  */

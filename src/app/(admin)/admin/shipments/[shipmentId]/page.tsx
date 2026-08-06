@@ -116,6 +116,7 @@ export default async function AdminShipmentDetailPage({
             hasTracking={Boolean(shipment.trackingId)}
             cancellable={isCancellable(shipment.status)}
             labelUrl={shipment.labelUrl}
+                        trackingId={shipment.trackingId}
           />
         </div>
       </div>

@@ -9,6 +9,7 @@ import { AddressForm, type SavedAddress } from "@/components/profile/address-for
 import { ProductThumb } from "@/components/product-thumb";
 import { formatPrice } from "@/lib/format";
 import { COD_DELIVERY_FEE_PAISE, priceBreakdown } from "@/lib/pricing";
+import { RESERVATION_TTL_MINUTES } from "@/lib/reservation-window";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
 import type { PinnedProduct } from "./viewer-room";
@@ -19,7 +20,7 @@ export type BuyFlow = {
 
 type Step = "address" | "payment" | "processing" | "success";
 
-/** The 10-minute hold, once a payment method has been chosen. */
+/** The stock hold, once a payment method has been chosen. */
 type Hold = { reservationId: string; expiresAt: string };
 
 /**
@@ -31,7 +32,7 @@ type Hold = { reservationId: string; expiresAt: string };
  *
  * Nothing is reserved until step 2. Opening the drawer and browsing addresses
  * is not a commitment, so the item stays in stock for other buyers until this
- * one actually picks how they're paying; from there the 10-minute countdown
+ * one actually picks how they're paying; from there the countdown
  * runs in the header.
  */
 export function BuyDrawer({
@@ -129,7 +130,7 @@ export function BuyDrawer({
         }
       })
       .catch(() => {
-        // The sweeper still expires it within 10 minutes.
+        // The sweeper still expires it within the TTL.
       });
   }, [step, hold, flow, onClose, onStockChange]);
 
@@ -171,7 +172,7 @@ export function BuyDrawer({
       onStockChange?.(flow.product.id, body.availableStock);
       toast({
         title: "Reserved for you ⚡",
-        description: "Complete checkout within 10 minutes.",
+        description: `Complete checkout within ${RESERVATION_TTL_MINUTES} minutes.`,
         variant: "success",
       });
     } catch {
@@ -457,8 +458,8 @@ export function BuyDrawer({
 
                   {!hold ? (
                     <p className="mb-3 text-[11px] leading-relaxed text-faint">
-                      Choosing a payment method holds this item for you for 10
-                      minutes.
+                      Choosing a payment method holds this item for you for{" "}
+                      {RESERVATION_TTL_MINUTES} minutes.
                     </p>
                   ) : null}
 

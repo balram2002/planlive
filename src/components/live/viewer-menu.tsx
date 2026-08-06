@@ -36,16 +36,14 @@ export function ViewerMenu({
   onToggleAudio,
   videoHidden,
   onToggleVideo,
-  shareTitle,
-  onShared,
+  onOpenShare,
 }: {
   audioMuted: boolean;
   onToggleAudio: () => void;
   videoHidden: boolean;
   onToggleVideo: () => void;
-  shareTitle: string;
-  /** Fired once the viewer actually shares/copies — announces it in-room. */
-  onShared?: () => void;
+  /** Opens the room's share sheet. */
+  onOpenShare: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const mounted = useMounted();
@@ -53,33 +51,6 @@ export function ViewerMenu({
 
   function close() {
     setOpen(false);
-  }
-
-  async function share() {
-    const url = window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: shareTitle, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast({ title: "Link copied", variant: "success" });
-      }
-      onShared?.();
-    } catch {
-      // Dismissed — nothing was shared, so don't announce it.
-    }
-    close();
-  }
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast({ title: "Link copied", variant: "success" });
-      onShared?.();
-    } catch {
-      toast({ title: "Couldn't copy link", variant: "error" });
-    }
-    close();
   }
 
   const rows: Row[] = [
@@ -105,8 +76,18 @@ export function ViewerMenu({
         close();
       },
     },
-    { key: "share", label: "Share stream", icon: "📤", onPress: share },
-    { key: "copy", label: "Copy link", icon: "🔗", onPress: copyLink },
+    {
+      key: "share",
+      label: "Share stream",
+      icon: "📤",
+      onPress: () => {
+        haptics.tap();
+        close();
+        // The full share sheet lives in the room, which knows the stream's
+        // cover and seller — this menu only opens it.
+        onOpenShare();
+      },
+    },
     {
       key: "report",
       label: "Report stream",

@@ -103,14 +103,35 @@ export type CreateShipmentInput = {
 export type CreateShipmentResult = {
   courierName: string;
   trackingId: string;
-  label_url: string;
+  /**
+   * The label PDF link.
+   *
+   * Their docs name this `label_url`; the live API actually returns
+   * `labelUrl`. Reading only the documented spelling silently stored a null
+   * label on every booking — the PDF was there the whole time. Both are
+   * accepted, and `pickLabelUrl` below is the only thing that should read
+   * them.
+   */
+  labelUrl?: string;
+  label_url?: string;
   shipmentId: string;
   routingCode?: string;
+  /** Occasionally a base64 PDF instead of a link. */
   labelStream?: string;
   shippingMode?: string;
   gstin?: string;
   transporterID?: string;
 };
+
+/** The label as something a browser can open, whichever shape they sent. */
+export function pickLabelUrl(result: CreateShipmentResult): string | null {
+  const direct = result.labelUrl?.trim() || result.label_url?.trim();
+  if (direct) return direct;
+  // Base64 fallback: wrap it so the viewer can render it like any other PDF.
+  const stream = result.labelStream?.trim();
+  if (stream) return `data:application/pdf;base64,${stream}`;
+  return null;
+}
 
 /**
  * Books a parcel and returns the AWB + label URL.

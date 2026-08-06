@@ -56,10 +56,14 @@ export function PanelShell({
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   // Navigating always dismisses the drawer — otherwise tapping a link leaves
-  // it hanging over the page it just opened.
-  useEffect(() => {
+  // it hanging over the page it just opened. Render-phase adjustment rather
+  // than an effect (react.dev "adjusting state when props change"), so it's
+  // already closed on the first paint of the new route.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
     setDrawerOpen(false);
-  }, [pathname]);
+  }
 
   // Escape closes it, matching every other overlay in the app.
   useEffect(() => {

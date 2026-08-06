@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { Card } from "@/components/ui/card";
 import { ServiceabilityChecker } from "@/components/shipping/serviceability-checker";
@@ -28,7 +29,7 @@ function shopPincode(json: string | null): string {
  */
 export default async function SellerServiceabilityPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath("/dashboard/serviceability"));
   if (!isSeller(user)) redirect("/dashboard");
 
   const pickup = shopPincode(user.shopAddressJson);

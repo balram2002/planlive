@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { signInPath } from "@/lib/back-to";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { ProductForm } from "@/components/product-form";
@@ -12,7 +13,7 @@ export default async function EditProductPage({
   const { id } = await params;
 
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath(`/dashboard/products/${id}`));
   if (!isSeller(user)) redirect("/dashboard");
 
   const product = await prisma.product.findUnique({ where: { id } });

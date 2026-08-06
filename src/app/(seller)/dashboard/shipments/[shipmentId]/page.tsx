@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { signInPath } from "@/lib/back-to";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { Card } from "@/components/ui/card";
@@ -57,11 +58,12 @@ export default async function SellerShipmentDetailPage({
 }: {
   params: Promise<{ shipmentId: string }>;
 }) {
+  const { shipmentId } = await params;
+
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect(signInPath(`/dashboard/shipments/${shipmentId}`));
   if (!isSeller(user)) redirect("/dashboard");
 
-  const { shipmentId } = await params;
   const shipment = await prisma.shipment.findUnique({
     where: { id: shipmentId },
   });
@@ -153,6 +155,7 @@ export default async function SellerShipmentDetailPage({
             <div className="mt-4 border-t border-border pt-4">
               <ShipmentPanel
                 orderId={order.id}
+                productTitle={product?.title}
                 shippable={false}
                 shipment={{
                   status: shipment.status,

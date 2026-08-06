@@ -95,6 +95,22 @@ export function notifyPaymentFailed(input: {
   );
 }
 
+/** An unpaid hold ran out — tell the buyer before they come back to a gap. */
+export function notifyHoldExpired(input: {
+  buyer: Recipient;
+  productTitle: string;
+  minutes: number;
+}): void {
+  dispatch(
+    input.buyer.email,
+    mail.holdExpiredEmail({
+      buyerName: displayName(input.buyer),
+      productTitle: input.productTitle,
+      minutes: input.minutes,
+    }),
+  );
+}
+
 /** Parcel is coming back to the seller — the buyer should hear it from us. */
 export function notifyOrderReturning(input: {
   buyer: Recipient;

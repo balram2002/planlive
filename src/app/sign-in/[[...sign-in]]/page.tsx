@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SignIn } from "@clerk/nextjs";
+import { safeBackTo, signUpPath } from "@/lib/back-to";
 
 export const metadata: Metadata = {
   title: "Sign in",
   robots: { index: false },
 };
-
-/** Only same-app relative paths — never an absolute URL (open-redirect guard). */
-function safeBackTo(value: string | undefined): string {
-  if (!value) return "/";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/";
-  return value;
-}
 
 export default async function SignInPage({
   searchParams,
@@ -48,7 +42,13 @@ export default async function SignInPage({
 
       {/* Auth pane — Clerk styled by the app-wide CSS-variable appearance. */}
       <div className="animate-page-in flex flex-1 items-center justify-center px-4 py-10">
-        <SignIn fallbackRedirectUrl={redirectTo} signUpFallbackRedirectUrl={redirectTo} />
+        {/* signUpUrl carries backTo across the sign-in → sign-up switch, so
+            someone who creates an account still lands where they started. */}
+        <SignIn
+          fallbackRedirectUrl={redirectTo}
+          signUpFallbackRedirectUrl={redirectTo}
+          signUpUrl={signUpPath(redirectTo)}
+        />
       </div>
     </div>
   );

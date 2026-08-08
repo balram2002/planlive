@@ -7,6 +7,7 @@ import { useToast } from "@/components/toast";
 import { Spinner } from "@/components/ui/action-button";
 import { AddressForm, type SavedAddress } from "@/components/profile/address-form";
 import { ProductThumb } from "@/components/product-thumb";
+import { AttributeChips } from "@/components/products/attribute-chips";
 import { formatPrice } from "@/lib/format";
 import { COD_DELIVERY_FEE_PAISE, priceBreakdown } from "@/lib/pricing";
 import { RESERVATION_TTL_MINUTES } from "@/lib/reservation-window";
@@ -312,6 +313,11 @@ export function BuyDrawer({
                   <p className="text-xs text-muted">
                     {formatPrice(flow.product.priceInPaise)}
                   </p>
+                  {/* Confirms exactly which variant is being bought. */}
+                  <AttributeChips
+                    attributes={flow.product.attributes}
+                    className="mt-1"
+                  />
                 </div>
                 {hold ? (
                   <HoldCountdown expiresAt={hold.expiresAt} onExpired={onClose} />

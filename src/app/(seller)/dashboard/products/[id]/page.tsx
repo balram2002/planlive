@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { parseAttributes } from "@/lib/product-attributes";
 import { signInPath } from "@/lib/back-to";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
@@ -27,6 +28,8 @@ export default async function EditProductPage({
         action={updateProduct.bind(null, product.id)}
         submitLabel="Save changes"
         defaultValues={{
+          productType: product.productType,
+          attributes: parseAttributes(product.attributesJson),
           title: product.title,
           priceRupees: product.priceInPaise / 100,
           stock: product.availableStock,

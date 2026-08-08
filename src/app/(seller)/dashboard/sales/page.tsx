@@ -129,22 +129,9 @@ export default async function SalesPage() {
             couriers and print labels from here.
           </p>
         </Card>
-      ) : !canPickUp ? (
-        <Card className="border-warning/30 bg-warning/5 p-4">
-          <p className="text-sm font-medium text-warning">
-            Add a pickup address to start shipping
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-muted">
-            Couriers need somewhere to collect from.{" "}
-            <Link
-              href="/shop-address"
-              className="font-semibold text-primary underline-offset-2 hover:underline"
-            >
-              Set it up
-            </Link>
-          </p>
-        </Card>
       ) : null}
+      {/* The gate above renders its own re-open banner once dismissed, so
+          there's no second copy of this message linking off the page. */}
 
       {rows.length > 0 ? (
         <>

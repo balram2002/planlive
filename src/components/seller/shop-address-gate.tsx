@@ -43,7 +43,11 @@ export function ShopAddressGate({ open }: { open: boolean }) {
   const [shopName, setShopName] = useState("");
   const [phone, setPhone] = useState("");
 
-  const visible = open && !dismissed;
+  // Saving flips this permanently for the session; "Later" only collapses the
+  // sheet to the banner below, which re-opens it. Sending the seller off to
+  // another page to do it was the reported friction.
+  const [saved, setSaved] = useState(false);
+  const visible = open && !dismissed && !saved;
 
   useEffect(() => {
     if (state.error) toast({ title: state.error, variant: "error" });
@@ -54,7 +58,7 @@ export function ShopAddressGate({ open }: { open: boolean }) {
     if (!state.success || state.success === handled.current) return;
     handled.current = state.success;
     toast({ title: "Shop address saved — you can ship now.", variant: "success" });
-    setDismissed(true);
+    setSaved(true);
     router.refresh();
   }, [state.success, toast, router]);
 
@@ -83,6 +87,33 @@ export function ShopAddressGate({ open }: { open: boolean }) {
   }
 
   const step1Valid = shopName.trim().length >= 2 && /^\d{10,15}$/.test(phone.trim());
+
+  // Dismissed but still not set up: a banner that re-opens the same sheet,
+  // so the fix is always one tap away and never a trip to another screen.
+  if (open && !saved && dismissed) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-warning">
+            Add a pickup address to start shipping
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted">
+            Couriers need somewhere to collect from — takes about a minute.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            haptics.tap();
+            setDismissed(false);
+          }}
+          className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-all active:scale-95"
+        >
+          Add it now
+        </button>
+      </div>
+    );
+  }
 
   return (
     <AnimatePresence>

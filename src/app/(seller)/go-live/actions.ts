@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { audit, requireSeller } from "@/lib/authz";
 import { broadcastToRoom, deleteRoom } from "@/lib/livekit";
+import {
+  findPreset,
+  parseAttributes,
+  serializeAttributes,
+} from "@/lib/product-attributes";
 
 export type StartStreamState = { error?: string };
 
@@ -131,6 +136,13 @@ export async function createProductInLive(
   const imageUrl = sanitizeThumbnail(formData.get("imageUrl"));
   if (!imageUrl) return { error: "Add a product photo before adding it." };
 
+  // Same buyer-facing specifics as the full form; re-parsed server-side
+  // because the editor's hidden field is client input.
+  const attributesJson = serializeAttributes(
+    parseAttributes(String(formData.get("attributesJson") ?? "")),
+  );
+  const rawType = String(formData.get("productType") ?? "").trim();
+
   await prisma.product.create({
     data: {
       sellerId: user.id,
@@ -138,6 +150,8 @@ export async function createProductInLive(
       priceInPaise: Math.round(priceRupees * 100),
       availableStock: stock,
       imageUrl,
+      productType: findPreset(rawType) ? rawType : null,
+      attributesJson,
       streamId: stream.id,
     },
   });

@@ -16,11 +16,42 @@ export type Notice = {
 const MAX_VISIBLE = 3;
 const LIFETIME_MS = 4200;
 
-const copy: Record<NoticeKind, { emoji: string; verb: string; tint: string }> = {
-  join: { emoji: "👋", verb: "joined", tint: "text-white" },
-  like: { emoji: "❤️", verb: "liked the stream", tint: "text-white" },
-  share: { emoji: "🔗", verb: "shared the stream", tint: "text-white" },
-  follow: { emoji: "⭐", verb: "followed the seller", tint: "text-white" },
+/**
+ * Per-kind styling.
+ *
+ * Each event gets its own accent ring and glow so a busy room reads at a
+ * glance — four identical grey pills scrolling past is noise, whereas a red
+ * flash for a like and a gold one for a follow are recognisable in peripheral
+ * vision while the viewer is watching the video, not the ticker.
+ */
+const copy: Record<
+  NoticeKind,
+  { emoji: string; verb: string; ring: string; glow: string }
+> = {
+  join: {
+    emoji: "👋",
+    verb: "joined",
+    ring: "border-white/15",
+    glow: "shadow-[0_0_18px_-6px_rgba(255,255,255,0.45)]",
+  },
+  like: {
+    emoji: "❤️",
+    verb: "liked the stream",
+    ring: "border-rose-400/40",
+    glow: "shadow-[0_0_18px_-6px_rgba(244,63,94,0.75)]",
+  },
+  share: {
+    emoji: "🔗",
+    verb: "shared the stream",
+    ring: "border-sky-400/40",
+    glow: "shadow-[0_0_18px_-6px_rgba(56,189,248,0.7)]",
+  },
+  follow: {
+    emoji: "⭐",
+    verb: "followed the seller",
+    ring: "border-amber-300/45",
+    glow: "shadow-[0_0_18px_-6px_rgba(252,211,77,0.75)]",
+  },
 };
 
 /**
@@ -79,7 +110,7 @@ export function LiveNotices({
     >
       <AnimatePresence initial={false}>
         {notices.map((notice) => {
-          const { emoji, verb, tint } = copy[notice.kind];
+          const { emoji, verb, ring, glow } = copy[notice.kind];
           return (
             <motion.div
               key={notice.id}
@@ -96,12 +127,21 @@ export function LiveNotices({
                   : { opacity: 0, x: -16, scale: 0.95 }
               }
               transition={{ type: "spring", stiffness: 420, damping: 32 }}
-              className="flex max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-black/55 py-1 pl-1.5 pr-2.5 backdrop-blur-md"
+              className={cn(
+                "flex max-w-full items-center gap-1.5 rounded-full border bg-black/55 py-1 pl-1 pr-2.5 backdrop-blur-md",
+                ring,
+                glow,
+              )}
             >
-              <span className="text-sm leading-none" aria-hidden>
+              {/* The emoji sits in its own disc so every pill has the same
+                  left edge regardless of glyph width. */}
+              <span
+                aria-hidden
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] leading-none"
+              >
                 {emoji}
               </span>
-              <span className={cn("min-w-0 truncate text-[11px]", tint)}>
+              <span className="min-w-0 truncate text-[11px] text-white">
                 <span className="font-semibold">{notice.name}</span>{" "}
                 <span className="text-white/70">{verb}</span>
               </span>

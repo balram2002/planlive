@@ -122,6 +122,13 @@ model Product {
   lengthCm       Int     @default(25)
   breadthCm      Int     @default(20)
   heightCm       Int     @default(5)
+  /// Which attribute preset the seller filled in ("clothing", "footwear"…).
+  /// Kept so the editor can reopen with the right fields.
+  productType    String?
+  /// Buyer-facing specifics as an ordered JSON array of {label, value}.
+  /// Free-form on purpose: every category needs different fields, and a
+  /// column per attribute would mean a migration for each new category.
+  attributesJson String?
   streamId       String? @db.ObjectId
 }
 

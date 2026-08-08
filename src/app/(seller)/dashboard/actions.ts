@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSeller } from "@/lib/authz";
+import {
+  findPreset,
+  parseAttributes,
+  serializeAttributes,
+} from "@/lib/product-attributes";
 
 export type FormState = { error?: string };
 
@@ -20,6 +25,8 @@ type ParsedProduct = {
   lengthCm: number;
   breadthCm: number;
   heightCm: number;
+  productType: string | null;
+  attributesJson: string | null;
 };
 
 /** Parcel dimension bounds — beyond these no courier will accept the box. */
@@ -85,6 +92,14 @@ function parseProductForm(
     parcel[field] = value;
   }
 
+  // Buyer-facing specifics. Re-serialised server-side rather than trusted:
+  // the editor is a client component, so its hidden field is user input.
+  const attributesJson = serializeAttributes(
+    parseAttributes(String(formData.get("attributesJson") ?? "")),
+  );
+  const rawType = String(formData.get("productType") ?? "").trim();
+  const productType = findPreset(rawType) ? rawType : null;
+
   return {
     data: {
       title,
@@ -92,6 +107,8 @@ function parseProductForm(
       availableStock: stock,
       imageUrl,
       ...parcel,
+      productType,
+      attributesJson,
     },
   };
 }

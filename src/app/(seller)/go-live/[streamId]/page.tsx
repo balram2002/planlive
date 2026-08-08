@@ -52,6 +52,7 @@ export default async function StudioPage({
             priceInPaise: p.priceInPaise,
             availableStock: p.availableStock,
             inStream: p.streamId === stream.id,
+            imageUrl: p.imageUrl,
           }))}
         />
 

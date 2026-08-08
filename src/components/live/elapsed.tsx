@@ -22,9 +22,9 @@ export function Elapsed({ startedAt }: { startedAt: string }) {
     return () => clearInterval(timer);
   }, [since]);
 
+  // Inline, not a chip: it sits inside the host card's LIVE line, where a
+  // second pill would just add clutter to an already-tight header.
   return (
-    <span className="rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium tabular-nums text-white backdrop-blur">
-      {label}
-    </span>
+    <span className="tabular-nums text-white/70">· {label}</span>
   );
 }

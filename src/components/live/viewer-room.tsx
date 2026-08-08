@@ -41,6 +41,8 @@ import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
+import { headlineAttributes, type ProductAttribute } from "@/lib/product-attributes";
+import { AttributeChips } from "@/components/products/attribute-chips";
 
 export type PinnedProduct = {
   id: string;
@@ -48,6 +50,8 @@ export type PinnedProduct = {
   priceInPaise: number;
   availableStock: number;
   imageUrl: string | null;
+  /** Size, colour and other specifics, shown as chips on the card. */
+  attributes: ProductAttribute[];
 };
 
 /**
@@ -463,12 +467,15 @@ function ViewerStage({
               )}
             </span>
             <span className="min-w-0">
-              <span className="block max-w-[92px] truncate text-xs font-semibold leading-tight text-white">
+              <span className="block max-w-[120px] truncate text-xs font-semibold leading-tight text-white">
                 @{sellerName}
               </span>
+              {/* LIVE and the running time are one unit — they answer the
+                  same question and were two separate chips before. */}
               <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide leading-tight text-live">
                 <span className="h-1 w-1 rounded-full bg-live animate-live-pulse" />
                 Live
+                <Elapsed startedAt={startedAt} />
               </span>
             </span>
             <motion.button
@@ -487,31 +494,12 @@ function ViewerStage({
             </motion.button>
           </div>
 
+          {/* Right cluster is deliberately three items. Everything optional
+              — share, audio, video, report — lives in the menu; a phone-width
+              header can't carry six controls plus the host chip without them
+              colliding. */}
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
-            <Elapsed startedAt={startedAt} />
             <ViewerCount />
-            {/* Share is a first-class action, not buried in the menu — it's
-                how a stream actually finds an audience. */}
-            <motion.button
-              type="button"
-              onClick={() => {
-                haptics.tap();
-                setShareOpen(true);
-              }}
-              whileTap={{ scale: 0.9 }}
-              aria-label="Share stream"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition-all duration-200"
-            >
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
-                <path
-                  d="M12 3v12m0-12L8 7m4-4 4 4M6 12v7a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-7"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </motion.button>
             <ViewerMenu
               audioMuted={audioMuted}
               onToggleAudio={() => setAudioMuted((v) => !v)}
@@ -587,7 +575,14 @@ function ViewerStage({
                 <p className="mt-0.5 text-xs font-bold text-white">
                   {formatPrice(featuredProduct.priceInPaise)}
                 </p>
-                <p className="text-[10px] text-white/60">
+                {/* Only the two that matter most — the card is 128px wide. */}
+                <AttributeChips
+                  attributes={headlineAttributes(featuredProduct.attributes)}
+                  tone="dark"
+                  size="xs"
+                  className="mt-1"
+                />
+                <p className="mt-0.5 text-[10px] text-white/60">
                   {featuredProduct.availableStock > 0
                     ? `${featuredProduct.availableStock} left`
                     : "Sold out"}

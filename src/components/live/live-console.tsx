@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton, Spinner } from "@/components/ui/action-button";
 import { useToast } from "@/components/toast";
+import { ProductThumb } from "@/components/product-thumb";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { LiveAddProduct } from "@/components/live/live-add-product";
@@ -23,6 +24,9 @@ export type ConsoleProduct = {
   priceInPaise: number;
   availableStock: number;
   inStream: boolean;
+  /** The console showed titles only, so sellers couldn't tell near-identical
+   *  listings apart mid-stream. */
+  imageUrl: string | null;
 };
 
 type Stats = { reservations: number; confirmedUnits: number; revenuePaise: number };
@@ -138,14 +142,22 @@ export function LiveConsole({
                       featured ? "border-primary/60 bg-primary/5" : "border-border",
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="min-w-0 truncate text-sm font-medium">
-                        {featured ? "★ " : ""}
-                        {product.title}
-                      </p>
-                      <span className="shrink-0 text-sm text-muted">
-                        {formatPrice(product.priceInPaise)}
-                      </span>
+                    <div className="flex items-center gap-2.5">
+                      <ProductThumb
+                        src={product.imageUrl}
+                        alt={product.title}
+                        sizes="40px"
+                        className="w-10"
+                      />
+                      <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                        <p className="min-w-0 truncate text-sm font-medium">
+                          {featured ? "★ " : ""}
+                          {product.title}
+                        </p>
+                        <span className="shrink-0 text-sm text-muted">
+                          {formatPrice(product.priceInPaise)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="mt-2.5 flex flex-wrap items-center gap-2">
@@ -229,11 +241,15 @@ export function LiveConsole({
             </h3>
             <ul className="space-y-1.5">
               {available.map((product) => (
-                <li
-                  key={product.id}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span className="min-w-0 truncate text-sm text-muted">
+                <li key={product.id} className="flex items-center gap-2.5">
+                  <ProductThumb
+                    src={product.imageUrl}
+                    alt={product.title}
+                    sizes="32px"
+                    className="w-8"
+                    rounded="rounded-lg"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-sm text-muted">
                     {product.title}
                   </span>
                   <AddToStreamButton

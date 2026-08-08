@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Spinner } from "@/components/ui/action-button";
 import { ImageUploader } from "@/components/upload/image-uploader";
+import { AttributesEditor } from "@/components/products/attributes-editor";
 import { useToast } from "@/components/toast";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
@@ -91,6 +92,21 @@ function AddProductSheet({
     if (state.error) toast({ title: state.error, variant: "error" });
   }, [state, toast]);
 
+  // Escape closes it, and the page behind stays put while it's open.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [open, onClose]);
+
   // On success: toast, reset the form, and close. In an effect (not render)
   // because it reads a ref and calls a parent callback.
   const handledSuccess = useRef<string | undefined>(undefined);
@@ -127,10 +143,32 @@ function AddProductSheet({
             transition={{ type: "spring", stiffness: 380, damping: 38 }}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-            <h2 className="text-base font-semibold">Add a product</h2>
-            <p className="mb-4 text-xs text-muted">
-              It goes straight into your live queue for buyers to grab.
-            </p>
+
+            {/* An explicit close: the backdrop is easy to miss mid-stream,
+                and a seller stuck in this sheet is off-camera. */}
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold">Add a product</h2>
+                <p className="text-xs text-muted">
+                  It goes straight into your live queue for buyers to grab.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-all hover:bg-surface-2 hover:text-foreground active:scale-90"
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+                  <path
+                    d="m6 6 12 12M18 6 6 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
 
             <form ref={formRef} action={formAction} className="space-y-4">
               <input type="hidden" name="streamId" value={streamId} />
@@ -175,6 +213,12 @@ function AddProductSheet({
                   placeholder="Stock"
                   className="w-full min-w-0 rounded-xl border border-border bg-surface-2 px-3.5 py-2.5 text-base placeholder:text-faint focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
+              </div>
+
+              {/* Same type-aware specifics as the full form. Compact, because
+                  the seller is filling this in while on camera. */}
+              <div className="rounded-2xl border border-border p-3">
+                <AttributesEditor compact />
               </div>
 
               <p className="text-[11px] leading-relaxed text-faint">

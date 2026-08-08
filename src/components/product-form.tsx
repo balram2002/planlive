@@ -7,6 +7,8 @@ import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/image-uploader";
 import { useToast } from "@/components/toast";
+import { AttributesEditor } from "@/components/products/attributes-editor";
+import type { ProductAttribute } from "@/lib/product-attributes";
 import type { FormState } from "@/app/(seller)/dashboard/actions";
 
 type Action = (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -27,6 +29,8 @@ export function ProductForm({
     lengthCm?: number;
     breadthCm?: number;
     heightCm?: number;
+    productType?: string | null;
+    attributes?: ProductAttribute[];
   };
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
@@ -167,6 +171,18 @@ export function ProductForm({
             />
           </Field>
         </div>
+      </fieldset>
+
+      <fieldset className="rounded-2xl border border-border p-4">
+        <legend className="px-1.5 text-sm font-semibold">Product details</legend>
+        <p className="mb-3 text-xs leading-relaxed text-muted">
+          Size, colour and the specifics buyers ask about mid-stream. These show
+          as chips on the product card.
+        </p>
+        <AttributesEditor
+          initialType={defaultValues?.productType}
+          initialAttributes={defaultValues?.attributes}
+        />
       </fieldset>
 
       {state.error ? (

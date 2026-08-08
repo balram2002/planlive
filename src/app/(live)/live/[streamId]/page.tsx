@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
+import { parseAttributes } from "@/lib/product-attributes";
 import { ViewerRoom } from "@/components/live/viewer-room";
 
 /**
@@ -142,6 +143,7 @@ export default async function LiveStreamPage({
           priceInPaise: p.priceInPaise,
           availableStock: p.availableStock,
           imageUrl: p.imageUrl,
+          attributes: parseAttributes(p.attributesJson),
         }))}
       />
     </div>

@@ -102,12 +102,29 @@ const PUBLISH_DEFAULTS: TrackPublishDefaults = {
   videoEncoding: {
     // Budget for the TOP layer. LiveKit builds `original` from this value,
     // so it must be a 4K-grade bitrate or a 4K capture would be starved.
-    maxBitrate: VideoPresets.h2160.encoding.maxBitrate, // 8 Mbps
+    //
+    // 8 Mbps (the h2160 preset) is a *static-scene* number for 4K. A seller
+    // turning a garment over is high-entropy motion, and at 8 Mbps the
+    // encoder had to raise quantisation hard to fit — which is exactly the
+    // "goes blurry when I move" and "colours shift" that got reported.
+    // 16 Mbps gives motion somewhere to go; congestion control still scales
+    // it down automatically on a weak uplink, so this is a ceiling, not a
+    // demand.
+    maxBitrate: 16_000_000,
     maxFramerate: 30,
     priority: "high",
   },
-  // Under congestion drop frame rate, never resolution.
-  degradationPreference: "maintain-resolution",
+  /**
+   * Let the encoder trade resolution during motion.
+   *
+   * This was "maintain-resolution", which pins pixel dimensions and forces
+   * every shortfall onto quality instead — so a moving scene stayed 4K-shaped
+   * but turned soft and blocky, precisely while the product was being shown.
+   * "balanced" lets it shed a little resolution through the movement and
+   * recover it the moment the shot settles, which reads as consistently sharp
+   * rather than periodically mushy.
+   */
+  degradationPreference: "balanced",
   videoCodec: "h264",
 
   // ---- Audio: highest-fidelity preset LiveKit ships ----

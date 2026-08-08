@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { parseAttributes } from "@/lib/product-attributes";
 
 /**
  * GET /api/streams/:id/products — current live product queue + featured pin.
@@ -25,11 +26,17 @@ export async function GET(
       priceInPaise: true,
       availableStock: true,
       imageUrl: true,
+      attributesJson: true,
     },
   });
 
   return NextResponse.json({
-    products,
+    // Attributes are parsed here rather than shipped as raw JSON, so the
+    // refresh path returns exactly the shape the initial server render did.
+    products: products.map(({ attributesJson, ...product }) => ({
+      ...product,
+      attributes: parseAttributes(attributesJson),
+    })),
     featuredProductId: stream.featuredProductId,
   });
 }

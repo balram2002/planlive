@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { ProductThumb } from "@/components/product-thumb";
+import { AttributeChips } from "@/components/products/attribute-chips";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import type { PinnedProduct } from "./viewer-room";
@@ -108,7 +109,13 @@ export function ProductsPanel({
                             <p className="truncate text-sm font-medium">
                               {product.title}
                             </p>
-                            <div className="mt-0.5 flex items-center justify-between">
+                            {/* Full set here — the drawer has room, and this
+                                is where buyers check size before reserving. */}
+                            <AttributeChips
+                              attributes={product.attributes}
+                              className="mt-1"
+                            />
+                            <div className="mt-1 flex items-center justify-between">
                               <span className="text-sm font-semibold">
                                 {formatPrice(product.priceInPaise)}
                               </span>

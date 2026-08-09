@@ -1,6 +1,6 @@
 import type { Order, Product, Shipment, ShipmentStatus, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { audit } from "@/lib/authz";
+import { audit } from "@/lib/audit";
 import {
   EshopboxError,
   eshopboxConfigured,

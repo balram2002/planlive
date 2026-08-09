@@ -1,4 +1,5 @@
-import "server-only";
+// NOTE: no "server-only" guard — the sweeper queues mail from outside
+// Next.js. Never import from a client component: it holds SMTP credentials.
 import { after } from "next/server";
 import nodemailer, { type Transporter } from "nodemailer";
 

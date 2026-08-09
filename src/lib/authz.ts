@@ -9,12 +9,9 @@ import { getCurrentUser, isAdmin, isSeller } from "@/lib/current-user";
  * checks happen server-side per request.
  */
 
-/** Structured audit line for privileged mutations (grep "[audit]" in logs). */
-export function audit(action: string, detail: Record<string, unknown>): void {
-  console.log(
-    `[audit] ${new Date().toISOString()} ${action} ${JSON.stringify(detail)}`,
-  );
-}
+// `audit` lives in its own module so standalone scripts can log too — this
+// file can't be imported outside Next.js because of the redirects below.
+export { audit } from "@/lib/audit";
 
 /** Signed-in, active user or redirect to sign-in. */
 export async function requireUser(): Promise<User> {

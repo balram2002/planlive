@@ -1,7 +1,9 @@
-import "server-only";
+// NOTE: no "server-only" guard — the expiry sweeper runs this outside
+// Next.js. Never import it from a client component: it reads and writes
+// orders directly.
 import type { LocalFulfilment, Order, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { audit } from "@/lib/authz";
+import { audit } from "@/lib/audit";
 
 /**
  * Local fulfilment — the two options that only exist when the buyer is in the

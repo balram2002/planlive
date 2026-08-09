@@ -1,4 +1,6 @@
-import "server-only";
+// NOTE: no "server-only" guard — the sweeper sends hold-expiry and
+// pickup-expiry mail from outside Next.js. Never import from a client
+// component: it reaches the SMTP transport.
 import type { User } from "@prisma/client";
 import { queueEmail } from "@/lib/email/send";
 import * as mail from "@/lib/email/templates";

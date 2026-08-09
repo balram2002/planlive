@@ -8,6 +8,10 @@ import { useToast } from "@/components/toast";
 import { formatPrice } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
 import {
+  StreamModePicker,
+  type PremiumStatus,
+} from "@/components/live/stream-mode-picker";
+import {
   startStream,
   type StartStreamState,
 } from "@/app/(seller)/go-live/actions";
@@ -29,6 +33,8 @@ export function GoLiveForm({
   initialThumbnailUrl = null,
   initialTitle = "",
   scheduledId,
+  premiumStatus,
+  premiumConfigured,
 }: {
   products: PickableProduct[];
   categories: PickableCategory[];
@@ -36,6 +42,8 @@ export function GoLiveForm({
   initialThumbnailUrl?: string | null;
   initialTitle?: string;
   scheduledId?: string;
+  premiumStatus: PremiumStatus;
+  premiumConfigured: boolean;
 }) {
   const [state, formAction, pending] = useActionState<StartStreamState, FormData>(
     startStream,
@@ -150,6 +158,11 @@ export function GoLiveForm({
           </label>
         ))}
       </fieldset>
+
+      <StreamModePicker
+        premiumStatus={premiumStatus}
+        premiumConfigured={premiumConfigured}
+      />
 
       {state.error ? (
         <p className="rounded-xl border border-live/30 bg-live/10 px-3 py-2 text-sm text-live">

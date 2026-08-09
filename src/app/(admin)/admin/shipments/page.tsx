@@ -126,6 +126,12 @@ export default async function AdminShipmentsPage({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
+          <a
+            href="/api/exports/orders?scope=all"
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-primary/50 hover:text-foreground"
+          >
+            ⬇ Export CSV
+          </a>
           <Link
             href="/admin/serviceability"
             className="rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-primary/50 hover:text-foreground"

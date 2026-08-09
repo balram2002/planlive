@@ -49,7 +49,21 @@ export const IconCalendar = () =>
 export const IconShield = () =>
   base({ d: "M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm-2.5 9 2 2 3.5-4" });
 
-/** Delivery truck — shipments / courier. */
+/** Sparkle — premium broadcasting. */
+export const IconSpark = () =>
+  base({
+    d: "M12 3.5 13.8 9 19.5 10.8 13.8 12.6 12 18.1 10.2 12.6 4.5 10.8 10.2 9 12 3.5Z",
+    extra: (
+      <path
+        d="M18.5 3.5 19.2 5.6 21.3 6.3 19.2 7 18.5 9.1 17.8 7 15.7 6.3 17.8 5.6 18.5 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    ),
+  });
+
 /** Wallet — seller earnings and balances. */
 export const IconWallet = () =>
   base({
@@ -90,6 +104,7 @@ export const IconPin = () =>
     ),
   });
 
+/** Delivery truck — shipments / courier. */
 export const IconTruck = () =>
   base({
     d: "M3 7a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9H3V7Zm11 3h3.5l2.5 3v3h-6v-6Z",

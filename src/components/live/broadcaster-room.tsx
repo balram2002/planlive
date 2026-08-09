@@ -33,6 +33,7 @@ import { FloatingReactions, useReactions } from "./reactions";
 import { LiveNotices, useLiveNotices } from "./live-notices";
 import { OrderCelebration, type Celebration } from "./order-celebration";
 import { LiveAddProduct } from "./live-add-product";
+import { ZegoBroadcastSurface } from "./zego/zego-surfaces";
 import { Elapsed } from "./elapsed";
 import { LiveBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
@@ -156,9 +157,19 @@ const ROOM_OPTIONS: RoomOptions = {
 export function BroadcasterRoom({
   streamId,
   startedAt,
+  provider = "LIVEKIT",
 }: {
   streamId: string;
   startedAt: string;
+  /**
+   * Which backend carries the video.
+   *
+   * On ZEGO the seller still joins LiveKit — but data-only, exactly like a
+   * viewer — so chat, reactions and the activity ticker keep working while
+   * ZEGO publishes the camera. The LiveKit capture path below is untouched
+   * and remains the standard tier's implementation.
+   */
+  provider?: "LIVEKIT" | "ZEGO";
 }) {
   const token = useLivekitToken(streamId);
 
@@ -176,17 +187,26 @@ export function BroadcasterRoom({
     );
   }
 
+  const premium = provider === "ZEGO";
+
   return (
     <LiveKitRoom
       token={token.token}
       serverUrl={token.serverUrl}
       connect
-      video={CAPTURE_OPTIONS}
-      audio={AUDIO_CAPTURE_OPTIONS}
-      options={ROOM_OPTIONS}
+      // Premium publishes through ZEGO, so LiveKit must not also grab the
+      // camera — two SDKs contending for one device is how you get a black
+      // preview on mobile.
+      video={premium ? false : CAPTURE_OPTIONS}
+      audio={premium ? false : AUDIO_CAPTURE_OPTIONS}
+      options={premium ? { dynacast: true } : ROOM_OPTIONS}
       className="block"
     >
-      <BroadcasterStage streamId={streamId} startedAt={startedAt} />
+      <BroadcasterStage
+        streamId={streamId}
+        startedAt={startedAt}
+        provider={provider}
+      />
       <RoomAudioRenderer />
     </LiveKitRoom>
   );
@@ -198,13 +218,23 @@ function DeviceToggle({
   onIcon,
   offIcon,
   label,
+  override,
 }: {
   source: Track.Source.Camera | Track.Source.Microphone;
   onIcon: React.ReactNode;
   offIcon: React.ReactNode;
   label: string;
+  /**
+   * Premium (ZEGO) drives the device externally — there are no LiveKit
+   * tracks to toggle. Supplying this makes the button controlled, so both
+   * tiers share one control bar instead of forking the studio chrome.
+   */
+  override?: { enabled: boolean; onToggle: () => void };
 }) {
-  const { toggle, enabled, pending } = useTrackToggle({ source });
+  const track = useTrackToggle({ source });
+  const enabled = override ? override.enabled : track.enabled;
+  const pending = override ? false : track.pending;
+  const toggle = override ? override.onToggle : track.toggle;
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -234,13 +264,19 @@ function DeviceToggle({
 }
 
 /** Front ↔ rear camera switch with a Y-axis flip animation. */
-function FlipCameraButton() {
+function FlipCameraButton({ override }: { override?: () => void } = {}) {
   const { localParticipant } = useLocalParticipant();
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [busy, setBusy] = useState(false);
 
   async function flip() {
     haptics.tap();
+    // Premium hands the flip to ZEGO, which owns the capture device.
+    if (override) {
+      override();
+      setFacing((f) => (f === "user" ? "environment" : "user"));
+      return;
+    }
     const track = localParticipant.getTrackPublication(Track.Source.Camera)
       ?.track as LocalVideoTrack | undefined;
     if (!track || busy) return;
@@ -291,9 +327,11 @@ function FlipCameraButton() {
 function BroadcasterStage({
   streamId,
   startedAt,
+  provider,
 }: {
   streamId: string;
   startedAt: string;
+  provider: "LIVEKIT" | "ZEGO";
 }) {
   const connectionState = useConnectionState();
   const room = useRoomContext();
@@ -370,9 +408,26 @@ function BroadcasterStage({
   );
   const preview = cameraTracks[0];
 
+  // Premium device state. LiveKit's useTrackToggle drives the standard path,
+  // but on ZEGO there are no LiveKit tracks to toggle — so the same control
+  // bar reads these instead, keeping one set of buttons for both tiers.
+  const [zegoCameraOn, setZegoCameraOn] = useState(true);
+  const [zegoMicOn, setZegoMicOn] = useState(true);
+  const [zegoFacing, setZegoFacing] = useState<"user" | "environment">("user");
+  const premium = provider === "ZEGO";
+
   return (
     <div className="relative aspect-[9/14] w-full overflow-hidden rounded-2xl border border-border bg-black">
-      {preview ? (
+      {provider === "ZEGO" ? (
+        /* Premium: ZEGO owns capture + publish. The control bar below drives
+           it through these props, so the studio chrome is unchanged. */
+        <ZegoBroadcastSurface
+          streamId={streamId}
+          cameraOn={zegoCameraOn}
+          micOn={zegoMicOn}
+          facingMode={zegoFacing}
+        />
+      ) : preview ? (
         <VideoTrack trackRef={preview} className="h-full w-full object-cover" />
       ) : (
         <div className="flex h-full items-center justify-center text-sm text-white/60">
@@ -416,6 +471,14 @@ function BroadcasterStage({
       {/* Control bar — perfectly centered circular toggles. */}
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-6 bg-gradient-to-t from-black/80 to-transparent px-4 pb-4 pt-12">
         <DeviceToggle
+          override={
+            premium
+              ? {
+                  enabled: zegoCameraOn,
+                  onToggle: () => setZegoCameraOn((v) => !v),
+                }
+              : undefined
+          }
           source={Track.Source.Camera}
           label="Camera"
           onIcon={
@@ -432,8 +495,20 @@ function BroadcasterStage({
             </svg>
           }
         />
-        <FlipCameraButton />
+        <FlipCameraButton
+          override={
+            premium
+              ? () =>
+                  setZegoFacing((f) => (f === "user" ? "environment" : "user"))
+              : undefined
+          }
+        />
         <DeviceToggle
+          override={
+            premium
+              ? { enabled: zegoMicOn, onToggle: () => setZegoMicOn((v) => !v) }
+              : undefined
+          }
           source={Track.Source.Microphone}
           label="Mic"
           onIcon={

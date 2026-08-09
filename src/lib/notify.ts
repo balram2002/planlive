@@ -2,6 +2,7 @@ import "server-only";
 import type { User } from "@prisma/client";
 import { queueEmail } from "@/lib/email/send";
 import * as mail from "@/lib/email/templates";
+import * as fulfilMail from "@/lib/email/fulfilment-templates";
 
 /**
  * The single place that decides what gets sent for each user action.
@@ -248,4 +249,181 @@ export function notifySellerShipmentIssue(input: {
       kind: input.kind,
     }),
   );
+}
+
+// ------------------------------------------------- local fulfilment
+
+/** Seller asked the buyer to collect from the shop. */
+export function notifyPickupRequested(input: {
+  buyer: Recipient;
+  productTitle: string;
+  shopName: string;
+  shopAddress: string;
+  windowDays: number;
+  note?: string | null;
+}): void {
+  dispatch(
+    input.buyer.email,
+    fulfilMail.pickupRequestedEmail({
+      buyerName: displayName(input.buyer),
+      productTitle: input.productTitle,
+      shopName: input.shopName,
+      shopAddress: input.shopAddress,
+      windowDays: input.windowDays,
+      note: input.note,
+    }),
+  );
+}
+
+/** Buyer accepted — the seller has a deadline now. */
+export function notifyPickupAccepted(input: {
+  seller: Recipient;
+  buyer: Recipient;
+  productTitle: string;
+  deadline: Date;
+}): void {
+  dispatch(
+    input.seller.email,
+    fulfilMail.pickupAcceptedEmail({
+      sellerName: displayName(input.seller),
+      buyerName: displayName(input.buyer),
+      productTitle: input.productTitle,
+      deadline: input.deadline.toLocaleString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    }),
+  );
+}
+
+/** Buyer declined — the seller must choose another route. */
+export function notifyPickupRejected(input: {
+  seller: Recipient;
+  buyer: Recipient;
+  productTitle: string;
+  note?: string | null;
+}): void {
+  dispatch(
+    input.seller.email,
+    fulfilMail.pickupRejectedEmail({
+      sellerName: displayName(input.seller),
+      buyerName: displayName(input.buyer),
+      productTitle: input.productTitle,
+      note: input.note,
+    }),
+  );
+}
+
+/** Window closed. Both sides hear about it, worded for each. */
+export function notifyPickupExpired(input: {
+  seller: Recipient | null;
+  buyer: Recipient | null;
+  productTitle: string;
+  windowDays: number;
+}): void {
+  if (input.seller) {
+    dispatch(
+      input.seller.email,
+      fulfilMail.pickupExpiredEmail({
+        name: displayName(input.seller),
+        productTitle: input.productTitle,
+        forSeller: true,
+        windowDays: input.windowDays,
+      }),
+    );
+  }
+  if (input.buyer) {
+    dispatch(
+      input.buyer.email,
+      fulfilMail.pickupExpiredEmail({
+        name: displayName(input.buyer),
+        productTitle: input.productTitle,
+        forSeller: false,
+        windowDays: input.windowDays,
+      }),
+    );
+  }
+}
+
+/** Seller is delivering it personally. */
+export function notifySellerDelivery(input: {
+  buyer: Recipient;
+  productTitle: string;
+  shopName: string;
+  note?: string | null;
+}): void {
+  dispatch(
+    input.buyer.email,
+    fulfilMail.sellerDeliveryEmail({
+      buyerName: displayName(input.buyer),
+      productTitle: input.productTitle,
+      shopName: input.shopName,
+      note: input.note,
+    }),
+  );
+}
+
+/** Handover done — receipt to both sides. */
+export function notifyHandoverComplete(input: {
+  seller: Recipient | null;
+  buyer: Recipient | null;
+  productTitle: string;
+  collected: boolean;
+}): void {
+  if (input.seller) {
+    dispatch(
+      input.seller.email,
+      fulfilMail.handoverCompleteEmail({
+        name: displayName(input.seller),
+        productTitle: input.productTitle,
+        collected: input.collected,
+        forSeller: true,
+      }),
+    );
+  }
+  if (input.buyer) {
+    dispatch(
+      input.buyer.email,
+      fulfilMail.handoverCompleteEmail({
+        name: displayName(input.buyer),
+        productTitle: input.productTitle,
+        collected: input.collected,
+        forSeller: false,
+      }),
+    );
+  }
+}
+
+// ------------------------------------------------------------ premium tier
+
+/** Admin approved or rejected a premium broadcasting application. */
+export function notifyPremiumDecision(input: {
+  seller: Recipient;
+  approved: boolean;
+  note?: string | null;
+}): void {
+  dispatch(
+    input.seller.email,
+    fulfilMail.premiumDecisionEmail({
+      sellerName: displayName(input.seller),
+      approved: input.approved,
+      note: input.note,
+    }),
+  );
+}
+
+/** A seller applied — tell every admin so the queue never sits unseen. */
+export function notifyPremiumApplied(input: {
+  admins: Recipient[];
+  sellerEmail: string;
+  message?: string | null;
+}): void {
+  const email = fulfilMail.premiumAppliedAdminEmail({
+    sellerEmail: input.sellerEmail,
+    message: input.message,
+  });
+  for (const admin of input.admins) dispatch(admin.email, email);
 }

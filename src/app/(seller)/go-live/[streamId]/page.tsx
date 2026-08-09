@@ -40,6 +40,7 @@ export default async function StudioPage({
       <BroadcasterRoom
         streamId={stream.id}
         startedAt={stream.startedAt.toISOString()}
+        provider={stream.provider}
       />
 
       <div className="space-y-5">

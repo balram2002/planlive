@@ -6,6 +6,7 @@ import {
   IconCalendar,
   IconChart,
   IconPin,
+  IconSpark,
   IconReceipt,
   IconTag,
   IconTruck,
@@ -43,6 +44,7 @@ export default function SellerLayout({
         { href: "/dashboard/sales", label: "Sales", icon: <IconReceipt /> },
         { href: "/dashboard/wallet", label: "Wallet", icon: <IconWallet /> },
         { href: "/dashboard/shipments", label: "Shipments", icon: <IconTruck /> },
+        { href: "/dashboard/premium", label: "Premium", icon: <IconSpark /> },
         {
           href: "/dashboard/serviceability",
           label: "Serviceability",

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { signInPath } from "@/lib/back-to";
 import { getCurrentUser, isSeller } from "@/lib/current-user";
 import { GoLiveForm } from "@/components/go-live-form";
+import { getPremiumState } from "@/lib/premium";
+import { zegoConfigured } from "@/lib/zego/token";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -21,6 +23,9 @@ export default async function GoLivePage({
     where: { sellerId: user.id, status: "LIVE" },
   });
   if (activeStream) redirect(`/go-live/${activeStream.id}`);
+
+  // Drives the Standard/Premium picker's locked state.
+  const premium = await getPremiumState(user.id);
 
   const products = await prisma.product.findMany({
     where: { sellerId: user.id },
@@ -68,6 +73,8 @@ export default async function GoLivePage({
           categories={categories}
           preselectedIds={schedule?.productIds}
           initialThumbnailUrl={schedule?.thumbnailUrl ?? null}
+          premiumStatus={premium.status}
+          premiumConfigured={zegoConfigured()}
           initialTitle={schedule?.title ?? ""}
           scheduledId={schedule?.id}
         />

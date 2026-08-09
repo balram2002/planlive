@@ -135,7 +135,12 @@ model Product {
 model Stream {
   id                String       @id @default(auto()) @map("_id") @db.ObjectId
   sellerId          String       @db.ObjectId
+  /// Room identifier. Named for LiveKit historically; ZEGO reuses the same
+  /// value as its roomID so one column addresses either provider.
   livekitRoomName   String       @unique
+  /// Which streaming backend carries this stream. Defaults to LIVEKIT so
+  /// every existing row — and every standard stream — is unaffected.
+  provider          StreamProvider @default(LIVEKIT)
   status            StreamStatus @default(LIVE)
   title             String?
   thumbnailUrl      String?
@@ -143,6 +148,89 @@ model Stream {
   featuredProductId String?      @db.ObjectId
   startedAt         DateTime     @default(now())
   endedAt           DateTime?
+}
+
+enum StreamProvider {
+  /// Free tier — the existing LiveKit path, unchanged.
+  LIVEKIT
+  /// Premium tier — ZEGOCLOUD, gated by admin approval + a passphrase.
+  ZEGO
+}
+
+/// A seller's application to broadcast on the premium (ZEGO) backend.
+///
+/// One row per seller — approval state lives here rather than as a flag on
+/// User so there is a single source of truth, with the review trail attached.
+model PremiumRequest {
+  id        String               @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId  String               @unique @db.ObjectId
+  status    PremiumRequestStatus @default(PENDING)
+  /// Why the seller wants premium — shown to the reviewing admin.
+  message   String?
+  /// Admin's note on approval/rejection, surfaced back to the seller.
+  reviewNote String?
+  reviewedBy String?             @db.ObjectId
+  reviewedAt DateTime?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+enum PremiumRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// How an order gets to the buyer when they're in the seller's own PIN code.
+///
+/// Only ever created for same-pincode orders — see `isLocalEligible`. Absence
+/// of a row means the normal Eshopbox courier path.
+model LocalFulfilment {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId  String @unique @db.ObjectId
+  sellerId String @db.ObjectId
+  buyerId  String @db.ObjectId
+
+  method FulfilmentMethod
+
+  /// Only meaningful for BUYER_PICKUP.
+  pickupStatus PickupStatus?
+  /// When the seller asked the buyer to collect.
+  requestedAt  DateTime?
+  /// When the buyer accepted or declined.
+  respondedAt  DateTime?
+  /// requestedAt + PICKUP_WINDOW once accepted. The sweeper watches this.
+  pickupDeadline DateTime?
+  /// Set once, so an expired window is only announced to the seller once.
+  expiredNotifiedAt DateTime?
+  /// Handover done — parcel is with the buyer.
+  completedAt  DateTime?
+
+  /// Seller's instructions (shop timings, what to bring) or decline reason.
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum FulfilmentMethod {
+  /// Seller drops it off themselves. Nothing changes for the buyer.
+  SELLER_DELIVERY
+  /// Buyer collects from the shop, subject to their acceptance.
+  BUYER_PICKUP
+}
+
+enum PickupStatus {
+  /// Seller asked; waiting on the buyer.
+  REQUESTED
+  /// Buyer agreed — the collection window is running.
+  ACCEPTED
+  /// Buyer declined; the seller must pick another method.
+  REJECTED
+  /// Window elapsed without collection.
+  EXPIRED
+  /// Buyer collected it.
+  COLLECTED
 }
 
 enum StreamStatus {

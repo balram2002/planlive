@@ -10,6 +10,8 @@ import {
   parseAttributes,
   serializeAttributes,
 } from "@/lib/product-attributes";
+import { hasPremiumAccess, premiumPassphraseMatches } from "@/lib/premium";
+import { zegoConfigured } from "@/lib/zego/token";
 
 export type StartStreamState = { error?: string };
 
@@ -73,10 +75,36 @@ export async function startStream(
       .trim()
       .slice(0, 80) || null;
 
+  /**
+   * Premium tier gate — both checks are here, server-side, on purpose.
+   *
+   * The picker and passphrase prompt in the UI are convenience only; this
+   * action is directly callable, so approval and passphrase are both
+   * re-verified before a stream is ever marked ZEGO.
+   */
+  const wantsPremium = String(formData.get("provider") ?? "") === "ZEGO";
+  let provider: "LIVEKIT" | "ZEGO" = "LIVEKIT";
+
+  if (wantsPremium) {
+    if (!zegoConfigured()) {
+      return { error: "Premium streaming isn't configured on the server yet." };
+    }
+    if (!(await hasPremiumAccess(user.id))) {
+      return {
+        error: "Your account isn't approved for premium broadcasting yet.",
+      };
+    }
+    if (!premiumPassphraseMatches(String(formData.get("premiumPassword") ?? ""))) {
+      return { error: "That premium passphrase isn't right." };
+    }
+    provider = "ZEGO";
+  }
+
   const stream = await prisma.stream.create({
     data: {
       sellerId: user.id,
       livekitRoomName: `stream_${user.id}_${Date.now()}`,
+      provider,
       status: "LIVE",
       title,
       thumbnailUrl,

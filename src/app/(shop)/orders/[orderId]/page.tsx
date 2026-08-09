@@ -9,6 +9,8 @@ import { TrackingTimeline } from "@/components/shipping/tracking-timeline";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CancelOrderButton } from "@/components/orders/cancel-order-button";
+import { PickupRequestCard } from "@/components/orders/pickup-request-card";
+import { PICKUP_WINDOW_DAYS, shopLocation } from "@/lib/local-fulfilment";
 import { formatPrice } from "@/lib/format";
 import { isCancellable } from "@/lib/eshopbox/status-map";
 import { stageTimestamps, trackStage } from "@/lib/order-status";
@@ -60,10 +62,18 @@ export default async function OrderDetailPage({
   // Ownership check — an order ID must never leak someone else's purchase.
   if (!reservation || reservation.userId !== user.id) notFound();
 
-  const [product, shipment] = await Promise.all([
+  const [product, shipment, fulfilment] = await Promise.all([
     prisma.product.findUnique({ where: { id: reservation.productId } }),
     prisma.shipment.findUnique({ where: { orderId: order.id } }),
+    prisma.localFulfilment.findUnique({ where: { orderId: order.id } }),
   ]);
+
+  // Only a pickup needs the buyer's input; a seller-delivered order just
+  // arrives, so there's nothing to show them beyond the normal track.
+  const seller = fulfilment
+    ? await prisma.user.findUnique({ where: { id: fulfilment.sellerId } })
+    : null;
+  const shop = shopLocation(seller?.shopAddressJson ?? null);
 
   const address = parseAddress(order.addressJson);
   const inFulfilment = trackStage(order.status);
@@ -171,6 +181,33 @@ export default async function OrderDetailPage({
             <br />
             {address.city}
             {address.state ? `, ${address.state}` : ""} — {address.pincode}
+          </p>
+        </Card>
+      ) : null}
+
+      {/* Pickup negotiation, when the seller has asked. */}
+      {fulfilment?.method === "BUYER_PICKUP" && fulfilment.pickupStatus ? (
+        <PickupRequestCard
+          orderId={order.id}
+          windowDays={PICKUP_WINDOW_DAYS}
+          pickup={{
+            pickupStatus: fulfilment.pickupStatus,
+            pickupDeadline: fulfilment.pickupDeadline?.toISOString() ?? null,
+            note: fulfilment.note,
+            shopName: shop?.shopName ?? "the shop",
+            shopAddress: shop
+              ? [shop.line1, shop.city, shop.pincode].filter(Boolean).join(", ")
+              : "",
+            shopPhone: shop?.phone ?? "",
+          }}
+        />
+      ) : fulfilment?.method === "SELLER_DELIVERY" && !fulfilment.completedAt ? (
+        <Card className="border-primary/30 bg-primary/5 p-4">
+          <Badge tone="primary">Seller delivery</Badge>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            You&apos;re local to {shop?.shopName ?? "this seller"}, so
+            they&apos;re delivering this to you personally instead of using a
+            courier.
           </p>
         </Card>
       ) : null}

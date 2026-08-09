@@ -81,6 +81,12 @@ export default async function AdminShipmentDetailPage({
       : null,
   ]);
 
+  // A local arrangement replaces the courier entirely, so support needs to
+  // see it here or a "why is there no AWB?" ticket is the only clue.
+  const fulfilment = await prisma.localFulfilment.findUnique({
+    where: { orderId: shipment.orderId },
+  });
+
   const address = parseJson<AddressSnapshot>(order?.addressJson ?? null);
   const shop = parseJson<AddressSnapshot & { shopName?: string }>(
     seller?.shopAddressJson ?? null,
@@ -287,6 +293,37 @@ export default async function AdminShipmentDetailPage({
           )}
         </Card>
       </div>
+
+      {fulfilment ? (
+        <Card className="border-primary/30 bg-primary/5 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Local fulfilment</h2>
+            <Badge tone={fulfilment.completedAt ? "success" : "primary"}>
+              {fulfilment.method === "SELLER_DELIVERY"
+                ? "Seller delivering"
+                : "Buyer pickup"}
+            </Badge>
+          </div>
+          <dl className="mt-3 space-y-2.5 text-sm">
+            {fulfilment.pickupStatus ? (
+              <Row label="Pickup state">
+                {fulfilment.pickupStatus.toLowerCase()}
+              </Row>
+            ) : null}
+            {fulfilment.pickupDeadline ? (
+              <Row label="Collect by">{when(fulfilment.pickupDeadline)}</Row>
+            ) : null}
+            {fulfilment.completedAt ? (
+              <Row label="Handed over">{when(fulfilment.completedAt)}</Row>
+            ) : null}
+            {fulfilment.note ? (
+              <Row label="Note">
+                <span className="break-words">{fulfilment.note}</span>
+              </Row>
+            ) : null}
+          </dl>
+        </Card>
+      ) : null}
 
       {/* ---- Courier scans ---- */}
       <Card className="p-4 sm:p-5">

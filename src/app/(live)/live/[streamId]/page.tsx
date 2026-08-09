@@ -137,6 +137,7 @@ export default async function LiveStreamPage({
         featuredProductId={stream.featuredProductId}
         startedAt={stream.startedAt.toISOString()}
         thumbnailUrl={stream.thumbnailUrl}
+        provider={stream.provider}
         products={products.map((p) => ({
           id: p.id,
           title: p.title,

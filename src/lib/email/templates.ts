@@ -14,7 +14,7 @@ import { formatPrice } from "@/lib/format";
 
 const BRAND = "liveWAB";
 
-const COLORS = {
+export const COLORS = {
   rose: "#e11d48",
   green: "#059669",
   blue: "#2563eb",
@@ -24,7 +24,7 @@ const COLORS = {
 } as const;
 
 const INK = "#111827";
-const MUTED = "#6b7280";
+export const MUTED = "#6b7280";
 const LINE = "#e5e7eb";
 const CANVAS = "#f4f4f5";
 
@@ -32,7 +32,7 @@ type Accent = (typeof COLORS)[keyof typeof COLORS];
 
 export type EmailContent = { subject: string; html: string; text: string };
 
-function appUrl(path = ""): string {
+export function appUrl(path = ""): string {
   const base =
     process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
@@ -40,7 +40,7 @@ function appUrl(path = ""): string {
 }
 
 /** Escapes user-supplied values before they land in the HTML body. */
-function esc(value: string): string {
+export function esc(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -65,7 +65,7 @@ function rowsTable(rows: Row[]): string {
   </table>`;
 }
 
-function button(href: string, label: string, accent: Accent): string {
+export function button(href: string, label: string, accent: Accent): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 4px 0;">
     <tr><td style="border-radius:999px;background:${accent};">
       <a href="${esc(href)}" style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px;">${esc(label)}</a>
@@ -74,7 +74,7 @@ function button(href: string, label: string, accent: Accent): string {
 }
 
 /** Tinted callout for security notices and next-step hints. */
-function callout(text: string, accent: Accent): string {
+export function callout(text: string, accent: Accent): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
     <tr><td style="border-left:3px solid ${accent};background:${CANVAS};border-radius:0 10px 10px 0;padding:12px 14px;color:${MUTED};font-size:13px;line-height:1.55;">${text}</td></tr>
   </table>`;
@@ -99,7 +99,7 @@ function progressTrack(reached: 0 | 1 | 2): string {
   </table>`;
 }
 
-function layout(opts: {
+export function layout(opts: {
   preheader: string;
   emoji: string;
   eyebrow: string;

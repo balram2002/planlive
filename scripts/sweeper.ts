@@ -10,6 +10,11 @@
  */
 import cron from "node-cron";
 import { sweepExpiredReservations } from "../src/lib/reservations";
+import {
+  expireOverduePickups,
+  PICKUP_WINDOW_DAYS,
+} from "../src/lib/local-fulfilment";
+import { notifyPickupExpired } from "../src/lib/notify";
 import { broadcastToRoom } from "../src/lib/livekit";
 import { prisma } from "../src/lib/prisma";
 
@@ -37,6 +42,25 @@ async function tick() {
     }
   } catch (err) {
     console.error("[sweeper] sweep failed:", err);
+  }
+
+  // Collection windows that ran out. Separate try so a failure here can't
+  // stop reservation expiry, which is the more time-critical of the two.
+  try {
+    const expired = await expireOverduePickups();
+    for (const item of expired) {
+      console.log(
+        `[sweeper] pickup window expired for order ${item.fulfilment.orderId}`,
+      );
+      notifyPickupExpired({
+        seller: item.seller,
+        buyer: item.buyer,
+        productTitle: item.productTitle ?? "your order",
+        windowDays: PICKUP_WINDOW_DAYS,
+      });
+    }
+  } catch (err) {
+    console.error("[sweeper] pickup expiry failed:", err);
   } finally {
     running = false;
   }

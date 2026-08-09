@@ -36,6 +36,7 @@ import { ProductsPanel } from "./products-panel";
 import { BuyDrawer, type BuyFlow } from "./buy-drawer";
 import { ViewerMenu } from "./viewer-menu";
 import { ShareModal } from "@/components/share/share-modal";
+import { ZegoViewerSurface } from "./zego/zego-surfaces";
 import { Elapsed } from "./elapsed";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
@@ -92,6 +93,7 @@ export function ViewerRoom({
   featuredProductId,
   startedAt,
   thumbnailUrl,
+  provider,
 }: {
   streamId: string;
   sellerId: string;
@@ -104,6 +106,8 @@ export function ViewerRoom({
   startedAt: string;
   /** Stream cover, used as the share preview image. */
   thumbnailUrl: string | null;
+  /** LIVEKIT (standard) or ZEGO (premium) carries the video. */
+  provider: "LIVEKIT" | "ZEGO";
 }) {
   const token = useLivekitToken(streamId);
 
@@ -135,6 +139,7 @@ export function ViewerRoom({
         initialFeaturedId={featuredProductId}
         startedAt={startedAt}
         thumbnailUrl={thumbnailUrl}
+        provider={provider}
       />
     </LiveKitRoom>
   );
@@ -187,6 +192,7 @@ function ViewerStage({
   initialFeaturedId,
   startedAt,
   thumbnailUrl,
+  provider,
 }: {
   streamId: string;
   sellerId: string;
@@ -198,6 +204,7 @@ function ViewerStage({
   initialFeaturedId: string | null;
   startedAt: string;
   thumbnailUrl: string | null;
+  provider: "LIVEKIT" | "ZEGO";
 }) {
   const connectionState = useConnectionState();
   const room = useRoomContext();
@@ -432,6 +439,14 @@ function ViewerStage({
               Video hidden to save data — audio keeps playing.
             </p>
           </div>
+        ) : provider === "ZEGO" ? (
+          /* Premium: ZEGO carries the video. Everything else in this room —
+             chat, reactions, stock, celebrations — still rides the LiveKit
+             data channel above, so the UI is identical either way. */
+          <ZegoViewerSurface
+            streamId={streamId}
+            waitingLabel="Waiting for the seller's video…"
+          />
         ) : (
           <VideoSurface
             trackRef={remoteCamera}
@@ -451,7 +466,15 @@ function ViewerStage({
         <div className="pointer-events-auto flex items-center gap-1.5">
           {/* Host chip + follow */}
           <div className="flex min-w-0 items-center gap-1.5 rounded-full bg-black/50 py-1 pl-1 pr-1.5 backdrop-blur">
-            <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-primary">
+            <span
+              className={cn(
+                "relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-primary",
+                // The only visual difference between the two tiers: a gold
+                // ring marking a premium broadcast.
+                provider === "ZEGO" &&
+                  "ring-2 ring-amber-300 ring-offset-1 ring-offset-black/50",
+              )}
+            >
               {sellerAvatar ? (
                 <Image
                   src={sellerAvatar}

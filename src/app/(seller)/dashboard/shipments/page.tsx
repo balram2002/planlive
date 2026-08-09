@@ -9,6 +9,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
 import { ProductThumb } from "@/components/product-thumb";
 import { ShipmentPanel } from "@/components/shipping/shipment-panel";
+import { LocalFulfilmentPanel } from "@/components/shipping/local-fulfilment-panel";
+import { isLocalEligible, PICKUP_WINDOW_DAYS } from "@/lib/local-fulfilment";
 import { BulkLabelButton } from "@/components/shipping/bulk-label-button";
 import { eshopboxConfigured } from "@/lib/eshopbox/client";
 import {
@@ -85,6 +87,14 @@ export default async function SellerShipmentsPage() {
   const reservationById = new Map(reservations.map((r) => [r.id, r]));
   const shipmentByOrder = new Map(shipments.map((s) => [s.orderId, s]));
 
+  // Local fulfilment arrangements for these same orders.
+  const fulfilments = orders.length
+    ? await prisma.localFulfilment.findMany({
+        where: { orderId: { in: orders.map((o) => o.id) } },
+      })
+    : [];
+  const fulfilmentByOrder = new Map(fulfilments.map((f) => [f.orderId, f]));
+
   const rows = orders.map((order) => {
     const reservation = reservationById.get(order.reservationId)!;
     return {
@@ -92,21 +102,43 @@ export default async function SellerShipmentsPage() {
       reservation,
       product: productById.get(reservation.productId) ?? null,
       shipment: shipmentByOrder.get(order.id) ?? null,
+      fulfilment: fulfilmentByOrder.get(order.id) ?? null,
+      /** True when this buyer shares the shop's PIN code. */
+      local: isLocalEligible({
+        orderAddressJson: order.addressJson,
+        sellerShopAddressJson: user.shopAddressJson,
+      }),
     };
   });
 
-  // Three working buckets, in the order a seller moves through them.
+  // Anything on a local route is its own queue — the actions are completely
+  // different from a courier parcel, and mixing them made the list confusing.
+  const localRows = rows.filter((r) => r.fulfilment && !r.fulfilment.completedAt);
+  const localOrderIds = new Set(localRows.map((r) => r.order.id));
+
+  // Three courier buckets, in the order a seller moves through them.
   const toLabel = rows.filter(
-    (r) => SHIPPABLE.has(r.order.status) && !r.shipment?.trackingId,
+    (r) =>
+      SHIPPABLE.has(r.order.status) &&
+      !r.shipment?.trackingId &&
+      !localOrderIds.has(r.order.id),
   );
   const toHandOver = rows.filter(
     (r) => r.shipment?.trackingId && isCancellable(r.shipment.status),
+  );
+  // Parcels that need a human. These were previously lumped into "on the
+  // way", so a failed delivery or an RTO looked like healthy progress and the
+  // seller only found out when the buyer complained.
+  const NEEDS_ATTENTION = ["EXCEPTION", "FAILED_DELIVERY", "RTO"];
+  const attention = rows.filter(
+    (r) => r.shipment?.trackingId && NEEDS_ATTENTION.includes(r.shipment.status),
   );
   const inFlight = rows.filter(
     (r) =>
       r.shipment?.trackingId &&
       !isCancellable(r.shipment.status) &&
-      r.shipment.status !== "CANCELLED",
+      r.shipment.status !== "CANCELLED" &&
+      !NEEDS_ATTENTION.includes(r.shipment.status),
   );
 
   const labelUrls = toHandOver
@@ -131,11 +163,39 @@ export default async function SellerShipmentsPage() {
         </Card>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Local" value={localRows.length} tone="primary" />
         <Stat label="To label" value={toLabel.length} tone="warning" />
         <Stat label="To hand over" value={toHandOver.length} tone="primary" />
         <Stat label="In transit" value={inFlight.length} tone="muted" />
       </div>
+
+      {attention.length > 0 ? (
+        <Card className="border-live/30 bg-live/5 p-4">
+          <p className="text-sm font-medium text-live">
+            {attention.length} parcel{attention.length === 1 ? "" : "s"} need
+            your attention
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            Delivery failed or the parcel is coming back — see below.
+          </p>
+        </Card>
+      ) : null}
+
+      {/* 0. Local orders — seller delivery or buyer pickup. */}
+      {localRows.length > 0 ? (
+        <Section
+          title="Local orders"
+          hint="Same PIN code as your shop — you're delivering or the buyer is collecting."
+          count={localRows.length}
+          emptyIcon="📍"
+          emptyText="Nothing local right now."
+        >
+          {localRows.map((row) => (
+            <ShipmentRow key={row.order.id} row={row} shippable={ready} />
+          ))}
+        </Section>
+      ) : null}
 
       {/* 1. Book a courier */}
       <Section
@@ -167,6 +227,21 @@ export default async function SellerShipmentsPage() {
           <ShipmentRow key={row.order.id} row={row} shippable={ready} />
         ))}
       </Section>
+
+      {/* 2b. Problems, before the healthy ones — this is what needs action. */}
+      {attention.length > 0 ? (
+        <Section
+          title="Needs attention"
+          hint="Failed delivery, held, or returning to you."
+          count={attention.length}
+          emptyIcon="✅"
+          emptyText="Nothing needs attention."
+        >
+          {attention.map((row) => (
+            <ShipmentRow key={row.order.id} row={row} shippable={ready} />
+          ))}
+        </Section>
+      ) : null}
 
       {/* 3. Already moving */}
       <Section
@@ -266,6 +341,20 @@ type Row = {
   order: { id: string; status: string; amountInPaise: number; paymentMethod: string };
   reservation: { quantity: number; createdAt: Date };
   product: { title: string; imageUrl: string | null } | null;
+  fulfilment: {
+    method: "SELLER_DELIVERY" | "BUYER_PICKUP";
+    pickupStatus:
+      | "REQUESTED"
+      | "ACCEPTED"
+      | "REJECTED"
+      | "EXPIRED"
+      | "COLLECTED"
+      | null;
+    pickupDeadline: Date | null;
+    completedAt: Date | null;
+    note: string | null;
+  } | null;
+  local: boolean;
   shipment: {
     id: string;
     status: keyof typeof SHIPMENT_LABELS;
@@ -307,6 +396,31 @@ function ShipmentRow({ row, shippable }: { row: Row; shippable: boolean }) {
           )}
         </div>
 
+        {/* Local route takes over entirely when one is in play — a courier
+            panel alongside it would offer two conflicting actions. */}
+        {row.local || row.fulfilment ? (
+          <div className="mt-3">
+            <LocalFulfilmentPanel
+              orderId={row.order.id}
+              windowDays={PICKUP_WINDOW_DAYS}
+              fulfilment={
+                row.fulfilment
+                  ? {
+                      method: row.fulfilment.method,
+                      pickupStatus: row.fulfilment.pickupStatus,
+                      pickupDeadline:
+                        row.fulfilment.pickupDeadline?.toISOString() ?? null,
+                      completedAt:
+                        row.fulfilment.completedAt?.toISOString() ?? null,
+                      note: row.fulfilment.note,
+                    }
+                  : null
+              }
+            />
+          </div>
+        ) : null}
+
+        {!row.fulfilment ? (
         <div className="mt-3">
           <ShipmentPanel
             orderId={row.order.id}
@@ -327,6 +441,7 @@ function ShipmentRow({ row, shippable }: { row: Row; shippable: boolean }) {
             }
           />
         </div>
+        ) : null}
 
         {/* Booked parcels get a full detail view: scans, both legs, record. */}
         {row.shipment ? (

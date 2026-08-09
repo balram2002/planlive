@@ -6,6 +6,10 @@ import { Card } from "@/components/ui/card";
 import { ActionButton } from "@/components/ui/action-button";
 import { cn } from "@/lib/cn";
 import { approveSellerRequest, rejectSellerRequest } from "../actions";
+import {
+  PremiumRequests,
+  type PremiumRequestRow,
+} from "@/components/admin/premium-requests";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +55,33 @@ export default async function AdminSellersPage({
     where: { status: "PENDING" },
   });
 
+  // Premium broadcasting applications — pending first, so the queue that
+  // needs action is at the top of the list regardless of when it arrived.
+  const premiumRequests = await prisma.premiumRequest.findMany({
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    take: 200,
+  });
+  const premiumSellers = premiumRequests.length
+    ? await prisma.user.findMany({
+        where: { id: { in: premiumRequests.map((r) => r.sellerId) } },
+        select: { id: true, email: true, username: true, name: true },
+      })
+    : [];
+  const premiumSellerById = new Map(premiumSellers.map((u) => [u.id, u]));
+  const premiumRows: PremiumRequestRow[] = premiumRequests.map((r) => {
+    const seller = premiumSellerById.get(r.sellerId);
+    return {
+      id: r.id,
+      sellerEmail: seller?.email ?? "unknown",
+      sellerName: seller?.username ?? seller?.name ?? null,
+      status: r.status,
+      message: r.message,
+      reviewNote: r.reviewNote,
+      createdAt: r.createdAt.toISOString(),
+      reviewedAt: r.reviewedAt?.toISOString() ?? null,
+    };
+  });
+
   return (
     <div className="animate-page-in space-y-6">
       <div>
@@ -89,6 +120,10 @@ export default async function AdminSellersPage({
       ) : (
         <SellersTab q={q} />
       )}
+
+      {/* Premium broadcasting applications — its own section on this tab, so
+          approving a seller and granting them premium live side by side. */}
+      <PremiumRequests rows={premiumRows} />
     </div>
   );
 }

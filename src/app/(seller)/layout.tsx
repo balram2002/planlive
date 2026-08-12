@@ -36,14 +36,31 @@ export default function SellerLayout({
       accent="Seller"
       themeClass="theme-seller"
       items={[
-        { href: "/dashboard", label: "Dashboard", icon: <IconChart />, exact: true },
+        {
+          href: "/dashboard",
+          label: "Dashboard",
+          icon: <IconChart />,
+          exact: true,
+        },
         { href: "/go-live", label: "Go live", icon: <IconBroadcast /> },
         { href: "/dashboard/products", label: "Products", icon: <IconTag /> },
-        { href: "/dashboard/schedule", label: "Schedule", icon: <IconCalendar /> },
-        { href: "/dashboard/categories", label: "Categories", icon: <IconBox /> },
+        {
+          href: "/dashboard/schedule",
+          label: "Schedule",
+          icon: <IconCalendar />,
+        },
+        {
+          href: "/dashboard/categories",
+          label: "Categories",
+          icon: <IconBox />,
+        },
         { href: "/dashboard/sales", label: "Sales", icon: <IconReceipt /> },
         { href: "/dashboard/wallet", label: "Wallet", icon: <IconWallet /> },
-        { href: "/dashboard/shipments", label: "Shipments", icon: <IconTruck /> },
+        {
+          href: "/dashboard/shipments",
+          label: "Shipments",
+          icon: <IconTruck />,
+        },
         { href: "/dashboard/premium", label: "Premium", icon: <IconSpark /> },
         {
           href: "/dashboard/serviceability",

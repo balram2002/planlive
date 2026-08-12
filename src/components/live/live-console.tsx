@@ -29,7 +29,11 @@ export type ConsoleProduct = {
   imageUrl: string | null;
 };
 
-type Stats = { reservations: number; confirmedUnits: number; revenuePaise: number };
+type Stats = {
+  reservations: number;
+  confirmedUnits: number;
+  revenuePaise: number;
+};
 
 /**
  * Seller live console: manage the product queue (add/remove), pin the
@@ -76,9 +80,18 @@ export function LiveConsole({
       {/* Live stats */}
       <div className="grid grid-cols-3 gap-2.5">
         {[
-          { label: "Reservations", value: stats ? String(stats.reservations) : "—" },
-          { label: "Units sold", value: stats ? String(stats.confirmedUnits) : "—" },
-          { label: "Revenue", value: stats ? formatPrice(stats.revenuePaise) : "—" },
+          {
+            label: "Reservations",
+            value: stats ? String(stats.reservations) : "—",
+          },
+          {
+            label: "Units sold",
+            value: stats ? String(stats.confirmedUnits) : "—",
+          },
+          {
+            label: "Revenue",
+            value: stats ? formatPrice(stats.revenuePaise) : "—",
+          },
         ].map((stat) => (
           <Card key={stat.label} className="p-3 text-center">
             <p className="text-[10px] uppercase tracking-wide text-faint">
@@ -139,7 +152,9 @@ export function LiveConsole({
                     transition={{ type: "spring", stiffness: 400, damping: 32 }}
                     className={cn(
                       "rounded-2xl border p-3 transition-colors duration-300",
-                      featured ? "border-primary/60 bg-primary/5" : "border-border",
+                      featured
+                        ? "border-primary/60 bg-primary/5"
+                        : "border-border",
                     )}
                   >
                     <div className="flex items-center gap-2.5">
@@ -164,8 +179,16 @@ export function LiveConsole({
                       {/* Stock stepper */}
                       <span className="flex items-center gap-1 rounded-full border border-border bg-surface-2 px-1 py-0.5">
                         <form action={adjustStock}>
-                          <input type="hidden" name="streamId" value={streamId} />
-                          <input type="hidden" name="productId" value={product.id} />
+                          <input
+                            type="hidden"
+                            name="streamId"
+                            value={streamId}
+                          />
+                          <input
+                            type="hidden"
+                            name="productId"
+                            value={product.id}
+                          />
                           <input type="hidden" name="delta" value="-1" />
                           <ActionButton
                             haptic="tap"
@@ -176,12 +199,24 @@ export function LiveConsole({
                             −
                           </ActionButton>
                         </form>
-                        <Badge tone={product.availableStock > 0 ? "success" : "warning"}>
+                        <Badge
+                          tone={
+                            product.availableStock > 0 ? "success" : "warning"
+                          }
+                        >
                           {product.availableStock}
                         </Badge>
                         <form action={adjustStock}>
-                          <input type="hidden" name="streamId" value={streamId} />
-                          <input type="hidden" name="productId" value={product.id} />
+                          <input
+                            type="hidden"
+                            name="streamId"
+                            value={streamId}
+                          />
+                          <input
+                            type="hidden"
+                            name="productId"
+                            value={product.id}
+                          />
                           <input type="hidden" name="delta" value="1" />
                           <ActionButton
                             haptic="tap"
@@ -215,9 +250,16 @@ export function LiveConsole({
                       </form>
 
                       {/* Remove from stream */}
-                      <form action={removeProductFromStream} className="ml-auto">
+                      <form
+                        action={removeProductFromStream}
+                        className="ml-auto"
+                      >
                         <input type="hidden" name="streamId" value={streamId} />
-                        <input type="hidden" name="productId" value={product.id} />
+                        <input
+                          type="hidden"
+                          name="productId"
+                          value={product.id}
+                        />
                         <ActionButton
                           haptic="tap"
                           className="rounded-full px-3 py-1.5 text-xs font-medium text-live transition-all hover:bg-live/10 active:scale-95"
@@ -278,10 +320,10 @@ function AddToStreamButton({
   streamId: string;
   productId: string;
 }) {
-  const [state, formAction, pending] = useActionState<LiveProductState, FormData>(
-    addProductToStream,
-    {},
-  );
+  const [state, formAction, pending] = useActionState<
+    LiveProductState,
+    FormData
+  >(addProductToStream, {});
   const { toast } = useToast();
 
   useEffect(() => {

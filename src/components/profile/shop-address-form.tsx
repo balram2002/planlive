@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui/action-button";
 import { Field, Input } from "@/components/ui/input";
 import { useToast } from "@/components/toast";
 import { LocateButton, type LocatedAddress } from "./locate-button";
+import { ShopLocationMap } from "./shop-location-map";
 import {
   updateShopAddress,
   type ProfileFormState,
@@ -32,15 +33,17 @@ export function ShopAddressForm({
   /** Eshopbox warehouse code for this seller's pickups. */
   pickupLocationCode?: string | null;
 }) {
-  const [state, formAction, pending] = useActionState<ProfileFormState, FormData>(
-    updateShopAddress,
-    {},
-  );
+  const [state, formAction, pending] = useActionState<
+    ProfileFormState,
+    FormData
+  >(updateShopAddress, {});
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
     initial?.latitude != null && initial?.longitude != null
       ? { lat: initial.latitude, lon: initial.longitude }
       : null,
   );
+  const [mapsUrl, setMapsUrl] = useState("");
+  const [mapsUrlBusy, setMapsUrlBusy] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
@@ -64,18 +67,125 @@ export function ShopAddressForm({
     setCoords({ lat: located.latitude, lon: located.longitude });
   }
 
+  /** Manual lat/lng entry — either field alone is kept, since one may still
+   *  be mid-edit while the other has a valid value. */
+  function editCoord(which: "lat" | "lon", raw: string) {
+    const n = raw.trim() === "" ? null : Number(raw);
+    setCoords((prev) => {
+      const next = {
+        lat: which === "lat" ? n : (prev?.lat ?? null),
+        lon: which === "lon" ? n : (prev?.lon ?? null),
+      };
+      if (next.lat == null || next.lon == null) return null;
+      if (!Number.isFinite(next.lat) || !Number.isFinite(next.lon)) {
+        return prev; // Mid-typing an invalid number — don't drop the other field.
+      }
+      return { lat: next.lat, lon: next.lon };
+    });
+  }
+
+  async function useMapsUrl() {
+    const url = mapsUrl.trim();
+    if (!url) return;
+    setMapsUrlBusy(true);
+    try {
+      const res = await fetch(`/api/parse-maps-url?url=${encodeURIComponent(url)}`);
+      const body = await res.json();
+      if (!res.ok) {
+        toast({ title: body.error ?? "Couldn't read that link", variant: "error" });
+        return;
+      }
+      setCoords({ lat: body.latitude, lon: body.longitude });
+      toast({ title: "Location pinned from the link 📍", variant: "success" });
+    } catch {
+      toast({ title: "Network error", variant: "error" });
+    } finally {
+      setMapsUrlBusy(false);
+    }
+  }
+
   return (
     <form ref={formRef} action={formAction} className="space-y-3.5">
-      <div className="flex items-center justify-between">
-        <LocateButton onLocated={fillFromLocation} />
-        {coords ? (
-          <span className="text-[10px] tabular-nums text-success">
-            📍 pinned ({coords.lat.toFixed(5)}, {coords.lon.toFixed(5)})
-          </span>
-        ) : null}
-      </div>
       <input type="hidden" name="latitude" value={coords?.lat ?? ""} />
       <input type="hidden" name="longitude" value={coords?.lon ?? ""} />
+
+      <div className="space-y-2.5 rounded-2xl border border-border bg-surface-2/50 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-medium text-muted">Shop location</p>
+          <LocateButton onLocated={fillFromLocation} />
+        </div>
+
+        {/* Free OpenStreetMap picker — click or drag the pin to the exact spot. */}
+        <ShopLocationMap
+          latitude={coords?.lat ?? null}
+          longitude={coords?.lon ?? null}
+          onChange={(lat, lon) => setCoords({ lat, lon })}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Latitude" htmlFor="shop-lat">
+            <Input
+              id="shop-lat"
+              type="number"
+              step="any"
+              min={-90}
+              max={90}
+              inputMode="decimal"
+              value={coords?.lat ?? ""}
+              onChange={(e) => editCoord("lat", e.target.value)}
+              placeholder="28.61390"
+            />
+          </Field>
+          <Field label="Longitude" htmlFor="shop-lon">
+            <Input
+              id="shop-lon"
+              type="number"
+              step="any"
+              min={-180}
+              max={180}
+              inputMode="decimal"
+              value={coords?.lon ?? ""}
+              onChange={(e) => editCoord("lon", e.target.value)}
+              placeholder="77.20900"
+            />
+          </Field>
+        </div>
+
+        <Field
+          label="Or paste a Google Maps link"
+          htmlFor="shop-maps-url"
+          hint="Share → Copy link from Google Maps. Works with goo.gl short links too."
+        >
+          <div className="flex gap-2">
+            <Input
+              id="shop-maps-url"
+              type="url"
+              value={mapsUrl}
+              onChange={(e) => setMapsUrl(e.target.value)}
+              placeholder="https://maps.app.goo.gl/..."
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={useMapsUrl}
+              disabled={mapsUrlBusy || !mapsUrl.trim()}
+            >
+              {mapsUrlBusy ? <Spinner /> : "Use link"}
+            </Button>
+          </div>
+        </Field>
+
+        {coords ? (
+          <p className="text-[10px] tabular-nums text-success">
+            📍 pinned ({coords.lat.toFixed(5)}, {coords.lon.toFixed(5)})
+          </p>
+        ) : (
+          <p className="text-[10px] text-faint">
+            No exact location pinned yet — couriers will use the address text below.
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Shop name" htmlFor="shop-name">
@@ -122,10 +232,22 @@ export function ShopAddressForm({
 
       <div className="grid grid-cols-3 gap-3">
         <Field label="City" htmlFor="shop-city">
-          <Input id="shop-city" name="city" defaultValue={initial?.city ?? ""} required maxLength={60} />
+          <Input
+            id="shop-city"
+            name="city"
+            defaultValue={initial?.city ?? ""}
+            required
+            maxLength={60}
+          />
         </Field>
         <Field label="State" htmlFor="shop-state">
-          <Input id="shop-state" name="state" defaultValue={initial?.state ?? ""} required maxLength={60} />
+          <Input
+            id="shop-state"
+            name="state"
+            defaultValue={initial?.state ?? ""}
+            required
+            maxLength={60}
+          />
         </Field>
         <Field label="PIN" htmlFor="shop-pin">
           <Input
@@ -156,7 +278,9 @@ export function ShopAddressForm({
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? (
-          <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+          <span className="inline-flex items-center gap-2">
+            <Spinner /> Saving…
+          </span>
         ) : (
           "Save shop address"
         )}

@@ -20,7 +20,9 @@ export async function createSchedule(
 ): Promise<ScheduleState> {
   const user = await requireSeller();
 
-  const title = String(formData.get("title") ?? "").trim().slice(0, 80);
+  const title = String(formData.get("title") ?? "")
+    .trim()
+    .slice(0, 80);
   if (title.length < 3) return { error: "Give your stream a title." };
 
   const whenRaw = String(formData.get("scheduledFor") ?? "");

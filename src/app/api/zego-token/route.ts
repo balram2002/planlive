@@ -27,7 +27,10 @@ export async function GET(req: NextRequest) {
 
   const streamId = req.nextUrl.searchParams.get("streamId");
   if (!streamId) {
-    return NextResponse.json({ error: "streamId is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "streamId is required." },
+      { status: 400 },
+    );
   }
 
   const stream = await prisma.stream.findUnique({ where: { id: streamId } });

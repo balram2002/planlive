@@ -29,10 +29,16 @@
   --shadow-card: 0 1px 2px rgb(23 23 28 / 0.04), 0 4px 16px rgb(23 23 28 / 0.06);
   --shadow-pop: 0 4px 12px rgb(23 23 28 / 0.08), 0 12px 32px rgb(23 23 28 / 0.12);
 
-  /* Chart palette — validated (dataviz six checks) against the light surface. */
+  /* Status ramp — validated with the dataviz validator, not chosen by eye.
+     The previous warn (#b45309) sat ΔE 2.8 from bad (#dc2626) under
+     deuteranopia and only 9.9 in normal vision, so adjacent segments of a
+     status stack were indistinguishable. Green also had to move to a teal
+     (#0d9488): plain green vs red is the classic confusion, and dark mode's
+     narrow L band (0.48–0.67) removes the lightness cue that would separate
+     them. These steps pass all six checks in BOTH modes. */
   --chart-series: #e11d48;
-  --chart-good: #15803d;
-  --chart-warn: #b45309;
+  --chart-good: #0d9488;
+  --chart-warn: #ca8a04;
   --chart-info: #2563eb;
   --chart-bad: #dc2626;
   --chart-grid: #ececf0;
@@ -60,10 +66,11 @@
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.02);
   --shadow-pop: 0 8px 32px rgb(0 0 0 / 0.55);
 
-  /* Chart palette — dark-surface steps, validated separately (not a flip). */
+  /* Dark steps are SELECTED, not a flip of the light ones — validated
+     separately against the dark surface (#141418). */
   --chart-series: #f43f5e;
-  --chart-good: #16a34a;
-  --chart-warn: #d97706;
+  --chart-good: #0d9488;
+  --chart-warn: #b07d08;
   --chart-info: #3b82f6;
   --chart-bad: #ef4444;
   --chart-grid: #232329;

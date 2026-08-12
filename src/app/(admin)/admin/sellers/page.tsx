@@ -1,3 +1,4 @@
+import { APP_TIMEZONE } from "@/lib/datetime";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { SellerReqStatus } from "@prisma/client";
@@ -217,6 +218,7 @@ async function RequestsTab({
                         day: "numeric",
                         month: "short",
                         year: "numeric",
+                        timeZone: APP_TIMEZONE,
                       })}
                     </p>
                   </div>
@@ -228,26 +230,30 @@ async function RequestsTab({
                   {request.status === "PENDING" ? (
                     <div className="mt-3 flex gap-2">
                       <form action={approveSellerRequest} className="flex-1">
-                        <input type="hidden" name="requestId" value={request.id} />
-                        <ActionButton
-                          className="w-full rounded-full bg-success/10 py-2 text-sm font-semibold text-success transition-colors hover:bg-success/20"
-                        >
+                        <input
+                          type="hidden"
+                          name="requestId"
+                          value={request.id}
+                        />
+                        <ActionButton className="w-full rounded-full bg-success/10 py-2 text-sm font-semibold text-success transition-colors hover:bg-success/20">
                           Approve
                         </ActionButton>
                       </form>
                       <form action={rejectSellerRequest} className="flex-1">
-                        <input type="hidden" name="requestId" value={request.id} />
-                        <ActionButton
-                          className="w-full rounded-full bg-live/10 py-2 text-sm font-semibold text-live transition-colors hover:bg-live/20"
-                        >
+                        <input
+                          type="hidden"
+                          name="requestId"
+                          value={request.id}
+                        />
+                        <ActionButton className="w-full rounded-full bg-live/10 py-2 text-sm font-semibold text-live transition-colors hover:bg-live/20">
                           Reject
                         </ActionButton>
                       </form>
                     </div>
                   ) : (
                     <p className="mt-3 text-xs text-faint">
-                      Reviewed {request.reviewedAt?.toLocaleDateString("en-IN")} by{" "}
-                      {request.reviewedBy ?? "—"}
+                      Reviewed {request.reviewedAt?.toLocaleDateString("en-IN")}{" "}
+                      by {request.reviewedBy ?? "—"}
                     </p>
                   )}
                 </Card>
@@ -336,6 +342,7 @@ async function SellersTab({ q }: { q: string }) {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
+                      timeZone: APP_TIMEZONE,
                     })}
                   </td>
                 </tr>

@@ -12,10 +12,10 @@ import {
 
 /** Onboard a seller: promotes an existing user or sends a Clerk invitation. */
 export function OnboardSellerForm() {
-  const [state, formAction, pending] = useActionState<AdminActionState, FormData>(
-    onboardSeller,
-    {},
-  );
+  const [state, formAction, pending] = useActionState<
+    AdminActionState,
+    FormData
+  >(onboardSeller, {});
   const { toast } = useToast();
 
   // Surface each action result as a toast (state identity changes per submit).
@@ -37,7 +37,9 @@ export function OnboardSellerForm() {
         />
         <Button type="submit" disabled={pending} className="shrink-0">
           {pending ? (
-            <span className="inline-flex items-center gap-2"><Spinner /> Onboarding…</span>
+            <span className="inline-flex items-center gap-2">
+              <Spinner /> Onboarding…
+            </span>
           ) : (
             "Onboard seller"
           )}

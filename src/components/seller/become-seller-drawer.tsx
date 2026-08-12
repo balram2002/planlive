@@ -100,7 +100,12 @@ export function BecomeSellerDrawer({
                       aria-label="Back"
                       className="-ml-1 flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground active:scale-90"
                     >
-                      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className="h-4 w-4"
+                        aria-hidden
+                      >
                         <path
                           d="M14 6 8 12l6 6"
                           stroke="currentColor"
@@ -112,7 +117,9 @@ export function BecomeSellerDrawer({
                     </button>
                   ) : null}
                   <span className="text-sm font-semibold">
-                    {screen === "pitch" ? "Sell on liveWAB" : "Your application"}
+                    {screen === "pitch"
+                      ? "Sell on liveWAB"
+                      : "Your application"}
                   </span>
                 </span>
 
@@ -125,7 +132,11 @@ export function BecomeSellerDrawer({
                         width: screen === s ? 18 : 6,
                         opacity: screen === s ? 1 : 0.35,
                       }}
-                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 420,
+                        damping: 34,
+                      }}
                       className="h-1.5 rounded-full bg-primary"
                     />
                   ))}

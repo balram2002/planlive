@@ -174,7 +174,9 @@ export function ProductForm({
       </fieldset>
 
       <fieldset className="rounded-2xl border border-border p-4">
-        <legend className="px-1.5 text-sm font-semibold">Product details</legend>
+        <legend className="px-1.5 text-sm font-semibold">
+          Product details
+        </legend>
         <p className="mb-3 text-xs leading-relaxed text-muted">
           Size, colour and the specifics buyers ask about mid-stream. These show
           as chips on the product card.
@@ -192,9 +194,15 @@ export function ProductForm({
       ) : null}
 
       <div className="flex gap-3 pt-1">
-        <Button type="submit" disabled={pending || !imageUrl} className="flex-1">
+        <Button
+          type="submit"
+          disabled={pending || !imageUrl}
+          className="flex-1"
+        >
           {pending ? (
-            <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+            <span className="inline-flex items-center gap-2">
+              <Spinner /> Saving…
+            </span>
           ) : !imageUrl ? (
             "Add a photo to continue"
           ) : (

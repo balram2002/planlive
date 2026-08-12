@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
           },
           data: { availableStock: { decrement: reservation.quantity } },
         });
-        if (reclaim.count === 0) return { ok: false as const, reclaimed: false };
+        if (reclaim.count === 0)
+          return { ok: false as const, reclaimed: false };
 
         // EXPIRED *or* CANCELLED: the hold is released explicitly now (an
         // abandoned drawer, or a payment.failed that arrived before this

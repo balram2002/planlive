@@ -59,7 +59,12 @@ export default async function StudioPage({
 
         <form action={endStream}>
           <input type="hidden" name="streamId" value={stream.id} />
-          <HapticButton type="submit" variant="danger" size="lg" className="w-full">
+          <HapticButton
+            type="submit"
+            variant="danger"
+            size="lg"
+            className="w-full"
+          >
             End stream
           </HapticButton>
         </form>

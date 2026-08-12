@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { OnboardSellerForm } from "@/components/admin/onboard-seller-form";
 import { promoteToAdmin, setUserActive, setUserRole } from "../actions";
+import { APP_TIMEZONE } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,7 @@ export default async function AdminUsersPage({
                         day: "numeric",
                         month: "short",
                         year: "numeric",
+                        timeZone: APP_TIMEZONE,
                       })}
                     </td>
                     <td className="px-4 py-3">
@@ -117,11 +119,17 @@ export default async function AdminUsersPage({
                       ) : (
                         <div className="flex items-center justify-end gap-1.5">
                           <form action={setUserRole}>
-                            <input type="hidden" name="userId" value={user.id} />
+                            <input
+                              type="hidden"
+                              name="userId"
+                              value={user.id}
+                            />
                             <input
                               type="hidden"
                               name="role"
-                              value={user.role === "SELLER" ? "BUYER" : "SELLER"}
+                              value={
+                                user.role === "SELLER" ? "BUYER" : "SELLER"
+                              }
                             />
                             <button
                               type="submit"
@@ -133,7 +141,11 @@ export default async function AdminUsersPage({
                             </button>
                           </form>
                           <form action={setUserActive}>
-                            <input type="hidden" name="userId" value={user.id} />
+                            <input
+                              type="hidden"
+                              name="userId"
+                              value={user.id}
+                            />
                             <input
                               type="hidden"
                               name="active"
@@ -152,7 +164,11 @@ export default async function AdminUsersPage({
                           </form>
                           {user.isActive ? (
                             <form action={promoteToAdmin}>
-                              <input type="hidden" name="userId" value={user.id} />
+                              <input
+                                type="hidden"
+                                name="userId"
+                                value={user.id}
+                              />
                               <button
                                 type="submit"
                                 title="Grant full admin access — cannot be undone from this panel"

@@ -170,7 +170,9 @@ export async function approveSellerRequest(formData: FormData): Promise<void> {
   });
   if (!request || request.status !== "PENDING") return;
 
-  const target = await prisma.user.findUnique({ where: { id: request.userId } });
+  const target = await prisma.user.findUnique({
+    where: { id: request.userId },
+  });
   if (!target || !target.isActive || target.role === "ADMIN") return;
 
   const client = await clerkClient();

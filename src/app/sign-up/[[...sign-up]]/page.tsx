@@ -18,10 +18,11 @@ export const metadata: Metadata = {
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ backTo?: string }>;
+  searchParams: Promise<{ backTo?: string; redirect_url?: string }>;
 }) {
-  const { backTo } = await searchParams;
-  const redirectTo = safeBackTo(backTo);
+  const params = await searchParams;
+  const target = safeBackTo(params.backTo ?? params.redirect_url, "");
+  const redirectTo = target || "/";
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
@@ -49,9 +50,14 @@ export default async function SignUpPage({
 
       {/* Auth pane — Clerk styled by the app-wide CSS-variable appearance. */}
       <div className="animate-page-in flex flex-1 items-center justify-center px-4 py-10">
+        {/* Forced for the same reason as sign-in — see the note there. */}
         <SignUp
-          fallbackRedirectUrl={redirectTo}
-          signInFallbackRedirectUrl={redirectTo}
+          {...(target
+            ? {
+                forceRedirectUrl: target,
+                signInForceRedirectUrl: target,
+              }
+            : {})}
           signInUrl={signInPath(redirectTo)}
         />
       </div>

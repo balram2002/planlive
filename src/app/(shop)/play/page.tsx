@@ -30,14 +30,18 @@ async function loadSlides(): Promise<PlaySlide[]> {
   const slides = await Promise.all(
     streams.map(async (stream) => {
       const [seller, products, followers] = await Promise.all([
-        prisma.user.findUnique({ where: { id: stream.sellerId } }).catch(() => null),
+        prisma.user
+          .findUnique({ where: { id: stream.sellerId } })
+          .catch(() => null),
         prisma.product
           .findMany({
             where: { streamId: stream.id },
             select: { priceInPaise: true },
           })
           .catch(() => []),
-        prisma.follow.count({ where: { sellerId: stream.sellerId } }).catch(() => 0),
+        prisma.follow
+          .count({ where: { sellerId: stream.sellerId } })
+          .catch(() => 0),
       ]);
       return {
         id: stream.id,

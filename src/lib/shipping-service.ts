@@ -1,4 +1,10 @@
-import type { Order, Product, Shipment, ShipmentStatus, User } from "@prisma/client";
+import type {
+  Order,
+  Product,
+  Shipment,
+  ShipmentStatus,
+  User,
+} from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import {
@@ -21,7 +27,10 @@ import {
   toShipmentStatus,
   type ShipmentJourney,
 } from "@/lib/eshopbox/status-map";
-import { announceOrderReturning, announceOrderStatus } from "@/lib/order-events";
+import {
+  announceOrderReturning,
+  announceOrderStatus,
+} from "@/lib/order-events";
 import { notifySellerShipmentIssue } from "@/lib/notify";
 
 /**
@@ -160,8 +169,7 @@ function resolvePickupLocation(seller: User): PickupResolution {
 }
 
 export type BookResult =
-  | { ok: true; shipment: Shipment }
-  | { ok: false; error: string };
+  { ok: true; shipment: Shipment } | { ok: false; error: string };
 
 /**
  * Books a parcel for an order.
@@ -510,8 +518,7 @@ export async function applyTrackingUpdate(input: {
       statusLogsJson: input.statusLogs
         ? JSON.stringify(input.statusLogs).slice(0, 20_000)
         : shipment.statusLogsJson,
-      pickedUpAt:
-        shipment.pickedUpAt ?? (status === "PICKED_UP" ? now : null),
+      pickedUpAt: shipment.pickedUpAt ?? (status === "PICKED_UP" ? now : null),
       deliveredAt:
         shipment.deliveredAt ?? (status === "DELIVERED" ? now : null),
       returnedAt:

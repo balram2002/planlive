@@ -6,7 +6,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { Field, Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/action-button";
 import { useToast } from "@/components/toast";
-import { LocateButton, type LocatedAddress } from "@/components/profile/locate-button";
+import {
+  LocateButton,
+  type LocatedAddress,
+} from "@/components/profile/locate-button";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
 import {
@@ -29,14 +32,16 @@ import {
 export function ShopAddressGate({ open }: { open: boolean }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [state, formAction, pending] = useActionState<ProfileFormState, FormData>(
-    updateShopAddress,
-    {},
-  );
+  const [state, formAction, pending] = useActionState<
+    ProfileFormState,
+    FormData
+  >(updateShopAddress, {});
 
   const [dismissed, setDismissed] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
+    null,
+  );
   const formRef = useRef<HTMLFormElement>(null);
 
   // Step 1 values are controlled so "Next" can validate before advancing.
@@ -57,7 +62,10 @@ export function ShopAddressGate({ open }: { open: boolean }) {
   useEffect(() => {
     if (!state.success || state.success === handled.current) return;
     handled.current = state.success;
-    toast({ title: "Shop address saved — you can ship now.", variant: "success" });
+    toast({
+      title: "Shop address saved — you can ship now.",
+      variant: "success",
+    });
     setSaved(true);
     router.refresh();
   }, [state.success, toast, router]);
@@ -86,7 +94,8 @@ export function ShopAddressGate({ open }: { open: boolean }) {
     setCoords({ lat: located.latitude, lon: located.longitude });
   }
 
-  const step1Valid = shopName.trim().length >= 2 && /^\d{10,15}$/.test(phone.trim());
+  const step1Valid =
+    shopName.trim().length >= 2 && /^\d{10,15}$/.test(phone.trim());
 
   // Dismissed but still not set up: a banner that re-opens the same sheet,
   // so the fix is always one tap away and never a trip to another screen.
@@ -142,9 +151,7 @@ export function ShopAddressGate({ open }: { open: boolean }) {
               <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border sm:hidden" />
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-base font-semibold">
-                    Set up shipping
-                  </h2>
+                  <h2 className="text-base font-semibold">Set up shipping</h2>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted">
                     Couriers collect parcels from this address. Without it,
                     bookings are rejected.
@@ -221,7 +228,9 @@ export function ShopAddressGate({ open }: { open: boolean }) {
                     type="tel"
                     inputMode="numeric"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) =>
+                      setPhone(e.target.value.replace(/\D/g, ""))
+                    }
                     placeholder="9876543210"
                     maxLength={15}
                     autoComplete="tel"

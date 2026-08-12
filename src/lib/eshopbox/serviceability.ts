@@ -203,7 +203,9 @@ export async function calculateRate(input: RateInput): Promise<RateResult> {
 
   for (const [groupKey, group] of Object.entries(res)) {
     if (groupKey === "zone" || !group || typeof group !== "object") continue;
-    for (const [plan, raw] of Object.entries(group as Record<string, unknown>)) {
+    for (const [plan, raw] of Object.entries(
+      group as Record<string, unknown>,
+    )) {
       if (!raw || typeof raw !== "object") continue;
       const b = raw as RateBreakdown;
       quotes.push({
@@ -215,7 +217,8 @@ export async function calculateRate(input: RateInput): Promise<RateResult> {
           : null,
         // Their flag is numeric; treat "missing" as serviceable so a plan is
         // never hidden just because the field was omitted.
-        serviceable: b.isServiceable === undefined ? true : b.isServiceable === 1,
+        serviceable:
+          b.isServiceable === undefined ? true : b.isServiceable === 1,
         breakdown: b,
       });
     }

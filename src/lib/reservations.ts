@@ -108,7 +108,8 @@ function runReserveTransaction(
       const stream = await tx.stream.findUnique({
         where: { id: product.streamId },
       });
-      if (!stream || stream.status !== "LIVE") throw new ReserveError("NOT_LIVE");
+      if (!stream || stream.status !== "LIVE")
+        throw new ReserveError("NOT_LIVE");
 
       // Atomic conditional decrement — the race-condition guard.
       const updated = await tx.product.updateMany({
@@ -207,7 +208,11 @@ export type ExpiredSweepResult = { expired: number };
  */
 export async function sweepExpiredReservations(): Promise<
   ExpiredSweepResult & {
-    restocked: Array<{ productId: string; availableStock: number; roomName: string | null }>;
+    restocked: Array<{
+      productId: string;
+      availableStock: number;
+      roomName: string | null;
+    }>;
   }
 > {
   const overdue = await prisma.reservation.findMany({

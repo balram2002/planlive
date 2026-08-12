@@ -43,7 +43,10 @@ export function AreaTrend({
   const y = (v: number) => pad.t + ih - (v / max) * ih;
 
   const linePath = points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`)
+    .map(
+      (p, i) =>
+        `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`,
+    )
     .join(" ");
   const areaPath = `${linePath} L${x(points.length - 1).toFixed(1)},${pad.t + ih} L${x(0).toFixed(1)},${pad.t + ih} Z`;
 
@@ -93,10 +96,22 @@ export function AreaTrend({
         </text>
       ))}
       {/* X labels: first / last */}
-      <text x={x(0)} y={H - 6} textAnchor="start" className="fill-faint" fontSize="10">
+      <text
+        x={x(0)}
+        y={H - 6}
+        textAnchor="start"
+        className="fill-faint"
+        fontSize="10"
+      >
         {points[0].label}
       </text>
-      <text x={x(points.length - 1)} y={H - 6} textAnchor="end" className="fill-faint" fontSize="10">
+      <text
+        x={x(points.length - 1)}
+        y={H - 6}
+        textAnchor="end"
+        className="fill-faint"
+        fontSize="10"
+      >
         {last.label}
       </text>
 
@@ -166,11 +181,31 @@ export function Columns({
   const gridYs = [0.5, 1].map((f) => pad.t + ih - f * ih);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Daily counts">
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full"
+      role="img"
+      aria-label="Daily counts"
+    >
       {gridYs.map((gy, i) => (
-        <line key={i} x1={pad.l} x2={W - pad.r} y1={gy} y2={gy} stroke="var(--chart-grid)" strokeWidth="1" />
+        <line
+          key={i}
+          x1={pad.l}
+          x2={W - pad.r}
+          y1={gy}
+          y2={gy}
+          stroke="var(--chart-grid)"
+          strokeWidth="1"
+        />
       ))}
-      <line x1={pad.l} x2={W - pad.r} y1={pad.t + ih} y2={pad.t + ih} stroke="var(--chart-axis)" strokeWidth="1" />
+      <line
+        x1={pad.l}
+        x2={W - pad.r}
+        y1={pad.t + ih}
+        y2={pad.t + ih}
+        stroke="var(--chart-axis)"
+        strokeWidth="1"
+      />
       {[0.5, 1].map((f) => (
         <text
           key={f}
@@ -184,10 +219,22 @@ export function Columns({
           {formatValue(max * f)}
         </text>
       ))}
-      <text x={pad.l} y={H - 6} textAnchor="start" className="fill-faint" fontSize="10">
+      <text
+        x={pad.l}
+        y={H - 6}
+        textAnchor="start"
+        className="fill-faint"
+        fontSize="10"
+      >
         {points[0].label}
       </text>
-      <text x={W - pad.r} y={H - 6} textAnchor="end" className="fill-faint" fontSize="10">
+      <text
+        x={W - pad.r}
+        y={H - 6}
+        textAnchor="end"
+        className="fill-faint"
+        fontSize="10"
+      >
         {points[points.length - 1].label}
       </text>
 
@@ -202,7 +249,13 @@ export function Columns({
               d={`M${bx},${pad.t + ih} L${bx},${by + r} Q${bx},${by} ${bx + r},${by} L${bx + barW - r},${by} Q${bx + barW},${by} ${bx + barW},${by + r} L${bx + barW},${pad.t + ih} Z`}
               fill="var(--chart-series)"
             />
-            <rect x={pad.l + i * band} y={pad.t} width={band} height={ih} fill="transparent">
+            <rect
+              x={pad.l + i * band}
+              y={pad.t}
+              width={band}
+              height={ih}
+              fill="transparent"
+            >
               <title>{`${p.label}: ${formatValue(p.value)}`}</title>
             </rect>
           </g>
@@ -229,19 +282,19 @@ export function StatusStack({ segments }: { segments: StatusSegment[] }) {
   return (
     <div className="space-y-3">
       <div className="flex h-4 w-full gap-0.5 overflow-hidden rounded-full bg-surface-2">
-        {total === 0 ? null : (
-          visible.map((seg) => (
-            <div
-              key={seg.label}
-              title={`${seg.label}: ${seg.value}`}
-              className="h-full min-w-1 transition-all duration-500"
-              style={{
-                width: `${(seg.value / total) * 100}%`,
-                background: seg.color,
-              }}
-            />
-          ))
-        )}
+        {total === 0
+          ? null
+          : visible.map((seg) => (
+              <div
+                key={seg.label}
+                title={`${seg.label}: ${seg.value}`}
+                className="h-full min-w-1 transition-all duration-500"
+                style={{
+                  width: `${(seg.value / total) * 100}%`,
+                  background: seg.color,
+                }}
+              />
+            ))}
       </div>
       {/* Legend: swatch + label + count — identity never color-alone */}
       <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-4">
@@ -253,7 +306,9 @@ export function StatusStack({ segments }: { segments: StatusSegment[] }) {
               style={{ background: seg.color }}
             />
             <span className="text-muted">{seg.label}</span>
-            <span className="ml-auto font-semibold tabular-nums">{seg.value}</span>
+            <span className="ml-auto font-semibold tabular-nums">
+              {seg.value}
+            </span>
           </li>
         ))}
       </ul>

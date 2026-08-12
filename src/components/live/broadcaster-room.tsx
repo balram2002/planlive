@@ -316,7 +316,13 @@ function FlipCameraButton({ override }: { override?: () => void } = {}) {
             strokeWidth="1.8"
             strokeLinecap="round"
           />
-          <path d="M18 2v4h-4M6 22v-4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M18 2v4h-4M6 22v-4h4"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </motion.button>
       <span className="text-[10px] font-medium text-white/70">Flip</span>
@@ -482,16 +488,57 @@ function BroadcasterStage({
           source={Track.Source.Camera}
           label="Camera"
           onIcon={
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
-              <rect x="3" y="7" width="12" height="10" rx="2" stroke="currentColor" strokeWidth="1.8" />
-              <path d="m15 10 6-3v10l-6-3" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5"
+              aria-hidden
+            >
+              <rect
+                x="3"
+                y="7"
+                width="12"
+                height="10"
+                rx="2"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="m15 10 6-3v10l-6-3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
             </svg>
           }
           offIcon={
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
-              <rect x="3" y="7" width="12" height="10" rx="2" stroke="currentColor" strokeWidth="1.8" />
-              <path d="m15 10 6-3v10l-6-3" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-              <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5"
+              aria-hidden
+            >
+              <rect
+                x="3"
+                y="7"
+                width="12"
+                height="10"
+                rx="2"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="m15 10 6-3v10l-6-3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M3 3l18 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           }
         />
@@ -512,16 +559,57 @@ function BroadcasterStage({
           source={Track.Source.Microphone}
           label="Mic"
           onIcon={
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
-              <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5"
+              aria-hidden
+            >
+              <rect
+                x="9"
+                y="3"
+                width="6"
+                height="11"
+                rx="3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M5 11a7 7 0 0 0 14 0M12 18v3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
             </svg>
           }
           offIcon={
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
-              <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5"
+              aria-hidden
+            >
+              <rect
+                x="9"
+                y="3"
+                width="6"
+                height="11"
+                rx="3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M5 11a7 7 0 0 0 14 0M12 18v3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M3 3l18 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           }
         />
@@ -539,7 +627,11 @@ function StageMessage({
 }) {
   return (
     <div className="flex aspect-[9/14] w-full items-center justify-center rounded-2xl border border-border bg-surface px-6 text-center">
-      <p className={tone === "error" ? "text-sm text-live" : "text-sm text-muted"}>
+      <p
+        className={
+          tone === "error" ? "text-sm text-live" : "text-sm text-muted"
+        }
+      >
         {children}
       </p>
     </div>

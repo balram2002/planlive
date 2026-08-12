@@ -1,3 +1,4 @@
+import { APP_TIMEZONE } from "@/lib/datetime";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { signInPath } from "@/lib/back-to";
@@ -78,6 +79,7 @@ export default async function SchedulePage() {
                             month: "short",
                             hour: "2-digit",
                             minute: "2-digit",
+                            timeZone: APP_TIMEZONE,
                           })}{" "}
                           · {schedule.productIds.length} products planned
                         </p>

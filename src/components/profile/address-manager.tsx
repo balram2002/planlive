@@ -43,8 +43,7 @@ export function AddressManager() {
     haptics.tap();
     setBusyId(id);
     setAddresses(
-      (prev) =>
-        prev?.map((a) => ({ ...a, isActive: a.id === id })) ?? prev,
+      (prev) => prev?.map((a) => ({ ...a, isActive: a.id === id })) ?? prev,
     );
     try {
       const res = await fetch(`/api/addresses/${id}`, { method: "PATCH" });

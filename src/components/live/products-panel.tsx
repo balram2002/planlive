@@ -64,8 +64,18 @@ export function ProductsPanel({
                 aria-label="Close"
                 className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-all hover:bg-surface-2 hover:text-foreground active:scale-90"
               >
-                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
-                  <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-4 w-4"
+                  aria-hidden
+                >
+                  <path
+                    d="m6 6 12 12M18 6 6 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             </header>
@@ -87,10 +97,16 @@ export function ProductsPanel({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.96 }}
-                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 32,
+                        }}
                         className={cn(
                           "rounded-2xl border bg-surface p-3.5 shadow-card transition-colors duration-300",
-                          featured ? "border-primary/60 bg-primary/5" : "border-border",
+                          featured
+                            ? "border-primary/60 bg-primary/5"
+                            : "border-border",
                         )}
                       >
                         {featured ? (
@@ -120,13 +136,20 @@ export function ProductsPanel({
                                 {formatPrice(product.priceInPaise)}
                               </span>
                               <span className="relative inline-flex h-4 items-center overflow-hidden text-xs text-muted">
-                                <AnimatePresence mode="popLayout" initial={false}>
+                                <AnimatePresence
+                                  mode="popLayout"
+                                  initial={false}
+                                >
                                   <motion.span
                                     key={product.availableStock}
                                     initial={{ y: 10, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
                                     exit={{ y: -10, opacity: 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 32 }}
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 500,
+                                      damping: 32,
+                                    }}
                                   >
                                     {soldOut
                                       ? "Sold out"

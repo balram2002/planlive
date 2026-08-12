@@ -81,7 +81,12 @@ export async function broadcastToRoom(
   if (!livekitConfigured()) return;
   try {
     const data = new TextEncoder().encode(JSON.stringify(payload));
-    await getRoomClient().sendData(roomName, data, DataPacket_Kind.RELIABLE, {});
+    await getRoomClient().sendData(
+      roomName,
+      data,
+      DataPacket_Kind.RELIABLE,
+      {},
+    );
   } catch (err) {
     console.error(`LiveKit broadcast to ${roomName} failed:`, err);
   }

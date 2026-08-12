@@ -28,7 +28,8 @@ export async function generateMetadata({
     if (stream.status !== "LIVE") {
       return {
         title: "Stream ended",
-        description: "This stream has ended — find more live sellers on Discover.",
+        description:
+          "This stream has ended — find more live sellers on Discover.",
         robots: { index: false },
       };
     }
@@ -45,7 +46,9 @@ export async function generateMetadata({
 
     // The stream cover is what makes a shared link look like something worth
     // tapping; without it every share renders as a bare grey card.
-    const images = stream.thumbnailUrl ? [{ url: stream.thumbnailUrl }] : undefined;
+    const images = stream.thumbnailUrl
+      ? [{ url: stream.thumbnailUrl }]
+      : undefined;
 
     return {
       title,

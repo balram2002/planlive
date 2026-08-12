@@ -28,7 +28,11 @@ export function BulkLabelButton({ labelUrls }: { labelUrls: string[] }) {
         setOpening(false);
         return;
       }
-      const win = window.open(labelUrls[index], "_blank", "noopener,noreferrer");
+      const win = window.open(
+        labelUrls[index],
+        "_blank",
+        "noopener,noreferrer",
+      );
       if (!win) {
         setOpening(false);
         toast({

@@ -87,8 +87,7 @@ export function shopLocation(sellerShopAddressJson: string | null): {
 }
 
 export type FulfilmentResult =
-  | { ok: true; fulfilment: LocalFulfilment }
-  | { ok: false; error: string };
+  { ok: true; fulfilment: LocalFulfilment } | { ok: false; error: string };
 
 /** Orders past this point are with a courier — local options no longer apply. */
 const CHOOSABLE_ORDER_STATES = ["PAID", "PLACED"];
@@ -105,7 +104,8 @@ async function loadLocalContext(orderId: string, sellerId: string) {
   const reservation = await prisma.reservation.findUnique({
     where: { id: order.reservationId },
   });
-  if (!reservation) return { ok: false, error: "Reservation not found." } as const;
+  if (!reservation)
+    return { ok: false, error: "Reservation not found." } as const;
 
   const product = await prisma.product.findUnique({
     where: { id: reservation.productId },

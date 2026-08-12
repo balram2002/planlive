@@ -268,7 +268,9 @@ export type CancelResult = {
 };
 
 /** Cancels a booked AWB. Fails once the courier has already collected it. */
-export async function cancelShipment(trackingId: string): Promise<CancelResult> {
+export async function cancelShipment(
+  trackingId: string,
+): Promise<CancelResult> {
   return eshopboxRequest<CancelResult>({
     method: "POST",
     path: "/api/v1/shipping/cancel",

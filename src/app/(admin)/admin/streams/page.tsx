@@ -4,6 +4,7 @@ import { Badge, LiveBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { forceEndStream } from "../actions";
+import { APP_TIMEZONE } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,11 @@ export default async function AdminStreamsPage() {
           Live now ({live.length})
         </h2>
         {live.length === 0 ? (
-          <EmptyState icon="📡" title="Nobody is live" description="Live streams appear here the moment a seller starts broadcasting." />
+          <EmptyState
+            icon="📡"
+            title="Nobody is live"
+            description="Live streams appear here the moment a seller starts broadcasting."
+          />
         ) : (
           <ul className="grid gap-3 lg:grid-cols-2">
             {live.map((stream) => (
@@ -65,6 +70,7 @@ export default async function AdminStreamsPage() {
                       {stream.startedAt.toLocaleTimeString("en-IN", {
                         hour: "2-digit",
                         minute: "2-digit",
+                        timeZone: APP_TIMEZONE,
                       })}{" "}
                       · {liveProductCounts.get(stream.id) ?? 0} products
                     </p>
@@ -111,6 +117,7 @@ export default async function AdminStreamsPage() {
                   {stream.startedAt.toLocaleDateString("en-IN", {
                     day: "numeric",
                     month: "short",
+                    timeZone: APP_TIMEZONE,
                   })}
                   {stream.endedAt
                     ? ` · ${Math.max(1, Math.round((stream.endedAt.getTime() - stream.startedAt.getTime()) / 60000))} min`

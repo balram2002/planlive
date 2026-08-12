@@ -23,7 +23,9 @@ export default async function EditProductPage({
   return (
     <div className="animate-page-in mx-auto max-w-lg lg:mx-0">
       <h1 className="mb-1 text-2xl font-bold tracking-tight">Edit product</h1>
-      <p className="mb-6 text-sm text-muted">Update details for this product.</p>
+      <p className="mb-6 text-sm text-muted">
+        Update details for this product.
+      </p>
       <ProductForm
         action={updateProduct.bind(null, product.id)}
         submitLabel="Save changes"

@@ -35,7 +35,9 @@ export default async function AdminProductsPage({
     <div className="animate-page-in space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Products</h1>
-        <p className="text-sm text-muted">Every listing across the marketplace.</p>
+        <p className="text-sm text-muted">
+          Every listing across the marketplace.
+        </p>
       </div>
 
       <form method="GET" className="flex gap-2">
@@ -92,12 +94,18 @@ export default async function AdminProductsPage({
                     {formatPrice(product.priceInPaise)}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge tone={product.availableStock > 0 ? "success" : "warning"}>
+                    <Badge
+                      tone={product.availableStock > 0 ? "success" : "warning"}
+                    >
                       {product.availableStock}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    {product.streamId ? <Badge tone="live">Live</Badge> : <span className="text-faint">—</span>}
+                    {product.streamId ? (
+                      <Badge tone="live">Live</Badge>
+                    ) : (
+                      <span className="text-faint">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 align-top">
                     <div className="flex items-center gap-1">

@@ -8,7 +8,8 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(_req: NextRequest, { params }: Params) {
   const { id } = await params;
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const address = await prisma.address.findUnique({ where: { id } });
   if (!address || address.userId !== user.id) {
@@ -31,7 +32,8 @@ export async function PATCH(_req: NextRequest, { params }: Params) {
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params;
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const address = await prisma.address.findUnique({ where: { id } });
   if (!address || address.userId !== user.id) {

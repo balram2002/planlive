@@ -88,13 +88,19 @@ export async function verifyEmailTransport(): Promise<
 > {
   const transport = getTransport();
   if (!transport) {
-    return { ok: false, error: "SMTP is not configured (SMTP_HOST/USER/PASSWORD)." };
+    return {
+      ok: false,
+      error: "SMTP is not configured (SMTP_HOST/USER/PASSWORD).",
+    };
   }
   try {
     await transport.verify();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
@@ -137,7 +143,10 @@ export async function sendEmail(message: EmailMessage): Promise<boolean> {
       return true;
     } catch (err) {
       if (isPermanent(err)) {
-        console.error(`[email] permanent failure for "${message.subject}":`, err);
+        console.error(
+          `[email] permanent failure for "${message.subject}":`,
+          err,
+        );
         return false;
       }
       if (attempt === MAX_ATTEMPTS) {

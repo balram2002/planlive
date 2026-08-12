@@ -36,7 +36,11 @@ export async function applyForPremium(
 
   await prisma.premiumRequest.upsert({
     where: { sellerId: seller.id },
-    create: { sellerId: seller.id, status: "PENDING", message: message || null },
+    create: {
+      sellerId: seller.id,
+      status: "PENDING",
+      message: message || null,
+    },
     // Re-applying clears the previous decision so the admin sees a clean
     // pending item rather than a stale rejection note.
     update: {

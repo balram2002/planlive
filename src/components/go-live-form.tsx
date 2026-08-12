@@ -23,7 +23,11 @@ type PickableProduct = {
   availableStock: number;
 };
 
-type PickableCategory = { id: string; name: string; subcategory: string | null };
+type PickableCategory = {
+  id: string;
+  name: string;
+  subcategory: string | null;
+};
 
 /** Product picker + cover + category + start button. Prefills from a schedule. */
 export function GoLiveForm({
@@ -45,10 +49,10 @@ export function GoLiveForm({
   premiumStatus: PremiumStatus;
   premiumConfigured: boolean;
 }) {
-  const [state, formAction, pending] = useActionState<StartStreamState, FormData>(
-    startStream,
-    {},
-  );
+  const [state, formAction, pending] = useActionState<
+    StartStreamState,
+    FormData
+  >(startStream, {});
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(
     initialThumbnailUrl,
   );
@@ -70,7 +74,8 @@ export function GoLiveForm({
           htmlFor="live-title"
           className="mb-1.5 block text-sm font-medium text-muted"
         >
-          Stream title <span className="font-normal text-faint">(optional)</span>
+          Stream title{" "}
+          <span className="font-normal text-faint">(optional)</span>
         </label>
         <input
           id="live-title"
@@ -178,7 +183,9 @@ export function GoLiveForm({
         onClick={() => haptics.impact()}
       >
         {pending ? (
-          <span className="inline-flex items-center gap-2"><Spinner /> Starting…</span>
+          <span className="inline-flex items-center gap-2">
+            <Spinner /> Starting…
+          </span>
         ) : !thumbnailUrl ? (
           "Add a cover to go live"
         ) : (

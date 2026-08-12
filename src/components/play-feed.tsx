@@ -158,7 +158,13 @@ export function PlayFeed({ slides }: { slides: PlaySlide[] }) {
               className="absolute bottom-28 left-1/2 -translate-x-1/2 text-white/70"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-                <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="m6 9 6 6 6-6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </motion.div>
           ) : null}

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/action-button";
 import { useToast } from "@/components/toast";
 import { haptics } from "@/lib/haptics";
+import { formatDateTime } from "@/lib/datetime";
 import {
   respondPickupAction,
   type FulfilmentActionState,
@@ -58,13 +59,7 @@ export function PickupRequestCard({
           <p className="mt-2 text-sm leading-relaxed">
             Collect by{" "}
             <span className="font-semibold">
-              {new Date(pickup.pickupDeadline).toLocaleString("en-IN", {
-                weekday: "long",
-                day: "numeric",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatDateTime(pickup.pickupDeadline)}
             </span>
           </p>
         ) : null}

@@ -24,7 +24,5 @@ export function Elapsed({ startedAt }: { startedAt: string }) {
 
   // Inline, not a chip: it sits inside the host card's LIVE line, where a
   // second pill would just add clutter to an already-tight header.
-  return (
-    <span className="tabular-nums text-white/70">· {label}</span>
-  );
+  return <span className="tabular-nums text-white/70">· {label}</span>;
 }

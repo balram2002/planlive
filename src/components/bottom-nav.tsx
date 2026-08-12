@@ -22,7 +22,12 @@ const baseTabs: Tab[] = [
     href: "/",
     label: "Home",
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]" aria-hidden>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        className="h-[22px] w-[22px]"
+        aria-hidden
+      >
         <path
           d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1v-8.5Z"
           stroke="currentColor"
@@ -37,9 +42,25 @@ const baseTabs: Tab[] = [
     href: "/play",
     label: "Play",
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]" aria-hidden>
-        <rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M10 8.8v6.4a.5.5 0 0 0 .77.42l5-3.2a.5.5 0 0 0 0-.84l-5-3.2a.5.5 0 0 0-.77.42Z" fill="currentColor" />
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        className="h-[22px] w-[22px]"
+        aria-hidden
+      >
+        <rect
+          x="3.5"
+          y="3.5"
+          width="17"
+          height="17"
+          rx="5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M10 8.8v6.4a.5.5 0 0 0 .77.42l5-3.2a.5.5 0 0 0 0-.84l-5-3.2a.5.5 0 0 0-.77.42Z"
+          fill="currentColor"
+        />
       </svg>
     ),
   },
@@ -47,7 +68,12 @@ const baseTabs: Tab[] = [
     href: "/dashboard",
     label: "Sell",
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]" aria-hidden>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        className="h-[22px] w-[22px]"
+        aria-hidden
+      >
         <path
           d="M5 8h14l-1 11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8Z"
           stroke="currentColor"
@@ -67,16 +93,39 @@ const baseTabs: Tab[] = [
     href: "/orders",
     label: "Orders",
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]" aria-hidden>
-        <rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M9 9h6M9 13h6M9 17h3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        className="h-[22px] w-[22px]"
+        aria-hidden
+      >
+        <rect
+          x="5"
+          y="4"
+          width="14"
+          height="16"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M9 9h6M9 13h6M9 17h3"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
 ];
 
 const menuIcon = (
-  <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]" aria-hidden>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    className="h-[22px] w-[22px]"
+    aria-hidden
+  >
     <path
       d="M4 7h16M4 12h16M4 17h10"
       stroke="currentColor"
@@ -90,7 +139,12 @@ const adminTab: Tab = {
   href: "/admin",
   label: "Admin",
   icon: (
-    <svg viewBox="0 0 24 24" fill="none" className="h-[22px] w-[22px]" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-[22px] w-[22px]"
+      aria-hidden
+    >
       <path
         d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm-2.5 9 2 2 3.5-4"
         stroke="currentColor"

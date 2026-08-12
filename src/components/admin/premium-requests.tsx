@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/action-button";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
+import { formatDate } from "@/lib/datetime";
 import {
   reviewPremiumRequest,
   revokePremiumAccess,
@@ -115,14 +116,16 @@ function RequestCard({ row }: { row: PremiumRequestRow }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (reviewState.error) toast({ title: reviewState.error, variant: "error" });
+    if (reviewState.error)
+      toast({ title: reviewState.error, variant: "error" });
     else if (reviewState.success) {
       toast({ title: reviewState.success, variant: "success" });
     }
   }, [reviewState, toast]);
 
   useEffect(() => {
-    if (revokeState.error) toast({ title: revokeState.error, variant: "error" });
+    if (revokeState.error)
+      toast({ title: revokeState.error, variant: "error" });
     else if (revokeState.success) {
       toast({ title: revokeState.success, variant: "success" });
     }
@@ -169,11 +172,7 @@ function RequestCard({ row }: { row: PremiumRequestRow }) {
       ) : null}
 
       <p className="mt-2 text-[11px] text-faint">
-        Applied {new Date(row.createdAt).toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })}
+        Applied {formatDate(row.createdAt)}
       </p>
 
       {row.status === "PENDING" ? (

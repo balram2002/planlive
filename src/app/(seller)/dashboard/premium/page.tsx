@@ -110,9 +110,7 @@ export default async function SellerPremiumPage() {
           <p className="mt-1 mb-4 text-xs leading-relaxed text-muted">
             Tell us a little about how you stream — it helps us prioritise.
           </p>
-          <PremiumApplyForm
-            resubmitting={premium.status === "REJECTED"}
-          />
+          <PremiumApplyForm resubmitting={premium.status === "REJECTED"} />
         </Card>
       )}
     </div>

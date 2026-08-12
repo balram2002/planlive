@@ -62,8 +62,8 @@ export default async function SellerServiceabilityPage() {
                 No shop PIN code saved
               </p>
               <p className="mt-1 text-xs leading-relaxed text-muted">
-                Add your shop address so the pickup PIN fills in automatically
-                — and so couriers know where to collect.{" "}
+                Add your shop address so the pickup PIN fills in automatically —
+                and so couriers know where to collect.{" "}
                 <Link
                   href="/shop-address"
                   className="font-semibold text-primary underline-offset-2 hover:underline"

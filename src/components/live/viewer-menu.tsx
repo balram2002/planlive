@@ -116,7 +116,12 @@ export function ViewerMenu({
         }}
         className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition-all duration-200 active:scale-90"
       >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
+        <svg
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="h-4 w-4"
+          aria-hidden
+        >
           <circle cx="12" cy="5" r="1.8" />
           <circle cx="12" cy="12" r="1.8" />
           <circle cx="12" cy="19" r="1.8" />
@@ -148,32 +153,34 @@ export function ViewerMenu({
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", stiffness: 380, damping: 36 }}
                   >
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-              <ul className="space-y-0.5">
-                {rows.map((row) => (
-                  <li key={row.key}>
-                    <button
-                      type="button"
-                      onClick={row.onPress}
-                      className={cn(
-                        "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition-colors active:scale-[0.99]",
-                        row.danger
-                          ? "text-live hover:bg-live/10"
-                          : "hover:bg-surface-2",
-                        row.active && "bg-surface-2",
-                      )}
-                    >
-                      <span aria-hidden className="text-base">
-                        {row.icon}
-                      </span>
-                      {row.label}
-                      {row.active ? (
-                        <span className="ml-auto text-xs text-primary">On</span>
-                      ) : null}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                    <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+                    <ul className="space-y-0.5">
+                      {rows.map((row) => (
+                        <li key={row.key}>
+                          <button
+                            type="button"
+                            onClick={row.onPress}
+                            className={cn(
+                              "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition-colors active:scale-[0.99]",
+                              row.danger
+                                ? "text-live hover:bg-live/10"
+                                : "hover:bg-surface-2",
+                              row.active && "bg-surface-2",
+                            )}
+                          >
+                            <span aria-hidden className="text-base">
+                              {row.icon}
+                            </span>
+                            {row.label}
+                            {row.active ? (
+                              <span className="ml-auto text-xs text-primary">
+                                On
+                              </span>
+                            ) : null}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   </motion.div>
                 </>
               ) : null}

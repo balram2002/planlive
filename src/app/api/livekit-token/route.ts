@@ -2,7 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
-import { createAccessToken, livekitConfigured, LIVEKIT_URL } from "@/lib/livekit";
+import {
+  createAccessToken,
+  livekitConfigured,
+  LIVEKIT_URL,
+} from "@/lib/livekit";
 
 /**
  * GET /api/livekit-token?streamId=...
@@ -22,7 +26,10 @@ export async function GET(req: NextRequest) {
 
   const streamId = req.nextUrl.searchParams.get("streamId");
   if (!streamId) {
-    return NextResponse.json({ error: "streamId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "streamId is required" },
+      { status: 400 },
+    );
   }
 
   const stream = await prisma.stream.findUnique({ where: { id: streamId } });

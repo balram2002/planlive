@@ -11,10 +11,13 @@ export const metadata: Metadata = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ backTo?: string }>;
+  searchParams: Promise<{ backTo?: string; redirect_url?: string }>;
 }) {
-  const { backTo } = await searchParams;
-  const redirectTo = safeBackTo(backTo);
+  const params = await searchParams;
+  // Accept Clerk's own `redirect_url` too — its guards add that rather than
+  // our `backTo`, and either one means "the user came from somewhere".
+  const target = safeBackTo(params.backTo ?? params.redirect_url, "");
+  const redirectTo = target || "/";
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
@@ -42,11 +45,25 @@ export default async function SignInPage({
 
       {/* Auth pane — Clerk styled by the app-wide CSS-variable appearance. */}
       <div className="animate-page-in flex flex-1 items-center justify-center px-4 py-10">
-        {/* signUpUrl carries backTo across the sign-in → sign-up switch, so
-            someone who creates an account still lands where they started. */}
+        {/*
+          forceRedirectUrl, NOT fallbackRedirectUrl — this is the whole fix.
+          Clerk's precedence is force > ?redirect_url > fallback, and
+          "fallback" is ignored the moment a redirect_url exists (which Clerk
+          adds itself on guarded routes). With NEXT_PUBLIC_CLERK_SIGN_IN_
+          FALLBACK_REDIRECT_URL="/" also in play, every return trip landed on
+          the homepage. Forcing is correct here: the user explicitly came from
+          a page, so that page is where they belong afterwards.
+
+          Only forced when we actually have a destination — otherwise the env
+          default is left to do its job.
+        */}
         <SignIn
-          fallbackRedirectUrl={redirectTo}
-          signUpFallbackRedirectUrl={redirectTo}
+          {...(target
+            ? {
+                forceRedirectUrl: target,
+                signUpForceRedirectUrl: target,
+              }
+            : {})}
           signUpUrl={signUpPath(redirectTo)}
         />
       </div>

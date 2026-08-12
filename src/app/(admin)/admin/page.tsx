@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { Card } from "@/components/ui/card";
+import { APP_TIMEZONE } from "@/lib/datetime";
 import {
   AreaTrend,
   Columns,
@@ -17,7 +19,11 @@ function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 function dayLabel(d: Date): string {
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    timeZone: APP_TIMEZONE,
+  });
 }
 
 /** ₹ compact for axis/labels: 1.2K / 4.5L style kept simple (K only). */
@@ -88,10 +94,26 @@ async function loadDashboardData() {
   // ---- Reservation status breakdown ----
   const byStatus = new Map(reservations.map((r) => [r.status, r._count._all]));
   const statusSegments = [
-    { label: "Confirmed", value: byStatus.get("CONFIRMED") ?? 0, color: "var(--chart-good)" },
-    { label: "Pending", value: byStatus.get("PENDING") ?? 0, color: "var(--chart-warn)" },
-    { label: "Expired", value: byStatus.get("EXPIRED") ?? 0, color: "var(--chart-info)" },
-    { label: "Cancelled", value: byStatus.get("CANCELLED") ?? 0, color: "var(--chart-bad)" },
+    {
+      label: "Confirmed",
+      value: byStatus.get("CONFIRMED") ?? 0,
+      color: "var(--chart-good)",
+    },
+    {
+      label: "Pending",
+      value: byStatus.get("PENDING") ?? 0,
+      color: "var(--chart-warn)",
+    },
+    {
+      label: "Expired",
+      value: byStatus.get("EXPIRED") ?? 0,
+      color: "var(--chart-info)",
+    },
+    {
+      label: "Cancelled",
+      value: byStatus.get("CANCELLED") ?? 0,
+      color: "var(--chart-bad)",
+    },
   ];
 
   // ---- Top products by confirmed units ----
@@ -119,14 +141,65 @@ async function loadDashboardData() {
     { label: "Total revenue", value: formatPrice(revenue) },
     { label: "Paid orders", value: String(paidOrders.length) },
     { label: "Users", value: `${userCount}`, sub: `${sellerCount} sellers` },
-    { label: "Live now", value: String(liveCount), sub: `${productCount} products` },
+    {
+      label: "Live now",
+      value: String(liveCount),
+      sub: `${productCount} products`,
+    },
   ];
 
-  return { kpis, revenueSeries, orderSeries, statusSegments, topItems };
+  // ---- Queues waiting on an admin ----
+  // An admin's job on this page is unblocking people. These are the only
+  // numbers here that represent someone actually waiting.
+  const [sellerApps, premiumApps, shipmentProblems, suspended] =
+    await Promise.all([
+      prisma.sellerRequest.count({ where: { status: "PENDING" } }),
+      prisma.premiumRequest.count({ where: { status: "PENDING" } }),
+      prisma.shipment.count({
+        where: { status: { in: ["EXCEPTION", "FAILED_DELIVERY", "RTO"] } },
+      }),
+      prisma.user.count({ where: { isActive: false } }),
+    ]);
+
+  const queues = [
+    {
+      label: "Seller applications",
+      count: sellerApps,
+      href: "/admin/sellers",
+      tone: "warn" as const,
+    },
+    {
+      label: "Premium applications",
+      count: premiumApps,
+      href: "/admin/sellers",
+      tone: "info" as const,
+    },
+    {
+      label: "Shipment problems",
+      count: shipmentProblems,
+      href: "/admin/shipments?filter=attention",
+      tone: "bad" as const,
+    },
+    {
+      label: "Suspended accounts",
+      count: suspended,
+      href: "/admin/users",
+      tone: "warn" as const,
+    },
+  ].filter((q) => q.count > 0);
+
+  return {
+    kpis,
+    revenueSeries,
+    orderSeries,
+    statusSegments,
+    topItems,
+    queues,
+  };
 }
 
 export default async function AdminOverviewPage() {
-  const { kpis, revenueSeries, orderSeries, statusSegments, topItems } =
+  const { kpis, revenueSeries, orderSeries, statusSegments, topItems, queues } =
     await loadDashboardData();
 
   return (
@@ -137,6 +210,46 @@ export default async function AdminOverviewPage() {
           Marketplace health at a glance — last {DAYS} days.
         </p>
       </div>
+
+      {/* Queues first — the only things here that represent someone waiting.
+          Hidden entirely when empty rather than showing four zeroes. */}
+      {queues.length > 0 ? (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-faint">
+            Waiting on you
+          </h2>
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            {queues.map((queue, i) => (
+              <Link
+                key={queue.label}
+                href={queue.href}
+                className="animate-item-in"
+                style={{ animationDelay: `${i * 40}ms` }}
+              >
+                <Card className="flex items-center gap-3 p-4 transition-shadow hover:shadow-pop">
+                  {/* Colour is a secondary cue only — count + label carry it. */}
+                  <span
+                    aria-hidden
+                    className="h-8 w-1.5 shrink-0 rounded-full"
+                    style={{ background: `var(--chart-${queue.tone})` }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-2xl font-bold tabular-nums">
+                      {queue.count}
+                    </span>
+                    <span className="block truncate text-xs text-muted">
+                      {queue.label}
+                    </span>
+                  </span>
+                  <span aria-hidden className="shrink-0 text-faint">
+                    →
+                  </span>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -159,22 +272,41 @@ export default async function AdminOverviewPage() {
 
       {/* Trends — two measures, two charts (never a dual axis) */}
       <div className="grid gap-3 lg:grid-cols-2">
-        <Card className="animate-item-in p-4" style={{ animationDelay: "200ms" }}>
-          <h2 className="mb-3 text-sm font-semibold">Revenue · last {DAYS} days</h2>
+        <Card
+          className="animate-item-in p-4"
+          style={{ animationDelay: "200ms" }}
+        >
+          <h2 className="mb-3 text-sm font-semibold">
+            Revenue · last {DAYS} days
+          </h2>
           <AreaTrend points={revenueSeries} formatValue={inrCompact} />
         </Card>
-        <Card className="animate-item-in p-4" style={{ animationDelay: "260ms" }}>
-          <h2 className="mb-3 text-sm font-semibold">Paid orders · last {DAYS} days</h2>
-          <Columns points={orderSeries} formatValue={(v) => String(Math.round(v))} />
+        <Card
+          className="animate-item-in p-4"
+          style={{ animationDelay: "260ms" }}
+        >
+          <h2 className="mb-3 text-sm font-semibold">
+            Paid orders · last {DAYS} days
+          </h2>
+          <Columns
+            points={orderSeries}
+            formatValue={(v) => String(Math.round(v))}
+          />
         </Card>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <Card className="animate-item-in p-4" style={{ animationDelay: "320ms" }}>
+        <Card
+          className="animate-item-in p-4"
+          style={{ animationDelay: "320ms" }}
+        >
           <h2 className="mb-3 text-sm font-semibold">Reservations by status</h2>
           <StatusStack segments={statusSegments} />
         </Card>
-        <Card className="animate-item-in p-4" style={{ animationDelay: "380ms" }}>
+        <Card
+          className="animate-item-in p-4"
+          style={{ animationDelay: "380ms" }}
+        >
           <h2 className="mb-3 text-sm font-semibold">
             Top products · confirmed units
           </h2>

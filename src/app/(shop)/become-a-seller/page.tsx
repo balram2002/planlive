@@ -56,7 +56,9 @@ export default async function BecomeSellerPage({
             style={{ animationDelay: `${i * 60}ms` }}
           >
             <div className="text-lg">{perk.icon}</div>
-            <p className="mt-1 text-[11px] leading-snug text-muted">{perk.text}</p>
+            <p className="mt-1 text-[11px] leading-snug text-muted">
+              {perk.text}
+            </p>
           </div>
         ))}
       </div>

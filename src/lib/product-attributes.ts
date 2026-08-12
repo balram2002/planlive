@@ -89,13 +89,28 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
     label: "Clothing",
     emoji: "👕",
     fields: [
-      { key: "size", label: "Size", kind: "chips", options: APPAREL_SIZES, multi: true },
+      {
+        key: "size",
+        label: "Size",
+        kind: "chips",
+        options: APPAREL_SIZES,
+        multi: true,
+      },
       colorField,
       {
         key: "fabric",
         label: "Fabric",
         kind: "chips",
-        options: ["Cotton", "Linen", "Silk", "Wool", "Denim", "Rayon", "Polyester", "Blend"],
+        options: [
+          "Cotton",
+          "Linen",
+          "Silk",
+          "Wool",
+          "Denim",
+          "Rayon",
+          "Polyester",
+          "Blend",
+        ],
       },
       {
         key: "fit",
@@ -116,7 +131,13 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
     label: "Footwear",
     emoji: "👟",
     fields: [
-      { key: "size", label: "Size (UK)", kind: "chips", options: SHOE_SIZES, multi: true },
+      {
+        key: "size",
+        label: "Size (UK)",
+        kind: "chips",
+        options: SHOE_SIZES,
+        multi: true,
+      },
       colorField,
       {
         key: "material",
@@ -137,15 +158,30 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
     label: "Electronics",
     emoji: "🎧",
     fields: [
-      { key: "brand", label: "Brand", kind: "text", placeholder: "e.g. Samsung" },
-      { key: "model", label: "Model", kind: "text", placeholder: "e.g. Galaxy S24" },
+      {
+        key: "brand",
+        label: "Brand",
+        kind: "text",
+        placeholder: "e.g. Samsung",
+      },
+      {
+        key: "model",
+        label: "Model",
+        kind: "text",
+        placeholder: "e.g. Galaxy S24",
+      },
       {
         key: "storage",
         label: "Storage",
         kind: "chips",
         options: ["32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB"],
       },
-      { key: "ram", label: "RAM", kind: "chips", options: ["4 GB", "6 GB", "8 GB", "12 GB", "16 GB"] },
+      {
+        key: "ram",
+        label: "RAM",
+        kind: "chips",
+        options: ["4 GB", "6 GB", "8 GB", "12 GB", "16 GB"],
+      },
       colorField,
       {
         key: "warranty",
@@ -157,7 +193,13 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
         key: "condition",
         label: "Condition",
         kind: "chips",
-        options: ["Brand new", "Like new", "Refurbished", "Used - good", "Used - fair"],
+        options: [
+          "Brand new",
+          "Like new",
+          "Refurbished",
+          "Used - good",
+          "Used - fair",
+        ],
       },
     ],
   },
@@ -167,8 +209,19 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
     emoji: "💄",
     fields: [
       { key: "brand", label: "Brand", kind: "text", placeholder: "e.g. Lakmé" },
-      { key: "shade", label: "Shade", kind: "text", placeholder: "e.g. Rose Nude" },
-      { key: "volume", label: "Net quantity", kind: "number", unit: "ml", placeholder: "50" },
+      {
+        key: "shade",
+        label: "Shade",
+        kind: "text",
+        placeholder: "e.g. Rose Nude",
+      },
+      {
+        key: "volume",
+        label: "Net quantity",
+        kind: "number",
+        unit: "ml",
+        placeholder: "50",
+      },
       {
         key: "skinType",
         label: "Suited to",
@@ -176,7 +229,12 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
         options: ["All skin", "Oily", "Dry", "Combination", "Sensitive"],
         multi: true,
       },
-      { key: "expiry", label: "Best before", kind: "text", placeholder: "e.g. Dec 2027" },
+      {
+        key: "expiry",
+        label: "Best before",
+        kind: "text",
+        placeholder: "e.g. Dec 2027",
+      },
     ],
   },
   {
@@ -188,10 +246,24 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
         key: "material",
         label: "Material",
         kind: "chips",
-        options: ["Gold plated", "Silver", "Sterling silver", "Brass", "Oxidised", "Artificial", "Kundan", "Pearl"],
+        options: [
+          "Gold plated",
+          "Silver",
+          "Sterling silver",
+          "Brass",
+          "Oxidised",
+          "Artificial",
+          "Kundan",
+          "Pearl",
+        ],
       },
       colorField,
-      { key: "size", label: "Size", kind: "text", placeholder: "e.g. adjustable / 16 cm" },
+      {
+        key: "size",
+        label: "Size",
+        kind: "text",
+        placeholder: "e.g. adjustable / 16 cm",
+      },
       {
         key: "occasion",
         label: "Occasion",
@@ -209,11 +281,29 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
         key: "material",
         label: "Material",
         kind: "chips",
-        options: ["Wood", "Steel", "Glass", "Ceramic", "Plastic", "Cotton", "Bamboo"],
+        options: [
+          "Wood",
+          "Steel",
+          "Glass",
+          "Ceramic",
+          "Plastic",
+          "Cotton",
+          "Bamboo",
+        ],
       },
       colorField,
-      { key: "dimensions", label: "Size", kind: "text", placeholder: "e.g. 30 × 20 cm" },
-      { key: "pieces", label: "Pieces in set", kind: "number", placeholder: "1" },
+      {
+        key: "dimensions",
+        label: "Size",
+        kind: "text",
+        placeholder: "e.g. 30 × 20 cm",
+      },
+      {
+        key: "pieces",
+        label: "Pieces in set",
+        kind: "number",
+        placeholder: "1",
+      },
     ],
   },
   {
@@ -221,7 +311,12 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
     label: "Collectibles",
     emoji: "🎴",
     fields: [
-      { key: "brand", label: "Brand / franchise", kind: "text", placeholder: "e.g. Pokémon" },
+      {
+        key: "brand",
+        label: "Brand / franchise",
+        kind: "text",
+        placeholder: "e.g. Pokémon",
+      },
       {
         key: "condition",
         label: "Condition",
@@ -229,7 +324,12 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
         options: ["Mint", "Near mint", "Good", "Played", "Damaged"],
       },
       { key: "year", label: "Year", kind: "number", placeholder: "2024" },
-      { key: "grading", label: "Grading", kind: "text", placeholder: "e.g. PSA 9" },
+      {
+        key: "grading",
+        label: "Grading",
+        kind: "text",
+        placeholder: "e.g. PSA 9",
+      },
     ],
   },
   {
@@ -240,7 +340,9 @@ export const PRODUCT_TYPES: ProductTypePreset[] = [
   },
 ];
 
-export function findPreset(key: string | null | undefined): ProductTypePreset | null {
+export function findPreset(
+  key: string | null | undefined,
+): ProductTypePreset | null {
   if (!key) return null;
   return PRODUCT_TYPES.find((t) => t.key === key) ?? null;
 }
@@ -254,7 +356,9 @@ const MAX_ATTRIBUTES = 24;
 const MAX_LEN = 60;
 
 /** Parses the stored JSON, tolerating anything malformed. */
-export function parseAttributes(json: string | null | undefined): ProductAttribute[] {
+export function parseAttributes(
+  json: string | null | undefined,
+): ProductAttribute[] {
   if (!json) return [];
   try {
     const parsed = JSON.parse(json);
@@ -296,7 +400,14 @@ export function serializeAttributes(
  * The few attributes worth showing in a cramped space (a pinned card, an
  * order row) — size and colour answer most questions, so they come first.
  */
-const HEADLINE_ORDER = ["size", "colour", "color", "shade", "storage", "material"];
+const HEADLINE_ORDER = [
+  "size",
+  "colour",
+  "color",
+  "shade",
+  "storage",
+  "material",
+];
 
 export function headlineAttributes(
   attributes: ProductAttribute[],

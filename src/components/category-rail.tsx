@@ -43,25 +43,22 @@ export function CategoryRail({
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   /** Glide a tile into the middle of the visible rail. */
-  const centerTile = useCallback(
-    (key: string, behavior: ScrollBehavior) => {
-      const scroller = scrollerRef.current;
-      if (!scroller) return;
-      const tile = scroller.querySelector<HTMLElement>(
-        `[data-cat="${CSS.escape(key)}"]`,
-      );
-      if (!tile) return;
-      // offsetLeft is relative to the scroll content, so this works no matter
-      // how far the rail is already scrolled.
-      const target =
-        tile.offsetLeft - scroller.clientWidth / 2 + tile.clientWidth / 2;
-      scroller.scrollTo({
-        left: Math.max(0, target),
-        behavior,
-      });
-    },
-    [],
-  );
+  const centerTile = useCallback((key: string, behavior: ScrollBehavior) => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const tile = scroller.querySelector<HTMLElement>(
+      `[data-cat="${CSS.escape(key)}"]`,
+    );
+    if (!tile) return;
+    // offsetLeft is relative to the scroll content, so this works no matter
+    // how far the rail is already scrolled.
+    const target =
+      tile.offsetLeft - scroller.clientWidth / 2 + tile.clientWidth / 2;
+    scroller.scrollTo({
+      left: Math.max(0, target),
+      behavior,
+    });
+  }, []);
 
   // On load (e.g. arriving on a filtered URL), bring the active tile into
   // view without an animation — it should simply already be there.
@@ -118,7 +115,11 @@ export function CategoryRail({
           For You
         </span>
         <span className="absolute bottom-2 left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-white/20 text-2xl backdrop-blur-sm">
-          {pendingOn(ALL_KEY) ? <Spinner className="h-5 w-5 text-white" /> : "⚡"}
+          {pendingOn(ALL_KEY) ? (
+            <Spinner className="h-5 w-5 text-white" />
+          ) : (
+            "⚡"
+          )}
         </span>
       </button>
 

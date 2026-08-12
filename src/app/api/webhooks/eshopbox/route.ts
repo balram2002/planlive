@@ -121,7 +121,8 @@ function normaliseLogs(event: ShipmentWebhookPayload): unknown {
   if (Array.isArray(event.statusLogs)) return event.statusLogs;
   // Return payloads send status_log as an array already.
   if (Array.isArray(event.status_log)) return event.status_log;
-  if (!event.status_log || typeof event.status_log !== "object") return undefined;
+  if (!event.status_log || typeof event.status_log !== "object")
+    return undefined;
 
   return Object.entries(event.status_log as Record<string, string>)
     .filter(([, dateTime]) => typeof dateTime === "string")
@@ -135,7 +136,9 @@ function normaliseLogs(event: ShipmentWebhookPayload): unknown {
 
 export async function POST(req: NextRequest) {
   if (!secret) {
-    console.error("[eshopbox] webhook hit but ESHOPBOX_WEBHOOK_SECRET is unset");
+    console.error(
+      "[eshopbox] webhook hit but ESHOPBOX_WEBHOOK_SECRET is unset",
+    );
     return NextResponse.json({ error: "Not configured" }, { status: 503 });
   }
 
@@ -164,7 +167,10 @@ export async function POST(req: NextRequest) {
     // matching on tracking id alone silently dropped every return event.
     const customerOrderId = event.customerOrderNumber || null;
     const courierStatus =
-      event.currentStatus || event.status || event.latest_status || event.eventSubType;
+      event.currentStatus ||
+      event.status ||
+      event.latest_status ||
+      event.eventSubType;
 
     if (!courierStatus || (!trackingId && !customerOrderId)) {
       // The "created" event fires before an AWB is assigned (trackingID is

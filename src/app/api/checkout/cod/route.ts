@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Sign in to order." }, { status: 401 });
   }
   if (!user.isActive) {
-    return NextResponse.json({ error: "Your account is suspended." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Your account is suspended." },
+      { status: 403 },
+    );
   }
 
   let body: { reservationId?: unknown; addressId?: unknown };
@@ -46,7 +49,10 @@ export async function POST(req: NextRequest) {
   ]);
 
   if (!reservation || reservation.userId !== user.id) {
-    return NextResponse.json({ error: "Reservation not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Reservation not found." },
+      { status: 404 },
+    );
   }
   if (reservation.status !== "PENDING" || reservation.expiresAt < new Date()) {
     return NextResponse.json(
@@ -62,7 +68,10 @@ export async function POST(req: NextRequest) {
     where: { id: reservation.productId },
   });
   if (!product) {
-    return NextResponse.json({ error: "Product no longer exists." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Product no longer exists." },
+      { status: 404 },
+    );
   }
 
   // COD adds the flat delivery charge on top of the goods. Computed here,

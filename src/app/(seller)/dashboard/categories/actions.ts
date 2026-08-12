@@ -28,9 +28,13 @@ export async function createCategory(
 ): Promise<CategoryState> {
   const user = await requireSeller();
 
-  const name = String(formData.get("name") ?? "").trim().slice(0, 40);
+  const name = String(formData.get("name") ?? "")
+    .trim()
+    .slice(0, 40);
   const subcategory =
-    String(formData.get("subcategory") ?? "").trim().slice(0, 40) || null;
+    String(formData.get("subcategory") ?? "")
+      .trim()
+      .slice(0, 40) || null;
   if (name.length < 2) return { error: "Category name is too short." };
 
   // Image is mandatory — the buyer homepage carousel is image-first, so a
@@ -77,9 +81,13 @@ export async function updateCategory(
     return { error: "You can only edit categories you created." };
   }
 
-  const name = String(formData.get("name") ?? "").trim().slice(0, 40);
+  const name = String(formData.get("name") ?? "")
+    .trim()
+    .slice(0, 40);
   const subcategory =
-    String(formData.get("subcategory") ?? "").trim().slice(0, 40) || null;
+    String(formData.get("subcategory") ?? "")
+      .trim()
+      .slice(0, 40) || null;
   if (name.length < 2) return { error: "Category name is too short." };
 
   const imageUrl = sanitizeImage(formData.get("imageUrl"));

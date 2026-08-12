@@ -31,7 +31,9 @@ export function TopBar({ role = null }: { role?: NavRole }) {
 
             <div className="flex shrink-0 items-center">
               <Show when="signed-in">
-                <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+                <UserButton
+                  appearance={{ elements: { avatarBox: "h-8 w-8" } }}
+                />
               </Show>
               <Show when="signed-out">
                 <SignInLink className="rounded-full bg-foreground px-3.5 py-1.5 text-sm font-medium text-background transition-all duration-200 hover:opacity-90 active:scale-[0.97]">

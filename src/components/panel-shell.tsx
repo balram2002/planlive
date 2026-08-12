@@ -85,19 +85,73 @@ export function PanelShell({
     };
   }, [drawerOpen]);
 
+  /**
+   * Edge swipe to open.
+   *
+   * This was a 20px Framer drag-strip pinned to the left edge, and it never
+   * fired: that is exactly where iOS Safari and Android Chrome put their own
+   * back-navigation gesture, so the OS consumed the touch before the element
+   * saw it. Native listeners on the window let us watch a wider zone and
+   * decide from the gesture's shape instead of relying on the browser
+   * handing us a drag on a sliver.
+   *
+   * Deliberately passive: we never preventDefault, so vertical scrolling
+   * stays perfectly smooth and the browser's own gesture still wins if the
+   * user starts right on the bezel.
+   */
+  useEffect(() => {
+    // Desktop has a permanent sidebar; no gesture needed.
+    if (typeof window === "undefined") return;
+
+    const EDGE_ZONE = 32; // px from the left edge that counts as "from edge"
+    const DISTANCE = 60; // px of horizontal travel to commit
+    const SLOPE = 1.5; // horizontal must dominate vertical by this factor
+
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      // Opening starts near the edge; closing can start anywhere in the drawer.
+      tracking = drawerOpen || startX <= EDGE_ZONE;
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (!tracking) return;
+      tracking = false;
+      const t = e.changedTouches[0];
+      if (!t) return;
+      const dx = t.clientX - startX;
+      const dy = Math.abs(t.clientY - startY);
+      // A scroll that happens to drift sideways must not open the drawer.
+      if (Math.abs(dx) < DISTANCE || Math.abs(dx) < dy * SLOPE) return;
+
+      if (dx > 0 && !drawerOpen) {
+        haptics.tap();
+        setDrawerOpen(true);
+      } else if (dx < 0 && drawerOpen) {
+        haptics.tap();
+        setDrawerOpen(false);
+      }
+    };
+
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [drawerOpen]);
+
   /** Close when dragged far enough left, or flicked left at any distance. */
   const onDragEnd = (_e: unknown, info: PanInfo) => {
     if (info.offset.x < -DRAWER_WIDTH / 3 || info.velocity.x < -400) {
       haptics.tap();
       setDrawerOpen(false);
-    }
-  };
-
-  /** Left-edge strip: drag right to reveal the drawer. */
-  const onEdgeDragEnd = (_e: unknown, info: PanInfo) => {
-    if (info.offset.x > 40 || info.velocity.x > 300) {
-      haptics.tap();
-      setDrawerOpen(true);
     }
   };
 
@@ -175,7 +229,12 @@ export function PanelShell({
             }}
             className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground transition-all duration-200 hover:bg-surface-2 active:scale-90"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5"
+              aria-hidden
+            >
               <path
                 d="M4 7h16M4 12h16M4 17h16"
                 stroke="currentColor"
@@ -199,21 +258,6 @@ export function PanelShell({
           </div>
         </div>
       </header>
-
-      {/* Edge strip: the swipe-to-open target. Invisible, and only while the
-          drawer is closed, so it never sits over the open drawer. */}
-      {!drawerOpen ? (
-        <motion.div
-          aria-hidden
-          drag="x"
-          dragSnapToOrigin
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={{ left: 0, right: 0.6 }}
-          onDragEnd={onEdgeDragEnd}
-          className="fixed inset-y-0 left-0 z-20 w-5 lg:hidden"
-          style={{ touchAction: "pan-y" }}
-        />
-      ) : null}
 
       {/* ---------- Mobile drawer ---------- */}
       <AnimatePresence>

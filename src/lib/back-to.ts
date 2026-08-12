@@ -14,7 +14,10 @@
  * and `https://evil.com` are both rejected, because a browser treats the
  * protocol-relative form as an absolute URL.
  */
-export function safeBackTo(value: string | undefined | null, fallback = "/"): string {
+export function safeBackTo(
+  value: string | undefined | null,
+  fallback = "/",
+): string {
   if (!value) return fallback;
   // Reject anything that isn't a plain absolute path on this origin.
   if (!value.startsWith("/")) return fallback;

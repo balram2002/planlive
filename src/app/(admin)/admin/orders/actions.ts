@@ -60,7 +60,12 @@ export async function adminSetOrderStage(formData: FormData): Promise<void> {
         prisma.user.findUnique({ where: { id: reservation.userId } }),
       ]);
       if (product && buyer) {
-        await announceOrderStatus({ order: updated, product, buyer, status: stage });
+        await announceOrderStatus({
+          order: updated,
+          product,
+          buyer,
+          status: stage,
+        });
       }
     }
   }

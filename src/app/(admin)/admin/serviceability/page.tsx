@@ -53,14 +53,15 @@ export default async function AdminServiceabilityPage() {
                 show what a shipment actually costs the business.
               </li>
               <li>
-                • Sellers get the same checker on their own dashboard,
-                prefilled with their shop PIN.
+                • Sellers get the same checker on their own dashboard, prefilled
+                with their shop PIN.
               </li>
             </ul>
             <p className="mt-3 text-[11px] text-faint">
               Default pickup location code:{" "}
               <span className="font-mono">
-                {ESHOPBOX_PICKUP_LOCATION_CODE || "not set — sellers' shop addresses are sent inline"}
+                {ESHOPBOX_PICKUP_LOCATION_CODE ||
+                  "not set — sellers' shop addresses are sent inline"}
               </span>
             </p>
           </Card>

@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/action-button";
 import { useToast } from "@/components/toast";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
+import { formatDateTime, formatDayMonth } from "@/lib/datetime";
 import {
   cancelFulfilmentAction,
   completeFulfilmentAction,
@@ -17,7 +18,8 @@ import {
 
 export type LocalFulfilmentView = {
   method: "SELLER_DELIVERY" | "BUYER_PICKUP";
-  pickupStatus: "REQUESTED" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "COLLECTED" | null;
+  pickupStatus:
+    "REQUESTED" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "COLLECTED" | null;
   pickupDeadline: string | null;
   completedAt: string | null;
   note: string | null;
@@ -61,7 +63,9 @@ export function LocalFulfilmentPanel({
     FormData
   >(cancelFulfilmentAction, {});
 
-  const [expanded, setExpanded] = useState<"none" | "deliver" | "pickup">("none");
+  const [expanded, setExpanded] = useState<"none" | "deliver" | "pickup">(
+    "none",
+  );
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,15 +82,12 @@ export function LocalFulfilmentPanel({
     return (
       <div className="rounded-2xl border border-success/30 bg-success/5 p-3">
         <Badge tone="success">
-          {fulfilment.method === "BUYER_PICKUP" ? "Collected" : "Delivered by you"}
+          {fulfilment.method === "BUYER_PICKUP"
+            ? "Collected"
+            : "Delivered by you"}
         </Badge>
         <p className="mt-1.5 text-xs text-muted">
-          Handed over on{" "}
-          {new Date(fulfilment.completedAt).toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short",
-          })}
-          .
+          Handed over on {formatDayMonth(fulfilment.completedAt)}.
         </p>
       </div>
     );
@@ -116,13 +117,7 @@ export function LocalFulfilmentPanel({
             <>
               Have it ready by{" "}
               <span className="font-semibold text-foreground">
-                {new Date(fulfilment.pickupDeadline).toLocaleString("en-IN", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatDateTime(fulfilment.pickupDeadline)}
               </span>
               .
             </>
@@ -150,7 +145,10 @@ export function LocalFulfilmentPanel({
               </button>
             </form>
           ) : null}
-          <form action={cancelAction} className={accepted ? "shrink-0" : "flex-1"}>
+          <form
+            action={cancelAction}
+            className={accepted ? "shrink-0" : "flex-1"}
+          >
             <input type="hidden" name="orderId" value={orderId} />
             <button
               type="submit"

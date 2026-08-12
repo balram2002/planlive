@@ -16,7 +16,9 @@ function base(props: { d: string; extra?: React.ReactNode }) {
 }
 
 export const IconHome = () =>
-  base({ d: "M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1v-8.5Z" });
+  base({
+    d: "M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1v-8.5Z",
+  });
 
 export const IconChart = () =>
   base({ d: "M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-3" });
@@ -28,10 +30,14 @@ export const IconBroadcast = () =>
   });
 
 export const IconBag = () =>
-  base({ d: "M5 8h14l-1 11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8Zm4 0a3 3 0 0 1 6 0" });
+  base({
+    d: "M5 8h14l-1 11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8Zm4 0a3 3 0 0 1 6 0",
+  });
 
 export const IconReceipt = () =>
-  base({ d: "M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21V3Zm3 5h6M9 12h6M9 16h3" });
+  base({
+    d: "M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21V3Zm3 5h6M9 12h6M9 16h3",
+  });
 
 export const IconUsers = () =>
   base({
@@ -47,7 +53,9 @@ export const IconCalendar = () =>
   });
 
 export const IconShield = () =>
-  base({ d: "M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm-2.5 9 2 2 3.5-4" });
+  base({
+    d: "M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Zm-2.5 9 2 2 3.5-4",
+  });
 
 /** Sparkle — premium broadcasting. */
 export const IconSpark = () =>
@@ -83,9 +91,7 @@ export const IconWallet = () =>
 export const IconTag = () =>
   base({
     d: "M3.5 11.2V4.5a1 1 0 0 1 1-1h6.7a1 1 0 0 1 .7.3l8.1 8.1a1 1 0 0 1 0 1.4l-6.7 6.7a1 1 0 0 1-1.4 0L3.8 11.9a1 1 0 0 1-.3-.7Z",
-    extra: (
-      <circle cx="7.75" cy="7.75" r="1.25" fill="currentColor" />
-    ),
+    extra: <circle cx="7.75" cy="7.75" r="1.25" fill="currentColor" />,
   });
 
 /** Map pin — serviceability / pincode coverage. */
@@ -110,8 +116,20 @@ export const IconTruck = () =>
     d: "M3 7a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9H3V7Zm11 3h3.5l2.5 3v3h-6v-6Z",
     extra: (
       <>
-        <circle cx="7.5" cy="17.5" r="1.8" stroke="currentColor" strokeWidth="1.8" />
-        <circle cx="17" cy="17.5" r="1.8" stroke="currentColor" strokeWidth="1.8" />
+        <circle
+          cx="7.5"
+          cy="17.5"
+          r="1.8"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <circle
+          cx="17"
+          cy="17.5"
+          r="1.8"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
       </>
     ),
   });

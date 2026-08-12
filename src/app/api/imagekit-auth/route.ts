@@ -29,7 +29,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const kind = (req.nextUrl.searchParams.get("kind") ?? "") as ImagekitFolderKind;
+  const kind = (req.nextUrl.searchParams.get("kind") ??
+    "") as ImagekitFolderKind;
   if (!(kind in IMAGEKIT_FOLDERS)) {
     return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
   }

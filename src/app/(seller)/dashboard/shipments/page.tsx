@@ -49,7 +49,9 @@ export default async function SellerShipmentsPage() {
           icon="📦"
           title="No products yet"
           description="Add a product and sell it live — parcels to pack will appear here."
-          action={<ButtonLink href="/dashboard/products/new">Add product</ButtonLink>}
+          action={
+            <ButtonLink href="/dashboard/products/new">Add product</ButtonLink>
+          }
         />
       </div>
     );
@@ -113,7 +115,9 @@ export default async function SellerShipmentsPage() {
 
   // Anything on a local route is its own queue — the actions are completely
   // different from a courier parcel, and mixing them made the list confusing.
-  const localRows = rows.filter((r) => r.fulfilment && !r.fulfilment.completedAt);
+  const localRows = rows.filter(
+    (r) => r.fulfilment && !r.fulfilment.completedAt,
+  );
   const localOrderIds = new Set(localRows.map((r) => r.order.id));
 
   // Three courier buckets, in the order a seller moves through them.
@@ -131,7 +135,8 @@ export default async function SellerShipmentsPage() {
   // seller only found out when the buyer complained.
   const NEEDS_ATTENTION = ["EXCEPTION", "FAILED_DELIVERY", "RTO"];
   const attention = rows.filter(
-    (r) => r.shipment?.trackingId && NEEDS_ATTENTION.includes(r.shipment.status),
+    (r) =>
+      r.shipment?.trackingId && NEEDS_ATTENTION.includes(r.shipment.status),
   );
   const inFlight = rows.filter(
     (r) =>
@@ -338,18 +343,18 @@ function Section({
 }
 
 type Row = {
-  order: { id: string; status: string; amountInPaise: number; paymentMethod: string };
+  order: {
+    id: string;
+    status: string;
+    amountInPaise: number;
+    paymentMethod: string;
+  };
   reservation: { quantity: number; createdAt: Date };
   product: { title: string; imageUrl: string | null } | null;
   fulfilment: {
     method: "SELLER_DELIVERY" | "BUYER_PICKUP";
     pickupStatus:
-      | "REQUESTED"
-      | "ACCEPTED"
-      | "REJECTED"
-      | "EXPIRED"
-      | "COLLECTED"
-      | null;
+      "REQUESTED" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "COLLECTED" | null;
     pickupDeadline: Date | null;
     completedAt: Date | null;
     note: string | null;
@@ -421,26 +426,26 @@ function ShipmentRow({ row, shippable }: { row: Row; shippable: boolean }) {
         ) : null}
 
         {!row.fulfilment ? (
-        <div className="mt-3">
-          <ShipmentPanel
-            orderId={row.order.id}
-            productTitle={row.product?.title}
-            shippable={shippable && SHIPPABLE.has(row.order.status)}
-            shipment={
-              row.shipment
-                ? {
-                    status: row.shipment.status,
-                    trackingId: row.shipment.trackingId,
-                    courierName: row.shipment.courierName,
-                    labelUrl: row.shipment.labelUrl,
-                    courierStatus: row.shipment.courierStatus,
-                    lastError: row.shipment.lastError,
-                    cancellable: isCancellable(row.shipment.status),
-                  }
-                : null
-            }
-          />
-        </div>
+          <div className="mt-3">
+            <ShipmentPanel
+              orderId={row.order.id}
+              productTitle={row.product?.title}
+              shippable={shippable && SHIPPABLE.has(row.order.status)}
+              shipment={
+                row.shipment
+                  ? {
+                      status: row.shipment.status,
+                      trackingId: row.shipment.trackingId,
+                      courierName: row.shipment.courierName,
+                      labelUrl: row.shipment.labelUrl,
+                      courierStatus: row.shipment.courierStatus,
+                      lastError: row.shipment.lastError,
+                      cancellable: isCancellable(row.shipment.status),
+                    }
+                  : null
+              }
+            />
+          </div>
         ) : null}
 
         {/* Booked parcels get a full detail view: scans, both legs, record. */}

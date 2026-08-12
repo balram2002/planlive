@@ -17,8 +17,7 @@ const MAX_ROWS = 5000;
 
 /** RFC 4180: quote everything, double any embedded quotes. */
 function csvCell(value: unknown): string {
-  const text =
-    value === null || value === undefined ? "" : String(value);
+  const text = value === null || value === undefined ? "" : String(value);
   return `"${text.replaceAll('"', '""')}"`;
 }
 
@@ -72,7 +71,9 @@ export async function GET(req: NextRequest) {
       : [],
     reservations.length
       ? prisma.user.findMany({
-          where: { id: { in: [...new Set(reservations.map((r) => r.userId))] } },
+          where: {
+            id: { in: [...new Set(reservations.map((r) => r.userId))] },
+          },
           select: { id: true, email: true },
         })
       : [],

@@ -80,10 +80,10 @@ function AddProductSheet({
   open: boolean;
   onClose: () => void;
 }) {
-  const [state, formAction, pending] = useActionState<LiveProductState, FormData>(
-    createProductInLive,
-    {},
-  );
+  const [state, formAction, pending] = useActionState<
+    LiveProductState,
+    FormData
+  >(createProductInLive, {});
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
@@ -159,7 +159,12 @@ function AddProductSheet({
                 onClick={onClose}
                 className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-all hover:bg-surface-2 hover:text-foreground active:scale-90"
               >
-                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-4 w-4"
+                  aria-hidden
+                >
                   <path
                     d="m6 6 12 12M18 6 6 18"
                     stroke="currentColor"

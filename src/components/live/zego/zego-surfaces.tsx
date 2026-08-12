@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ZegoExpressEngine } from "zego-express-engine-webrtc";
 import { ZEGO_CAPTURE, useZegoRoom } from "./use-zego-room";
+import { StreamPlaceholder } from "../stream-placeholder";
 
 /**
  * The SDK's local-stream class isn't re-exported from the package root, so
@@ -45,6 +46,19 @@ function Stage({ children }: { children: React.ReactNode }) {
 
 /**
  * Viewer-side premium video: joins the ZEGO room and plays the host's stream.
+ *
+ * Two things here are load-bearing and easy to get wrong:
+ *
+ *  1. `resourceMode: 0` (RTC). Their enum is 0=RTC, 1=CDN, 2=L3 — NOT a
+ *     "quality" scale. L3 is a separately-provisioned ultra-low-latency
+ *     product; asking for it on a standard account yields no stream at all
+ *     and the viewer sits on "waiting for the seller's video" forever.
+ *
+ *  2. Retry. `roomStreamUpdate` only fires on *change*, so a viewer who
+ *     joins before the host publishes depends on that event, while one who
+ *     joins after depends on the direct attempt. Either can lose a race
+ *     (token → login → publish ordering is not guaranteed), so a failed
+ *     attempt is retried on a short backoff instead of giving up silently.
  */
 export function ZegoViewerSurface({
   streamId,
@@ -53,38 +67,63 @@ export function ZegoViewerSurface({
   streamId: string;
   waitingLabel: string;
 }) {
-  const { status, engine } = useZegoRoom(streamId);
+  const { status, engine, host } = useZegoRoom(streamId);
   const containerRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
   const playingIdRef = useRef<string | null>(null);
+  /**
+   * Lets the presence effect below kick off a play attempt without owning the
+   * engine plumbing. Populated by the main effect, cleared on its teardown.
+   */
+  const playNowRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (status.state !== "ready" || !engine) return;
-    const { broadcasterStreamId, roomId } = status.credentials;
-    let cancelled = false;
+    const { broadcasterStreamId } = status.credentials;
 
-    /** Attaches the host's stream to our container. */
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+
     async function play(id: string) {
-      if (cancelled || !engine || !containerRef.current) return;
+      if (cancelled || !engine) return;
+      // The container mounts with the component, but guard anyway — a retry
+      // could fire during an unmount.
+      const container = containerRef.current;
+      if (!container) return;
+      if (playingIdRef.current === id) return; // Already on it.
+
       try {
-        // resourceMode 2 = live-streaming (CDN-assisted), the mode ZEGO
-        // documents for one-to-many broadcast rather than a call.
         const remote = await engine.startPlayingStream(id, {
-          resourceMode: 2,
+          // RTC. See the note above — this is not a quality knob.
+          resourceMode: 0,
         });
         if (cancelled) {
           engine.stopPlayingStream(id);
           return;
         }
         const view = engine.createRemoteStreamView(remote);
-        await view.play(containerRef.current, {
+        await view.play(container, {
+          // Browsers block unmuted autoplay; this lets the SDK show its own
+          // "tap to play" affordance rather than failing silently.
           enableAutoplayDialog: true,
           objectFit: "cover",
         });
+        if (cancelled) return;
         playingIdRef.current = id;
         setPlaying(true);
+        attempts = 0;
       } catch (err) {
-        console.error("[zego] play failed:", err);
+        if (cancelled) return;
+        // The host may simply not be publishing yet. Back off and retry
+        // rather than leaving the viewer on a dead waiting screen.
+        attempts += 1;
+        const delay = Math.min(1000 * attempts, 5000);
+        console.warn(
+          `[zego] play attempt ${attempts} for ${id} failed, retrying in ${delay}ms`,
+          err,
+        );
+        retryTimer = setTimeout(() => void play(id), delay);
       }
     }
 
@@ -97,11 +136,21 @@ export function ZegoViewerSurface({
         const host = streamList.find((s) => s.streamID === broadcasterStreamId);
         if (host) void play(host.streamID);
       } else if (updateType === "DELETE") {
-        const gone = streamList.some((s) => s.streamID === playingIdRef.current);
+        const gone = streamList.some(
+          (s) => s.streamID === playingIdRef.current,
+        );
         if (gone && playingIdRef.current) {
-          engine.stopPlayingStream(playingIdRef.current);
+          try {
+            engine.stopPlayingStream(playingIdRef.current);
+          } catch {
+            // Already stopped.
+          }
           playingIdRef.current = null;
           setPlaying(false);
+          // The seller may be flipping their camera, which republishes.
+          // Keep trying so the viewer recovers without a refresh.
+          attempts = 0;
+          retryTimer = setTimeout(() => void play(broadcasterStreamId), 1000);
         }
       }
     };
@@ -109,11 +158,14 @@ export function ZegoViewerSurface({
     engine.on("roomStreamUpdate", onStreamUpdate);
 
     // The host may already be live when we join — roomStreamUpdate only
-    // fires on change, so try the known id straight away.
+    // fires on change, so try the known id straight away too.
+    playNowRef.current = () => void play(broadcasterStreamId);
     void play(broadcasterStreamId);
 
     return () => {
       cancelled = true;
+      playNowRef.current = null;
+      if (retryTimer) clearTimeout(retryTimer);
       engine.off("roomStreamUpdate", onStreamUpdate);
       if (playingIdRef.current) {
         try {
@@ -123,9 +175,18 @@ export function ZegoViewerSurface({
         }
         playingIdRef.current = null;
       }
-      void roomId;
     };
   }, [status, engine]);
+
+  /**
+   * The hook attaches its room listeners before loginRoom, so it learns the
+   * host is publishing even when that news arrives in the very first
+   * roomStreamUpdate — the one this component's own listener, attached a
+   * render later, structurally cannot see. Nudge a play attempt off it.
+   */
+  useEffect(() => {
+    if (host.publishing && !playing) playNowRef.current?.();
+  }, [host.publishing, playing]);
 
   if (status.state === "error") {
     return (
@@ -136,16 +197,28 @@ export function ZegoViewerSurface({
     );
   }
 
+  /**
+   * The seller muted their camera mid-stream: the stream is still published
+   * and audio still flows, so this is a normal, deliberate pause — not a
+   * failure and not a load. It gets its own wording for exactly that reason.
+   */
+  const cameraOff = host.publishing && !host.cameraOn;
+
   return (
     <>
+      {/* Always mounted, so the ref exists before the effect runs. */}
       <div ref={containerRef} className="absolute inset-0 h-full w-full" />
-      {!playing ? (
-        <Stage>
-          <span className="text-2xl">📡</span>
-          <p className="text-sm text-white/60">
-            {status.state === "loading" ? "Connecting…" : waitingLabel}
-          </p>
-        </Stage>
+      {!playing || cameraOff ? (
+        <StreamPlaceholder
+          state={
+            status.state === "loading"
+              ? "connecting"
+              : cameraOff
+                ? "camera-off"
+                : "waiting"
+          }
+          waitingLabel={waitingLabel}
+        />
       ) : null}
     </>
   );
@@ -154,8 +227,8 @@ export function ZegoViewerSurface({
 /**
  * Broadcaster-side premium video: captures at 1080p and publishes.
  *
- * Camera/mic toggles are driven by the parent so the studio's control bar is
- * the same one the LiveKit path uses.
+ * Camera/mic/flip are driven by the parent so the studio's control bar is the
+ * same one the LiveKit path uses.
  */
 export function ZegoBroadcastSurface({
   streamId,
@@ -175,6 +248,17 @@ export function ZegoBroadcastSurface({
   const localRef = useRef<ZegoLocalStream | null>(null);
   const publishIdRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  // Cameras, enumerated once the stream exists (labels are only populated
+  // after permission has been granted).
+  const camerasRef = useRef<Array<{ deviceID: string; deviceName: string }>>(
+    [],
+  );
+  const cameraIndexRef = useRef(0);
+  // The facingMode the parent last asked for, so the flip effect can tell a
+  // genuine change from its own first run.
+  const appliedFacingRef = useRef<"user" | "environment">(facingMode);
 
   // Publish once the room is joined.
   useEffect(() => {
@@ -188,23 +272,38 @@ export function ZegoBroadcastSurface({
     (async () => {
       try {
         const local = await engine.createZegoStream({
+          ...ZEGO_CAPTURE,
           camera: {
             ...ZEGO_CAPTURE.camera,
-            videoInput: undefined,
-            facingMode,
+            // facingMode is a ZegoCaptureCamera field — it belongs inside
+            // `video`, not beside it. See the shape note on ZEGO_CAPTURE.
+            video: { ...ZEGO_CAPTURE.camera.video, facingMode },
           },
-        } as Parameters<ZegoExpressEngine["createZegoStream"]>[0]);
+        });
         if (cancelled) {
           engine.destroyStream(local);
           return;
         }
         localRef.current = local;
         if (containerRef.current) {
-          local.playVideo(containerRef.current, { objectFit: "cover", mirror: true });
+          local.playVideo(containerRef.current, {
+            objectFit: "cover",
+            mirror: true,
+          });
         }
         engine.startPublishingStream(broadcasterStreamId, local);
         publishIdRef.current = broadcasterStreamId;
+        setReady(true);
         onPublishingChange?.(true);
+
+        // Device labels/ids are only meaningful post-permission, which we now
+        // have. Cached so a flip doesn't re-enumerate mid-broadcast.
+        try {
+          const devices = await engine.enumDevices();
+          if (!cancelled) camerasRef.current = devices.cameras ?? [];
+        } catch {
+          // Flip will fall back to re-creating the stream.
+        }
       } catch (err) {
         console.error("[zego] publish failed:", err);
         if (!cancelled) {
@@ -219,6 +318,7 @@ export function ZegoBroadcastSurface({
       const local = localRef.current;
       publishIdRef.current = null;
       localRef.current = null;
+      setReady(false);
       try {
         if (id) engine.stopPublishingStream(id);
         if (local) engine.destroyStream(local);
@@ -227,10 +327,81 @@ export function ZegoBroadcastSurface({
       }
       onPublishingChange?.(false);
     };
-    // facingMode intentionally excluded — flipping is handled below, so it
-    // must not tear down and re-publish the whole stream.
+    // facingMode is deliberately NOT a dependency: flipping is handled by the
+    // dedicated effect below, which swaps the device in place. Re-running this
+    // one would tear the published stream down and back up, which viewers see
+    // as the stream dropping.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, engine]);
+
+  /**
+   * Camera flip.
+   *
+   * This previously did nothing — the publish effect excluded `facingMode`
+   * with a comment claiming it was "handled below", but nothing below handled
+   * it. ZEGO switches by *device id*, not by facingMode, so the front/rear
+   * intent has to be resolved to a device:
+   *
+   *  - Multi-camera device (phone): step to the next enumerated camera.
+   *  - Otherwise: fall back to re-creating the stream with the requested
+   *    facingMode, which is the only lever a single-entry device list gives
+   *    us. That briefly republishes, and the viewer's DELETE→retry path picks
+   *    it back up.
+   */
+  useEffect(() => {
+    if (!ready || !engine) return;
+    if (appliedFacingRef.current === facingMode) return;
+    const local = localRef.current;
+    if (!local) return;
+
+    appliedFacingRef.current = facingMode;
+    let cancelled = false;
+
+    (async () => {
+      const cameras = camerasRef.current;
+      try {
+        if (cameras.length > 1) {
+          cameraIndexRef.current =
+            (cameraIndexRef.current + 1) % cameras.length;
+          const next = cameras[cameraIndexRef.current];
+          await engine.useVideoDevice(local, next.deviceID);
+          return;
+        }
+
+        // Single (or unknown) camera list — rebuild the capture instead.
+        const id = publishIdRef.current;
+        const fresh = await engine.createZegoStream({
+          ...ZEGO_CAPTURE,
+          camera: {
+            ...ZEGO_CAPTURE.camera,
+            // facingMode is a ZegoCaptureCamera field — it belongs inside
+            // `video`, not beside it. See the shape note on ZEGO_CAPTURE.
+            video: { ...ZEGO_CAPTURE.camera.video, facingMode },
+          },
+        });
+        if (cancelled) {
+          engine.destroyStream(fresh);
+          return;
+        }
+        if (id) engine.stopPublishingStream(id);
+        engine.destroyStream(local);
+        localRef.current = fresh;
+        if (containerRef.current) {
+          fresh.playVideo(containerRef.current, {
+            objectFit: "cover",
+            mirror: facingMode === "user",
+          });
+        }
+        if (id) engine.startPublishingStream(id, fresh);
+      } catch (err) {
+        console.error("[zego] camera flip failed:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [facingMode, ready, engine]);
 
   // Mute in place rather than republishing or cycling the hardware. ZEGO's
   // own docs recommend mutePublishStream* over enableVideoCaptureDevice:
@@ -238,23 +409,23 @@ export function ZegoBroadcastSurface({
   // camera off and on doesn't drop the published stream.
   useEffect(() => {
     const local = localRef.current;
-    if (!local || !engine) return;
+    if (!local || !engine || !ready) return;
     try {
       engine.mutePublishStreamVideo(local, !cameraOn);
-    } catch {
-      // Track not ready yet; the next toggle re-applies.
+    } catch (err) {
+      console.error("[zego] camera toggle failed:", err);
     }
-  }, [cameraOn, engine, status]);
+  }, [cameraOn, engine, ready]);
 
   useEffect(() => {
     const local = localRef.current;
-    if (!local || !engine) return;
+    if (!local || !engine || !ready) return;
     try {
       engine.mutePublishStreamAudio(local, !micOn);
-    } catch {
-      // As above.
+    } catch (err) {
+      console.error("[zego] mic toggle failed:", err);
     }
-  }, [micOn, engine, status]);
+  }, [micOn, engine, ready]);
 
   // The server already refuses a publish token to anyone but the owner; this
   // just explains it rather than showing an endless "starting…".
@@ -277,7 +448,7 @@ export function ZegoBroadcastSurface({
   return (
     <>
       <div ref={containerRef} className="absolute inset-0 h-full w-full" />
-      {status.state === "loading" ? (
+      {!ready ? (
         <Stage>
           <span className="text-2xl">🎥</span>
           <p className="text-sm text-white/60">Starting premium stream…</p>

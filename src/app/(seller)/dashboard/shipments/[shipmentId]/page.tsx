@@ -1,3 +1,4 @@
+import { APP_TIMEZONE } from "@/lib/datetime";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { signInPath } from "@/lib/back-to";
@@ -43,6 +44,7 @@ function when(date: Date | null | undefined): string {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIMEZONE,
   });
 }
 
@@ -75,7 +77,9 @@ export default async function SellerShipmentDetailPage({
     where: { id: shipment.orderId },
   });
   const reservation = order
-    ? await prisma.reservation.findUnique({ where: { id: order.reservationId } })
+    ? await prisma.reservation.findUnique({
+        where: { id: order.reservationId },
+      })
     : null;
   const product = reservation
     ? await prisma.product.findUnique({ where: { id: reservation.productId } })
@@ -218,6 +222,7 @@ export default async function SellerShipmentDetailPage({
                       day: "numeric",
                       month: "short",
                       year: "numeric",
+                      timeZone: APP_TIMEZONE,
                     })
                   : "—"}
               </dd>

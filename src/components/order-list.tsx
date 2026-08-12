@@ -1,3 +1,4 @@
+import { APP_TIMEZONE } from "@/lib/datetime";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -89,10 +90,12 @@ export function OrderList({
                   </p>
                   <p className="mt-0.5 text-xs text-muted">
                     {row.reservation.quantity} ×{" "}
-                    {row.product ? formatPrice(row.product.priceInPaise) : "—"} ·{" "}
+                    {row.product ? formatPrice(row.product.priceInPaise) : "—"}{" "}
+                    ·{" "}
                     {row.reservation.createdAt.toLocaleDateString("en-IN", {
                       day: "numeric",
                       month: "short",
+                      timeZone: APP_TIMEZONE,
                     })}
                   </p>
                 </div>

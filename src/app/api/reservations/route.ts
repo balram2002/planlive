@@ -44,7 +44,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (typeof body.productId !== "string" || body.productId.length === 0) {
-    return NextResponse.json({ error: "productId is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "productId is required." },
+      { status: 400 },
+    );
   }
   const quantity = body.quantity === undefined ? 1 : Number(body.quantity);
 

@@ -21,8 +21,8 @@ export default async function AdminCategoriesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
           <p className="text-sm text-muted">
-            Curate what buyers can browse — hidden categories disappear from
-            the homepage and go-live picker.
+            Curate what buyers can browse — hidden categories disappear from the
+            homepage and go-live picker.
           </p>
         </div>
         <CategoryList

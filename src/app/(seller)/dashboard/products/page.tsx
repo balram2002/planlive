@@ -9,12 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ProductThumb } from "@/components/product-thumb";
+import { Pagination, paginate } from "@/components/ui/pagination";
 import { formatPrice } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 /** The schema defaults. A product still on all four is unmeasured. */
-const DEFAULT_DIMS = { weightGrams: 500, lengthCm: 25, breadthCm: 20, heightCm: 5 };
+const DEFAULT_DIMS = {
+  weightGrams: 500,
+  lengthCm: 25,
+  breadthCm: 20,
+  heightCm: 5,
+};
 
 function usesDefaultDims(p: {
   weightGrams: number;
@@ -39,6 +45,8 @@ const FILTERS = {
 
 type FilterKey = keyof typeof FILTERS;
 
+const PER_PAGE = 24;
+
 /**
  * The seller's catalogue.
  *
@@ -51,13 +59,13 @@ type FilterKey = keyof typeof FILTERS;
 export default async function SellerProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; filter?: string }>;
+  searchParams: Promise<{ q?: string; filter?: string; page?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(signInPath("/dashboard/products"));
   if (!isSeller(user)) redirect("/dashboard");
 
-  const { q, filter } = await searchParams;
+  const { q, filter, page: rawPage } = await searchParams;
   const query = (q ?? "").trim();
   const active: FilterKey =
     filter && filter in FILTERS ? (filter as FilterKey) : "all";
@@ -70,8 +78,11 @@ export default async function SellerProductsPage({
     ...(active === "unmeasured" ? DEFAULT_DIMS : {}),
   };
 
+  const matching = await prisma.product.count({ where });
+  const { page, pageCount, skip, take } = paginate(rawPage, matching, PER_PAGE);
+
   const [products, all] = await Promise.all([
-    prisma.product.findMany({ where, orderBy: { title: "asc" }, take: 200 }),
+    prisma.product.findMany({ where, orderBy: { title: "asc" }, skip, take }),
     prisma.product.findMany({
       where: { sellerId: user.id },
       select: {
@@ -87,7 +98,9 @@ export default async function SellerProductsPage({
   ]);
 
   const liveStreamIds = [
-    ...new Set(all.map((p) => p.streamId).filter((id): id is string => Boolean(id))),
+    ...new Set(
+      all.map((p) => p.streamId).filter((id): id is string => Boolean(id)),
+    ),
   ];
   const liveStreams = liveStreamIds.length
     ? await prisma.stream.findMany({
@@ -232,7 +245,9 @@ export default async function SellerProductsPage({
           }
           action={
             all.length === 0 ? (
-              <ButtonLink href="/dashboard/products/new">Add product</ButtonLink>
+              <ButtonLink href="/dashboard/products/new">
+                Add product
+              </ButtonLink>
             ) : undefined
           }
         />
@@ -267,7 +282,9 @@ export default async function SellerProductsPage({
                       </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <Badge
-                          tone={product.availableStock > 0 ? "success" : "warning"}
+                          tone={
+                            product.availableStock > 0 ? "success" : "warning"
+                          }
                         >
                           {product.availableStock > 0
                             ? `${product.availableStock} in stock`
@@ -296,6 +313,20 @@ export default async function SellerProductsPage({
           })}
         </ul>
       )}
+
+      {products.length > 0 ? (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={matching}
+          basePath="/dashboard/products"
+          params={{
+            filter: active === "all" ? undefined : active,
+            q: query || undefined,
+          }}
+          className="pt-2"
+        />
+      ) : null}
     </div>
   );
 }

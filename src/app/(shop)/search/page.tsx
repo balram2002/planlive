@@ -116,7 +116,8 @@ export default async function SearchPage({
   return (
     <div className="animate-page-in space-y-6 px-4 py-5">
       <p className="text-sm text-muted">
-        Results for <span className="font-semibold text-foreground">“{query}”</span>
+        Results for{" "}
+        <span className="font-semibold text-foreground">“{query}”</span>
       </p>
 
       {nothing ? (

@@ -49,8 +49,21 @@ const options = [
     label: "Auto",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
-        <rect x="3" y="5" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M9 20h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <rect
+          x="3"
+          y="5"
+          width="18"
+          height="12"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M9 20h6"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },

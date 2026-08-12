@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 type TokenState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; token: string; serverUrl: string; isBroadcaster: boolean };
+  | {
+      status: "ready";
+      token: string;
+      serverUrl: string;
+      isBroadcaster: boolean;
+    };
 
 /** Fetches a LiveKit access token for a stream from /api/livekit-token. */
 export function useLivekitToken(streamId: string): TokenState {
@@ -36,7 +41,10 @@ export function useLivekitToken(streamId: string): TokenState {
         });
       } catch {
         if (!cancelled) {
-          setState({ status: "error", message: "Network error joining stream." });
+          setState({
+            status: "error",
+            message: "Network error joining stream.",
+          });
         }
       }
     }

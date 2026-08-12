@@ -1,3 +1,4 @@
+import { APP_TIMEZONE } from "@/lib/datetime";
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
@@ -79,7 +80,9 @@ export default async function AdminOrdersPage() {
                     className="border-b border-border/60 last:border-0 transition-colors hover:bg-surface-2/50"
                   >
                     <td className="max-w-[220px] truncate px-4 py-3 font-medium">
-                      {res ? (productById.get(res.productId) ?? "Deleted product") : "—"}
+                      {res
+                        ? (productById.get(res.productId) ?? "Deleted product")
+                        : "—"}
                     </td>
                     <td className="max-w-[200px] truncate px-4 py-3 text-muted">
                       {res ? (buyerById.get(res.userId) ?? "—") : "—"}
@@ -88,7 +91,9 @@ export default async function AdminOrdersPage() {
                       {formatPrice(order.amountInPaise)}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge tone={orderTone[order.status]}>{order.status}</Badge>
+                      <Badge tone={orderTone[order.status]}>
+                        {order.status}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3 text-muted">
                       {order.createdAt.toLocaleDateString("en-IN", {
@@ -96,6 +101,7 @@ export default async function AdminOrdersPage() {
                         month: "short",
                         hour: "2-digit",
                         minute: "2-digit",
+                        timeZone: APP_TIMEZONE,
                       })}
                     </td>
                     <td className="px-4 py-3">
@@ -105,8 +111,16 @@ export default async function AdminOrdersPage() {
                             const current = trackStage(order.status) === stage;
                             return (
                               <form key={stage} action={adminSetOrderStage}>
-                                <input type="hidden" name="orderId" value={order.id} />
-                                <input type="hidden" name="stage" value={stage} />
+                                <input
+                                  type="hidden"
+                                  name="orderId"
+                                  value={order.id}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="stage"
+                                  value={stage}
+                                />
                                 <ActionButton
                                   haptic="tap"
                                   disabled={current}

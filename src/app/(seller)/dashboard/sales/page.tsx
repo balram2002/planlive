@@ -28,11 +28,11 @@ function shopAddressComplete(json: string | null): boolean {
     const s = JSON.parse(json);
     return Boolean(
       String(s?.shopName ?? "").trim() &&
-        String(s?.phone ?? "").trim() &&
-        String(s?.line1 ?? "").trim() &&
-        String(s?.city ?? "").trim() &&
-        String(s?.state ?? "").trim() &&
-        /^\d{6}$/.test(String(s?.pincode ?? "")),
+      String(s?.phone ?? "").trim() &&
+      String(s?.line1 ?? "").trim() &&
+      String(s?.city ?? "").trim() &&
+      String(s?.state ?? "").trim() &&
+      /^\d{6}$/.test(String(s?.pincode ?? "")),
     );
   } catch {
     return false;
@@ -60,7 +60,9 @@ export default async function SalesPage({
     myProducts.length === 0
       ? []
       : (
-          await loadOrderRows({ productId: { in: myProducts.map((p) => p.id) } })
+          await loadOrderRows({
+            productId: { in: myProducts.map((p) => p.id) },
+          })
         ).filter((row) => row.reservation.userId !== user.id);
 
   // Matched in memory: the rows are already loaded and capped, and the three
@@ -82,7 +84,9 @@ export default async function SalesPage({
 
   // Local fulfilment: which of these orders are in the seller's own PIN code,
   // and what state any existing arrangement is in.
-  const orderIds = allRows.map((r) => r.order?.id).filter((id): id is string => !!id);
+  const orderIds = allRows
+    .map((r) => r.order?.id)
+    .filter((id): id is string => !!id);
   const fulfilments = orderIds.length
     ? await prisma.localFulfilment.findMany({
         where: { orderId: { in: orderIds } },
@@ -121,17 +125,30 @@ export default async function SalesPage({
   // Revenue counts only orders that actually completed payment or are COD.
   const earnedPaise = allRows.reduce(
     (sum, row) =>
-      row.order && ["PAID", "PLACED", "SHIPPED", "DELIVERED"].includes(row.order.status)
+      row.order &&
+      ["PAID", "PLACED", "SHIPPED", "DELIVERED"].includes(row.order.status)
         ? sum + row.order.amountInPaise
         : sum,
     0,
   );
 
   const stats = [
-    { label: "Awaiting label", value: String(awaitingLabel), tone: "warning" as const },
-    { label: "Ready for pickup", value: String(toHandOver), tone: "primary" as const },
+    {
+      label: "Awaiting label",
+      value: String(awaitingLabel),
+      tone: "warning" as const,
+    },
+    {
+      label: "Ready for pickup",
+      value: String(toHandOver),
+      tone: "primary" as const,
+    },
     { label: "In transit", value: String(inTransit), tone: "primary" as const },
-    { label: "Needs attention", value: String(needsAttention), tone: "live" as const },
+    {
+      label: "Needs attention",
+      value: String(needsAttention),
+      tone: "live" as const,
+    },
   ];
 
   return (
@@ -284,26 +301,28 @@ export default async function SalesPage({
                 {/* Courier booking stays available unless a local route is
                     actively in progress — the two must never both run. */}
                 {!fulfilment ? (
-              <ShipmentPanel
-                orderId={row.order.id}
-                productTitle={row.product?.title}
-                shippable={
-                  shippingReady && canPickUp && SHIPPABLE.has(row.order.status)
-                }
-                shipment={
-                  row.shipment
-                    ? {
-                        status: row.shipment.status,
-                        trackingId: row.shipment.trackingId,
-                        courierName: row.shipment.courierName,
-                        labelUrl: row.shipment.labelUrl,
-                        courierStatus: row.shipment.courierStatus,
-                        lastError: row.shipment.lastError,
-                        cancellable: isCancellable(row.shipment.status),
-                      }
-                    : null
-                }
-              />
+                  <ShipmentPanel
+                    orderId={row.order.id}
+                    productTitle={row.product?.title}
+                    shippable={
+                      shippingReady &&
+                      canPickUp &&
+                      SHIPPABLE.has(row.order.status)
+                    }
+                    shipment={
+                      row.shipment
+                        ? {
+                            status: row.shipment.status,
+                            trackingId: row.shipment.trackingId,
+                            courierName: row.shipment.courierName,
+                            labelUrl: row.shipment.labelUrl,
+                            courierStatus: row.shipment.courierStatus,
+                            lastError: row.shipment.lastError,
+                            cancellable: isCancellable(row.shipment.status),
+                          }
+                        : null
+                    }
+                  />
                 ) : null}
               </div>
             );

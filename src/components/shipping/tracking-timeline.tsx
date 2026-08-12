@@ -2,6 +2,7 @@ import type { Shipment } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { SHIPMENT_LABELS, SHIPMENT_TONES } from "@/lib/eshopbox/status-map";
 import { cn } from "@/lib/cn";
+import { APP_TIMEZONE } from "@/lib/datetime";
 
 type ParsedLog = {
   status: string;
@@ -72,6 +73,7 @@ export function TrackingTimeline({
             {shipment.expectedDeliveryDate.toLocaleDateString("en-IN", {
               day: "numeric",
               month: "short",
+              timeZone: APP_TIMEZONE,
             })}
           </span>
         </p>
@@ -135,5 +137,6 @@ function formatWhen(value?: string): string {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIMEZONE,
   });
 }

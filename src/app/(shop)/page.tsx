@@ -121,7 +121,9 @@ export default async function Home({
                 {step.icon}
               </span>
               <span>
-                <span className="block text-sm font-semibold">{step.title}</span>
+                <span className="block text-sm font-semibold">
+                  {step.title}
+                </span>
                 <span className="mt-0.5 block text-xs leading-relaxed text-muted">
                   {step.text}
                 </span>

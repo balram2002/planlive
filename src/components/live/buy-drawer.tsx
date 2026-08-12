@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useToast } from "@/components/toast";
 import { Spinner } from "@/components/ui/action-button";
-import { AddressForm, type SavedAddress } from "@/components/profile/address-form";
+import {
+  AddressForm,
+  type SavedAddress,
+} from "@/components/profile/address-form";
 import { ProductThumb } from "@/components/product-thumb";
 import { AttributeChips } from "@/components/products/attribute-chips";
 import { formatPrice } from "@/lib/format";
@@ -59,7 +62,9 @@ export function BuyDrawer({
   const [method, setMethod] = useState<"COD" | "ONLINE" | null>(null);
   const [hold, setHold] = useState<Hold | null>(null);
   const [reserving, setReserving] = useState(false);
-  const [codOrder, setCodOrder] = useState<{ amountInPaise: number } | null>(null);
+  const [codOrder, setCodOrder] = useState<{ amountInPaise: number } | null>(
+    null,
+  );
   const [reloadKey, setReloadKey] = useState(0);
 
   // Mirrors the server's pricing rules exactly (lib/pricing.ts).
@@ -94,7 +99,9 @@ export function BuyDrawer({
         if (!res.ok || cancelled) return;
         const body = await res.json();
         setAddresses(body.addresses);
-        const active = (body.addresses as SavedAddress[]).find((a) => a.isActive);
+        const active = (body.addresses as SavedAddress[]).find(
+          (a) => a.isActive,
+        );
         setSelectedId(
           (prev) => prev ?? active?.id ?? body.addresses[0]?.id ?? null,
         );
@@ -198,7 +205,10 @@ export function BuyDrawer({
       });
       const body = await res.json();
       if (!res.ok) {
-        toast({ title: body.error ?? "Couldn't place order", variant: "error" });
+        toast({
+          title: body.error ?? "Couldn't place order",
+          variant: "error",
+        });
         return;
       }
       setCodOrder({ amountInPaise: body.amountInPaise });
@@ -320,7 +330,10 @@ export function BuyDrawer({
                   />
                 </div>
                 {hold ? (
-                  <HoldCountdown expiresAt={hold.expiresAt} onExpired={onClose} />
+                  <HoldCountdown
+                    expiresAt={hold.expiresAt}
+                    onExpired={onClose}
+                  />
                 ) : (
                   <span className="shrink-0 rounded-full bg-surface px-2.5 py-1 text-[10px] font-medium text-faint">
                     In stock
@@ -619,11 +632,17 @@ export function BuyDrawer({
                   <motion.span
                     className="text-3xl"
                     animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.2,
+                      ease: "linear",
+                    }}
                   >
                     ⏳
                   </motion.span>
-                  <p className="mt-3 text-sm font-semibold">Confirming payment…</p>
+                  <p className="mt-3 text-sm font-semibold">
+                    Confirming payment…
+                  </p>
                   <p className="mt-1 text-xs text-muted">
                     Hang tight — this takes a few seconds.
                   </p>
@@ -639,7 +658,12 @@ export function BuyDrawer({
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 380, damping: 16, delay: 0.05 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 16,
+                      delay: 0.05,
+                    }}
                     className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 text-3xl"
                   >
                     🎉

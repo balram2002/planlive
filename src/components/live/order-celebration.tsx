@@ -134,9 +134,7 @@ export function OrderCelebration({
 
           <motion.div
             initial={
-              reduceMotion
-                ? { opacity: 0 }
-                : { opacity: 0, scale: 0.82, y: 12 }
+              reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.82, y: 12 }
             }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={

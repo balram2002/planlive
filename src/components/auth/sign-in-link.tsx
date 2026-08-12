@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { signInPath } from "@/lib/back-to";
 
 /**
  * Link to the dedicated /sign-in page that captures where the user was:
@@ -27,7 +28,10 @@ function SignInLinkInner({
 
   function rememberScroll() {
     try {
-      sessionStorage.setItem(`scroll:${backTo}`, String(window.scrollY));
+      // ":once" marks this as a one-shot restore that ScrollRestorer consumes
+      // on arrival, regardless of navigation type — coming back from sign-in
+      // is a forward navigation, which it otherwise deliberately ignores.
+      sessionStorage.setItem(`scroll:${backTo}:once`, String(window.scrollY));
     } catch {
       // Storage unavailable (private mode quirks) — backTo still works.
     }
@@ -36,7 +40,7 @@ function SignInLinkInner({
 
   return (
     <Link
-      href={`/sign-in?backTo=${encodeURIComponent(backTo)}`}
+      href={signInPath(backTo)}
       onClick={rememberScroll}
       className={className}
     >

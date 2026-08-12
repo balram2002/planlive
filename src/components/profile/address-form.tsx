@@ -36,7 +36,9 @@ export function AddressForm({
   compact?: boolean;
 }) {
   const [saving, setSaving] = useState(false);
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
+    null,
+  );
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
@@ -71,7 +73,10 @@ export function AddressForm({
       });
       const body = await res.json();
       if (!res.ok) {
-        toast({ title: body.error ?? "Couldn't save address", variant: "error" });
+        toast({
+          title: body.error ?? "Couldn't save address",
+          variant: "error",
+        });
         return;
       }
       toast({ title: "Address saved", variant: "success" });
@@ -96,10 +101,21 @@ export function AddressForm({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Label" htmlFor="addr-label">
-          <Input id="addr-label" name="label" placeholder="Home" maxLength={24} />
+          <Input
+            id="addr-label"
+            name="label"
+            placeholder="Home"
+            maxLength={24}
+          />
         </Field>
         <Field label="Full name" htmlFor="addr-name">
-          <Input id="addr-name" name="fullName" placeholder="Receiver's name" required maxLength={60} />
+          <Input
+            id="addr-name"
+            name="fullName"
+            placeholder="Receiver's name"
+            required
+            maxLength={60}
+          />
         </Field>
       </div>
 
@@ -115,10 +131,21 @@ export function AddressForm({
       </Field>
 
       <Field label="Address line 1" htmlFor="addr-line1">
-        <Input id="addr-line1" name="line1" placeholder="House no, street" required maxLength={120} />
+        <Input
+          id="addr-line1"
+          name="line1"
+          placeholder="House no, street"
+          required
+          maxLength={120}
+        />
       </Field>
       <Field label="Address line 2 (optional)" htmlFor="addr-line2">
-        <Input id="addr-line2" name="line2" placeholder="Area, landmark" maxLength={120} />
+        <Input
+          id="addr-line2"
+          name="line2"
+          placeholder="Area, landmark"
+          maxLength={120}
+        />
       </Field>
 
       <div className="grid grid-cols-3 gap-3">
@@ -141,15 +168,27 @@ export function AddressForm({
       </div>
 
       <div className="flex gap-2 pt-1">
-        <Button type="submit" disabled={saving} className="flex-1" size={compact ? "md" : "lg"}>
+        <Button
+          type="submit"
+          disabled={saving}
+          className="flex-1"
+          size={compact ? "md" : "lg"}
+        >
           {saving ? (
-            <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+            <span className="inline-flex items-center gap-2">
+              <Spinner /> Saving…
+            </span>
           ) : (
             "Save address"
           )}
         </Button>
         {onCancel ? (
-          <Button type="button" variant="ghost" onClick={onCancel} size={compact ? "md" : "lg"}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancel}
+            size={compact ? "md" : "lg"}
+          >
             Cancel
           </Button>
         ) : null}

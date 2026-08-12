@@ -1,3 +1,4 @@
+import { APP_TIMEZONE } from "@/lib/datetime";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -43,6 +44,7 @@ function when(date: Date | null | undefined): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIMEZONE,
   });
 }
 
@@ -68,7 +70,9 @@ export default async function AdminShipmentDetailPage({
     where: { id: shipment.orderId },
   });
   const reservation = order
-    ? await prisma.reservation.findUnique({ where: { id: order.reservationId } })
+    ? await prisma.reservation.findUnique({
+        where: { id: order.reservationId },
+      })
     : null;
 
   const [product, seller, buyer] = await Promise.all([
@@ -122,7 +126,7 @@ export default async function AdminShipmentDetailPage({
             hasTracking={Boolean(shipment.trackingId)}
             cancellable={isCancellable(shipment.status)}
             labelUrl={shipment.labelUrl}
-                        trackingId={shipment.trackingId}
+            trackingId={shipment.trackingId}
           />
         </div>
       </div>
@@ -186,6 +190,7 @@ export default async function AdminShipmentDetailPage({
                     day: "numeric",
                     month: "short",
                     year: "numeric",
+                    timeZone: APP_TIMEZONE,
                   })
                 : "—"}
             </Row>

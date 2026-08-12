@@ -1,3 +1,4 @@
+import { APP_TIMEZONE } from "@/lib/datetime";
 import Link from "next/link";
 import type { Prisma, ShipmentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +13,7 @@ import {
   SHIPMENT_LABELS,
   SHIPMENT_TONES,
 } from "@/lib/eshopbox/status-map";
+import { Pagination, paginate } from "@/components/ui/pagination";
 import { formatPrice } from "@/lib/format";
 import { adminSyncShipments } from "./actions";
 
@@ -32,7 +34,10 @@ const IN_FLIGHT: ShipmentStatus[] = [
 
 /** Named filters, so the tab strip and the query stay in one place. */
 const FILTERS = {
-  all: { label: "All", where: undefined as Prisma.ShipmentWhereInput | undefined },
+  all: {
+    label: "All",
+    where: undefined as Prisma.ShipmentWhereInput | undefined,
+  },
   attention: {
     label: "Needs attention",
     where: { status: { in: NEEDS_ATTENTION } },
@@ -54,13 +59,16 @@ const FILTERS = {
 
 type FilterKey = keyof typeof FILTERS;
 
+/** Rows per page — enough to scan, small enough to stay fast on mobile. */
+const PER_PAGE = 25;
+
 /** Marketplace-wide courier oversight. */
 export default async function AdminShipmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string }>;
+  searchParams: Promise<{ filter?: string; q?: string; page?: string }>;
 }) {
-  const { filter, q } = await searchParams;
+  const { filter, q, page: rawPage } = await searchParams;
   const active: FilterKey =
     filter && filter in FILTERS ? (filter as FilterKey) : "all";
   const query = (q ?? "").trim();
@@ -83,10 +91,16 @@ export default async function AdminShipmentsPage({
       ? { AND: [FILTERS[active].where, searchWhere] }
       : (FILTERS[active].where ?? searchWhere);
 
+  // Count first so the pager knows how many pages exist, then fetch only the
+  // current slice — the old `take: 100` silently hid everything beyond it.
+  const matching = await prisma.shipment.count({ where });
+  const { page, pageCount, skip, take } = paginate(rawPage, matching, PER_PAGE);
+
   const shipments = await prisma.shipment.findMany({
     where,
     orderBy: { updatedAt: "desc" },
-    take: 100,
+    skip,
+    take,
   });
 
   const [orders, sellers] = await Promise.all([
@@ -207,6 +221,8 @@ export default async function AdminShipmentsPage({
           {(Object.keys(FILTERS) as FilterKey[]).map((key) => (
             <Link
               key={key}
+              // No `page` — switching filters returns to page 1, since page 7
+              // of the old filter is meaningless in the new one.
               href={`/admin/shipments?filter=${key}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
               className={
                 key === active
@@ -356,6 +372,7 @@ export default async function AdminShipmentsPage({
                             month: "short",
                             hour: "2-digit",
                             minute: "2-digit",
+                            timeZone: APP_TIMEZONE,
                           })}
                         </td>
                         <td className="px-4 py-3">
@@ -364,7 +381,7 @@ export default async function AdminShipmentsPage({
                             hasTracking={Boolean(shipment.trackingId)}
                             cancellable={isCancellable(shipment.status)}
                             labelUrl={shipment.labelUrl}
-                        trackingId={shipment.trackingId}
+                            trackingId={shipment.trackingId}
                           />
                         </td>
                       </tr>
@@ -374,6 +391,18 @@ export default async function AdminShipmentsPage({
               </table>
             </div>
           </Card>
+
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            total={matching}
+            basePath="/admin/shipments"
+            params={{
+              filter: active === "all" ? undefined : active,
+              q: query || undefined,
+            }}
+            className="pt-2"
+          />
         </>
       )}
     </div>

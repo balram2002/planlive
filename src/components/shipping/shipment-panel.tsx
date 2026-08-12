@@ -63,7 +63,8 @@ export function ShipmentPanel({
   }, [bookState, toast]);
 
   useEffect(() => {
-    if (cancelState.error) toast({ title: cancelState.error, variant: "error" });
+    if (cancelState.error)
+      toast({ title: cancelState.error, variant: "error" });
     else if (cancelState.success) {
       toast({ title: cancelState.success, variant: "success" });
     }
@@ -180,7 +181,9 @@ export function ShipmentPanel({
       </div>
 
       {shipment.lastError ? (
-        <p className="text-[11px] leading-relaxed text-live">{shipment.lastError}</p>
+        <p className="text-[11px] leading-relaxed text-live">
+          {shipment.lastError}
+        </p>
       ) : null}
     </div>
   );

@@ -98,7 +98,11 @@ export function CategoryForm({
       ) : null}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending || !imageUrl} className="flex-1">
+        <Button
+          type="submit"
+          disabled={pending || !imageUrl}
+          className="flex-1"
+        >
           {pending ? (
             <span className="inline-flex items-center gap-2">
               <Spinner /> Saving…

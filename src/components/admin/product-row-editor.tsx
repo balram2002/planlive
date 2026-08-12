@@ -133,7 +133,11 @@ export function ProductRowEditor({ product }: { product: EditableProduct }) {
                     "Save changes"
                   )}
                 </Button>
-                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setOpen(false)}
+                >
                   Cancel
                 </Button>
               </div>

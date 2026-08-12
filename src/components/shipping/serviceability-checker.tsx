@@ -8,6 +8,7 @@ import { Field, Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/action-button";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/cn";
+import { APP_TIMEZONE } from "@/lib/datetime";
 
 type ServiceableFlags = {
   COD?: boolean;
@@ -57,10 +58,13 @@ function formatSla(sla: string | null): string | null {
   if (!sla) return null;
   const at = new Date(sla);
   if (Number.isNaN(at.getTime())) return null;
+  // Pinned like everywhere else: a courier SLA date must not shift by a day
+  // depending on where the server happens to run.
   return at.toLocaleDateString("en-IN", {
     weekday: "short",
     day: "numeric",
     month: "short",
+    timeZone: APP_TIMEZONE,
   });
 }
 
@@ -220,7 +224,9 @@ export function ServiceabilityChecker({
                 <Input
                   id="svc-cod"
                   value={codAmount}
-                  onChange={(e) => setCodAmount(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) =>
+                    setCodAmount(e.target.value.replace(/\D/g, ""))
+                  }
                   inputMode="numeric"
                   placeholder="440"
                 />
@@ -310,8 +316,8 @@ function ServiceabilitySummary({ data }: { data: Serviceability }) {
         ) : null
       ) : (
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          No courier covers this lane for a parcel of that size. Try a
-          different delivery PIN, or reduce the parcel dimensions.
+          No courier covers this lane for a parcel of that size. Try a different
+          delivery PIN, or reduce the parcel dimensions.
         </p>
       )}
 

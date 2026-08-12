@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
-import { getRazorpay, razorpayConfigured, RAZORPAY_KEY_ID } from "@/lib/razorpay";
+import {
+  getRazorpay,
+  razorpayConfigured,
+  RAZORPAY_KEY_ID,
+} from "@/lib/razorpay";
 
 /**
  * POST /api/checkout  { reservationId: string }
@@ -37,7 +41,10 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
-  if (typeof body.reservationId !== "string" || body.reservationId.length === 0) {
+  if (
+    typeof body.reservationId !== "string" ||
+    body.reservationId.length === 0
+  ) {
     return NextResponse.json(
       { error: "reservationId is required." },
       { status: 400 },
@@ -51,7 +58,10 @@ export async function POST(req: NextRequest) {
       where: { id: body.addressId },
     });
     if (!address || address.userId !== user.id) {
-      return NextResponse.json({ error: "Address not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Address not found." },
+        { status: 404 },
+      );
     }
     addressJson = JSON.stringify({
       label: address.label,
@@ -69,7 +79,10 @@ export async function POST(req: NextRequest) {
     where: { id: body.reservationId },
   });
   if (!reservation || reservation.userId !== user.id) {
-    return NextResponse.json({ error: "Reservation not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Reservation not found." },
+      { status: 404 },
+    );
   }
   if (reservation.status === "CONFIRMED") {
     return NextResponse.json({ error: "Already paid." }, { status: 409 });
@@ -85,7 +98,10 @@ export async function POST(req: NextRequest) {
     where: { id: reservation.productId },
   });
   if (!product) {
-    return NextResponse.json({ error: "Product no longer exists." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Product no longer exists." },
+      { status: 404 },
+    );
   }
 
   const amountInPaise = product.priceInPaise * reservation.quantity;

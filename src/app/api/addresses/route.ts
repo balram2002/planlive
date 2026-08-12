@@ -53,12 +53,17 @@ export async function POST(req: NextRequest) {
   if (!/^[0-9+\-\s]{8,15}$/.test(address.phone))
     return bad("Enter a valid phone number.");
   if (!address.line1) return bad("Address line is required.");
-  if (!address.city || !address.state) return bad("City and state are required.");
-  if (!/^\d{6}$/.test(address.pincode)) return bad("Enter a valid 6-digit PIN code.");
+  if (!address.city || !address.state)
+    return bad("City and state are required.");
+  if (!/^\d{6}$/.test(address.pincode))
+    return bad("Enter a valid 6-digit PIN code.");
 
   const count = await prisma.address.count({ where: { userId: user.id } });
   if (count >= MAX_ADDRESSES) {
-    return bad(`You can save up to ${MAX_ADDRESSES} addresses — delete one first.`, 409);
+    return bad(
+      `You can save up to ${MAX_ADDRESSES} addresses — delete one first.`,
+      409,
+    );
   }
 
   // Optional pinpoint coordinates from "use my location".

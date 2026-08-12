@@ -47,7 +47,10 @@ export function CategoryList({
         const editing = editingId === category.id;
 
         return (
-          <li key={category.id} className={editing ? "lg:col-span-2" : undefined}>
+          <li
+            key={category.id}
+            className={editing ? "lg:col-span-2" : undefined}
+          >
             <Card className="overflow-hidden">
               <div className="flex items-center gap-3 p-3">
                 <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-surface-2">
@@ -70,7 +73,10 @@ export function CategoryList({
                   <p className="truncate text-sm font-medium">
                     {category.name}
                     {category.subcategory ? (
-                      <span className="text-muted"> · {category.subcategory}</span>
+                      <span className="text-muted">
+                        {" "}
+                        · {category.subcategory}
+                      </span>
                     ) : null}
                   </p>
                   <div className="mt-0.5">
@@ -87,7 +93,9 @@ export function CategoryList({
                     <>
                       <button
                         type="button"
-                        onClick={() => setEditingId(editing ? null : category.id)}
+                        onClick={() =>
+                          setEditingId(editing ? null : category.id)
+                        }
                         aria-expanded={editing}
                         className="rounded-full px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
                       >

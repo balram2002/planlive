@@ -94,7 +94,9 @@ export async function startStream(
         error: "Your account isn't approved for premium broadcasting yet.",
       };
     }
-    if (!premiumPassphraseMatches(String(formData.get("premiumPassword") ?? ""))) {
+    if (
+      !premiumPassphraseMatches(String(formData.get("premiumPassword") ?? ""))
+    ) {
       return { error: "That premium passphrase isn't right." };
     }
     provider = "ZEGO";
@@ -148,12 +150,18 @@ export async function createProductInLive(
   const stream = await ownedLiveStream(user.id, streamId);
   if (!stream) return { error: "Your stream isn't live." };
 
-  const title = String(formData.get("title") ?? "").trim().slice(0, 100);
+  const title = String(formData.get("title") ?? "")
+    .trim()
+    .slice(0, 100);
   const priceRupees = Number(formData.get("price"));
   const stock = Number(formData.get("stock"));
 
   if (title.length < 2) return { error: "Enter a product title." };
-  if (!Number.isFinite(priceRupees) || priceRupees < 1 || priceRupees > 1_000_000) {
+  if (
+    !Number.isFinite(priceRupees) ||
+    priceRupees < 1 ||
+    priceRupees > 1_000_000
+  ) {
     return { error: "Enter a valid price (at least ₹1)." };
   }
   if (!Number.isInteger(stock) || stock < 0 || stock > 100_000) {
@@ -296,7 +304,9 @@ export async function addProductToStream(
 }
 
 /** Remove a product from the live queue (unpins featured if needed). */
-export async function removeProductFromStream(formData: FormData): Promise<void> {
+export async function removeProductFromStream(
+  formData: FormData,
+): Promise<void> {
   const user = await requireSeller();
   const streamId = String(formData.get("streamId") ?? "");
   const productId = String(formData.get("productId") ?? "");
@@ -333,7 +343,9 @@ export async function setFeaturedProduct(formData: FormData): Promise<void> {
   let featured: string | null = null;
   let featuredTitle: string | null = null;
   if (productId) {
-    const product = await prisma.product.findUnique({ where: { id: productId } });
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
     if (!product || product.streamId !== stream.id) return;
     featured = productId;
     featuredTitle = product.title;

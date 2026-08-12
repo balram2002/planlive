@@ -91,7 +91,9 @@ export function ScheduleForm({ products }: { products: PickableProduct[] }) {
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? (
-          <span className="inline-flex items-center gap-2"><Spinner /> Scheduling…</span>
+          <span className="inline-flex items-center gap-2">
+            <Spinner /> Scheduling…
+          </span>
         ) : (
           "Schedule stream"
         )}

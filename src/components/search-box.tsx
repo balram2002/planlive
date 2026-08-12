@@ -114,8 +114,19 @@ export function SearchBox() {
           aria-hidden
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
         >
-          <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.8" />
-          <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <circle
+            cx="11"
+            cy="11"
+            r="6"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <path
+            d="m16 16 4 4"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
         </svg>
         <input
           type="search"
@@ -180,9 +191,17 @@ export function SearchBox() {
                         thumb={
                           <span className="relative h-10 w-8 shrink-0 overflow-hidden rounded-lg bg-surface-2">
                             {stream.thumbnailUrl ? (
-                              <Image src={stream.thumbnailUrl} alt="" fill sizes="32px" className="object-cover" />
+                              <Image
+                                src={stream.thumbnailUrl}
+                                alt=""
+                                fill
+                                sizes="32px"
+                                className="object-cover"
+                              />
                             ) : (
-                              <span className="flex h-full w-full items-center justify-center text-xs">🎥</span>
+                              <span className="flex h-full w-full items-center justify-center text-xs">
+                                🎥
+                              </span>
                             )}
                           </span>
                         }
@@ -208,9 +227,17 @@ export function SearchBox() {
                         thumb={
                           <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-surface-2">
                             {category.imageUrl ? (
-                              <Image src={category.imageUrl} alt="" fill sizes="36px" className="object-cover" />
+                              <Image
+                                src={category.imageUrl}
+                                alt=""
+                                fill
+                                sizes="36px"
+                                className="object-cover"
+                              />
                             ) : (
-                              <span className="flex h-full w-full items-center justify-center text-sm">🗂️</span>
+                              <span className="flex h-full w-full items-center justify-center text-sm">
+                                🗂️
+                              </span>
                             )}
                           </span>
                         }
@@ -231,7 +258,13 @@ export function SearchBox() {
                         thumb={
                           <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-primary">
                             {seller.imageUrl ? (
-                              <Image src={seller.imageUrl} alt="" fill sizes="36px" className="object-cover" />
+                              <Image
+                                src={seller.imageUrl}
+                                alt=""
+                                fill
+                                sizes="36px"
+                                className="object-cover"
+                              />
                             ) : (
                               <span className="flex h-full w-full items-center justify-center text-xs font-bold uppercase text-white">
                                 {seller.name.slice(0, 1)}
@@ -265,7 +298,13 @@ export function SearchBox() {
   );
 }
 
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
+function Group({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mb-1">
       <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-faint">

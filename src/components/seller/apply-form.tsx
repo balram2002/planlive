@@ -65,7 +65,14 @@ export function SellerApplyForm({
         htmlFor="about"
         hint="What you sell, where you source, your experience — min 20 characters"
       >
-        <Textarea id="about" name="about" rows={4} required minLength={20} maxLength={600} />
+        <Textarea
+          id="about"
+          name="about"
+          rows={4}
+          required
+          minLength={20}
+          maxLength={600}
+        />
       </Field>
 
       {state.error ? (
@@ -76,7 +83,9 @@ export function SellerApplyForm({
 
       <Button type="submit" size="lg" disabled={pending} className="w-full">
         {pending ? (
-          <span className="inline-flex items-center gap-2"><Spinner /> Submitting…</span>
+          <span className="inline-flex items-center gap-2">
+            <Spinner /> Submitting…
+          </span>
         ) : (
           "Submit application"
         )}

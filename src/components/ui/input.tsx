@@ -30,7 +30,10 @@ export function Textarea({
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
-    <textarea className={cn(fieldStyles, "resize-none", className)} {...props} />
+    <textarea
+      className={cn(fieldStyles, "resize-none", className)}
+      {...props}
+    />
   );
 }
 

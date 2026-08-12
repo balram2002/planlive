@@ -12,6 +12,7 @@ import {
   VideoTrack,
   useConnectionState,
   useDataChannel,
+  useIsMuted,
   useLocalParticipant,
   useRoomContext,
   useTracks,
@@ -37,12 +38,16 @@ import { BuyDrawer, type BuyFlow } from "./buy-drawer";
 import { ViewerMenu } from "./viewer-menu";
 import { ShareModal } from "@/components/share/share-modal";
 import { ZegoViewerSurface } from "./zego/zego-surfaces";
+import { StreamPlaceholder } from "./stream-placeholder";
 import { Elapsed } from "./elapsed";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
-import { headlineAttributes, type ProductAttribute } from "@/lib/product-attributes";
+import {
+  headlineAttributes,
+  type ProductAttribute,
+} from "@/lib/product-attributes";
 import { AttributeChips } from "@/components/products/attribute-chips";
 
 export type PinnedProduct = {
@@ -148,14 +153,39 @@ export function ViewerRoom({
 /** Memoized so chat/stock/reaction state changes never re-render the video. */
 const VideoSurface = memo(function VideoSurface({
   trackRef,
+  connecting,
   waitingLabel,
 }: {
   trackRef: TrackReference | undefined;
+  /** True only while the room itself is still being joined. */
+  connecting: boolean;
   waitingLabel: string;
 }) {
+  if (!trackRef) {
+    return (
+      <StreamPlaceholder
+        state={connecting ? "connecting" : "waiting"}
+        waitingLabel={waitingLabel}
+      />
+    );
+  }
+  return <RemoteVideo trackRef={trackRef} />;
+});
+
+/**
+ * The published camera track, plus the case that used to fall through the
+ * cracks entirely.
+ *
+ * A seller switching their camera off does NOT remove the publication —
+ * LiveKit mutes it and keeps it subscribed. So `trackRef` stays truthy, the
+ * old code rendered `<VideoTrack>` regardless, and the viewer got a silent
+ * black rectangle with no explanation at all. Reading the mute state is what
+ * turns that into a sentence.
+ */
+function RemoteVideo({ trackRef }: { trackRef: TrackReference }) {
   // Explicitly pin the highest simulcast layer. With adaptiveStream off this
   // is what stops the SFU from ever choosing a lower spatial layer for us.
-  const publication = trackRef?.publication;
+  const publication = trackRef.publication;
   useEffect(() => {
     if (!(publication instanceof RemoteTrackPublication)) return;
     try {
@@ -165,21 +195,23 @@ const VideoSurface = memo(function VideoSurface({
     }
   }, [publication]);
 
-  if (!trackRef) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
-        <span className="text-2xl">📡</span>
-        <p className="text-sm text-white/60">{waitingLabel}</p>
-      </div>
-    );
-  }
+  const cameraOff = useIsMuted(trackRef);
+
   return (
-    <VideoTrack
-      trackRef={trackRef}
-      className="absolute inset-0 h-full w-full object-cover"
-    />
+    <>
+      <VideoTrack
+        trackRef={trackRef}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {cameraOff ? (
+        // Cover the frozen last frame rather than leaving it under the copy.
+        <div className="absolute inset-0 bg-black/90">
+          <StreamPlaceholder state="camera-off" />
+        </div>
+      ) : null}
+    </>
   );
-});
+}
 
 function ViewerStage({
   streamId,
@@ -214,7 +246,9 @@ function ViewerStage({
   const { toast } = useToast();
 
   const [products, setProducts] = useState<PinnedProduct[]>(initialProducts);
-  const [featuredId, setFeaturedId] = useState<string | null>(initialFeaturedId);
+  const [featuredId, setFeaturedId] = useState<string | null>(
+    initialFeaturedId,
+  );
   const [audioMuted, setAudioMuted] = useState(false);
   const [videoHidden, setVideoHidden] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -301,7 +335,10 @@ function ViewerStage({
                 : null,
             quantity: Number(data.quantity) || 1,
           });
-        } else if (data?.type === "stock" && typeof data.productId === "string") {
+        } else if (
+          data?.type === "stock" &&
+          typeof data.productId === "string"
+        ) {
           setProducts((prev) =>
             prev.map((p) =>
               p.id === data.productId
@@ -329,11 +366,9 @@ function ViewerStage({
   /** Tell the room this viewer shared the stream. Best-effort, like reactions. */
   const announceShare = useCallback(() => {
     const payload = new TextEncoder().encode(JSON.stringify({ type: "share" }));
-    localParticipant
-      .publishData(payload, { reliable: false })
-      .catch(() => {
-        // Guests can't publish data — the share itself still happened.
-      });
+    localParticipant.publishData(payload, { reliable: false }).catch(() => {
+      // Guests can't publish data — the share itself still happened.
+    });
     pushNotice("share", localParticipant.name || "You");
   }, [localParticipant, pushNotice]);
 
@@ -443,18 +478,12 @@ function ViewerStage({
           /* Premium: ZEGO carries the video. Everything else in this room —
              chat, reactions, stock, celebrations — still rides the LiveKit
              data channel above, so the UI is identical either way. */
-          <ZegoViewerSurface
-            streamId={streamId}
-            waitingLabel="Waiting for the seller's video…"
-          />
+          <ZegoViewerSurface streamId={streamId} waitingLabel="Starting soon" />
         ) : (
           <VideoSurface
             trackRef={remoteCamera}
-            waitingLabel={
-              connectionState === ConnectionState.Connected
-                ? "Waiting for the seller's video…"
-                : "Connecting…"
-            }
+            connecting={connectionState !== ConnectionState.Connected}
+            waitingLabel="Starting soon"
           />
         )}
       </div>
@@ -536,8 +565,18 @@ function ViewerStage({
               aria-label="Leave stream"
               className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition-all duration-200 active:scale-90"
             >
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
-                <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                aria-hidden
+              >
+                <path
+                  d="m6 6 12 12M18 6 6 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             </Link>
           </div>
@@ -555,10 +594,7 @@ function ViewerStage({
       <LiveNotices notices={notices} />
 
       {/* Full-screen moment when someone completes a purchase. */}
-      <OrderCelebration
-        celebration={celebration}
-        onDone={clearCelebration}
-      />
+      <OrderCelebration celebration={celebration} onDone={clearCelebration} />
 
       {/* ---------- Pinned product card — just above the dock, right corner ---------- */}
       <AnimatePresence>
@@ -645,7 +681,12 @@ function ViewerStage({
                 aria-label={`See products (${products.length})`}
                 className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/50 text-white backdrop-blur transition-all duration-200 active:scale-90"
               >
-                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-5 w-5"
+                  aria-hidden
+                >
                   <path
                     d="M5 8h14l-1 11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8Zm4 0a3 3 0 0 1 6 0"
                     stroke="currentColor"
@@ -709,7 +750,9 @@ function ViewerStage({
         onClose={() => setBuyFlow(null)}
         onStockChange={(productId, availableStock) =>
           setProducts((prev) =>
-            prev.map((p) => (p.id === productId ? { ...p, availableStock } : p)),
+            prev.map((p) =>
+              p.id === productId ? { ...p, availableStock } : p,
+            ),
           )
         }
       />
@@ -726,7 +769,11 @@ function StageMessage({
 }) {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center bg-surface px-6 text-center">
-      <p className={tone === "error" ? "text-sm text-live" : "text-sm text-muted"}>
+      <p
+        className={
+          tone === "error" ? "text-sm text-live" : "text-sm text-muted"
+        }
+      >
         {children}
       </p>
     </div>

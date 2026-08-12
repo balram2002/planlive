@@ -21,14 +21,17 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!cu) return null;
 
   const email =
-    cu.primaryEmailAddress?.emailAddress ??
-    cu.emailAddresses[0]?.emailAddress;
+    cu.primaryEmailAddress?.emailAddress ?? cu.emailAddresses[0]?.emailAddress;
   if (!email) return null;
 
   // upsert (not create) to avoid a race with the webhook creating the same doc.
   return prisma.user.upsert({
     where: { clerkId: userId },
-    create: { clerkId: userId, email, role: parseRole(cu.publicMetadata?.role) },
+    create: {
+      clerkId: userId,
+      email,
+      role: parseRole(cu.publicMetadata?.role),
+    },
     update: {},
   });
 }

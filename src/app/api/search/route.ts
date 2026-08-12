@@ -28,7 +28,13 @@ export async function GET(req: NextRequest) {
             { email: { contains: q, mode: "insensitive" } },
           ],
         },
-        select: { id: true, username: true, name: true, email: true, imageUrl: true },
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          email: true,
+          imageUrl: true,
+        },
         take: 5,
       }),
       prisma.category.findMany({

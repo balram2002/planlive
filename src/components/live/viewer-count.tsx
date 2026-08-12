@@ -38,7 +38,12 @@ export function ViewerCount() {
             : "bg-black/60",
       )}
     >
-      <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 shrink-0" aria-hidden>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        className="h-3.5 w-3.5 shrink-0"
+        aria-hidden
+      >
         <path
           d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
           stroke="currentColor"

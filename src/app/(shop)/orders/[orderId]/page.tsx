@@ -1,3 +1,4 @@
+import { APP_TIMEZONE } from "@/lib/datetime";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -106,7 +107,9 @@ export default async function OrderDetailPage({
             </p>
             <p className="mt-0.5 text-xs text-muted">
               Qty {reservation.quantity} ·{" "}
-              {order.paymentMethod === "COD" ? "Cash on delivery" : "Paid online"}
+              {order.paymentMethod === "COD"
+                ? "Cash on delivery"
+                : "Paid online"}
             </p>
             {/* A 24-char ObjectId has no break opportunity, so it runs past
                 the card (and the phone frame) unless told it may break. */}
@@ -201,7 +204,8 @@ export default async function OrderDetailPage({
             shopPhone: shop?.phone ?? "",
           }}
         />
-      ) : fulfilment?.method === "SELLER_DELIVERY" && !fulfilment.completedAt ? (
+      ) : fulfilment?.method === "SELLER_DELIVERY" &&
+        !fulfilment.completedAt ? (
         <Card className="border-primary/30 bg-primary/5 p-4">
           <Badge tone="primary">Seller delivery</Badge>
           <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -258,6 +262,7 @@ export default async function OrderDetailPage({
             day: "numeric",
             month: "long",
             year: "numeric",
+            timeZone: APP_TIMEZONE,
           })}
         </p>
       </Card>

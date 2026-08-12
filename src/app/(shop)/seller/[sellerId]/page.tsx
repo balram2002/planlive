@@ -8,6 +8,7 @@ import { StreamCard, type DiscoverStream } from "@/components/stream-card";
 import { FollowButton } from "@/components/follow-button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { APP_TIMEZONE } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -43,31 +44,37 @@ export default async function SellerProfilePage({
 
   const viewer = await getCurrentUser().catch(() => null);
 
-  const [followers, following, liveStreams, pastStreams, productCount, categories] =
-    await Promise.all([
-      prisma.follow.count({ where: { sellerId: seller.id } }),
-      viewer
-        ? prisma.follow.findUnique({
-            where: {
-              followerId_sellerId: {
-                followerId: viewer.id,
-                sellerId: seller.id,
-              },
+  const [
+    followers,
+    following,
+    liveStreams,
+    pastStreams,
+    productCount,
+    categories,
+  ] = await Promise.all([
+    prisma.follow.count({ where: { sellerId: seller.id } }),
+    viewer
+      ? prisma.follow.findUnique({
+          where: {
+            followerId_sellerId: {
+              followerId: viewer.id,
+              sellerId: seller.id,
             },
-          })
-        : Promise.resolve(null),
-      prisma.stream.findMany({
-        where: { sellerId: seller.id, status: "LIVE" },
-        orderBy: { startedAt: "desc" },
-      }),
-      prisma.stream.findMany({
-        where: { sellerId: seller.id, status: "ENDED" },
-        orderBy: { startedAt: "desc" },
-        take: 12,
-      }),
-      prisma.product.count({ where: { sellerId: seller.id } }),
-      prisma.category.findMany({ where: { isActive: true } }),
-    ]);
+          },
+        })
+      : Promise.resolve(null),
+    prisma.stream.findMany({
+      where: { sellerId: seller.id, status: "LIVE" },
+      orderBy: { startedAt: "desc" },
+    }),
+    prisma.stream.findMany({
+      where: { sellerId: seller.id, status: "ENDED" },
+      orderBy: { startedAt: "desc" },
+      take: 12,
+    }),
+    prisma.product.count({ where: { sellerId: seller.id } }),
+    prisma.category.findMany({ where: { isActive: true } }),
+  ]);
 
   const name = seller.username ?? seller.email.split("@")[0];
 
@@ -211,6 +218,7 @@ export default async function SellerProfilePage({
                       day: "numeric",
                       month: "short",
                       year: "numeric",
+                      timeZone: APP_TIMEZONE,
                     })}
                   </p>
                   <p className="text-xs text-muted">

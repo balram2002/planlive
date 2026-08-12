@@ -41,7 +41,12 @@ export function notifyOrderPlaced(input: {
   totalInPaise: number;
   paymentMethod: "ONLINE" | "COD";
   orderId: string;
-  address: { fullName: string; line1: string; city: string; pincode: string } | null;
+  address: {
+    fullName: string;
+    line1: string;
+    city: string;
+    pincode: string;
+  } | null;
 }): void {
   dispatch(
     input.buyer.email,

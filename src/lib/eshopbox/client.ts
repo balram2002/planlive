@@ -147,7 +147,8 @@ export async function eshopboxRequest<T>(options: RequestOptions): Promise<T> {
         Authorization: `Bearer ${token}`,
         ...options.headers,
       },
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body:
+        options.body === undefined ? undefined : JSON.stringify(options.body),
       cache: "no-store",
     });
 
@@ -167,7 +168,11 @@ export async function eshopboxRequest<T>(options: RequestOptions): Promise<T> {
   }
 
   if (!res.ok) {
-    throw new EshopboxError(extractMessage(parsed, res.status), res.status, parsed);
+    throw new EshopboxError(
+      extractMessage(parsed, res.status),
+      res.status,
+      parsed,
+    );
   }
   return parsed as T;
 }

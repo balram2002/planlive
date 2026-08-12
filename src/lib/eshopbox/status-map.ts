@@ -181,9 +181,7 @@ export function toShipmentStatus(
   const table = journey === "return" ? RETURN_TO_SHIPMENT : COURIER_TO_SHIPMENT;
   const mapped = table[key];
   if (!mapped) {
-    console.warn(
-      `[eshopbox] unmapped ${journey} status: "${courierStatus}"`,
-    );
+    console.warn(`[eshopbox] unmapped ${journey} status: "${courierStatus}"`);
     return "EXCEPTION";
   }
   return mapped;

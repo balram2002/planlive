@@ -30,7 +30,10 @@ export function LocateButton({
   function locate() {
     haptics.tap();
     if (!("geolocation" in navigator)) {
-      toast({ title: "Location not supported on this device", variant: "error" });
+      toast({
+        title: "Location not supported on this device",
+        variant: "error",
+      });
       return;
     }
     setLocating(true);

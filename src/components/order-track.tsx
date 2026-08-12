@@ -98,7 +98,9 @@ export function OrderTrack({
                   {STAGE_LABELS[stage]}
                 </span>
                 <span className="text-[9px] leading-none text-faint">
-                  {done && at ? at.toLocaleDateString("en-IN", dateFormat) : "—"}
+                  {done && at
+                    ? at.toLocaleDateString("en-IN", dateFormat)
+                    : "—"}
                 </span>
               </li>
             );

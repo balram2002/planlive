@@ -30,10 +30,10 @@ export function ProfileForm({
     gender: string;
   };
 }) {
-  const [state, formAction, pending] = useActionState<ProfileFormState, FormData>(
-    updateProfile,
-    {},
-  );
+  const [state, formAction, pending] = useActionState<
+    ProfileFormState,
+    FormData
+  >(updateProfile, {});
   const [imageUrl, setImageUrl] = useState<string | null>(defaults.imageUrl);
   const { toast } = useToast();
 
@@ -128,7 +128,9 @@ export function ProfileForm({
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? (
-          <span className="inline-flex items-center gap-2"><Spinner /> Saving…</span>
+          <span className="inline-flex items-center gap-2">
+            <Spinner /> Saving…
+          </span>
         ) : (
           "Save profile"
         )}

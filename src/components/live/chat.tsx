@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SignInButton } from "@clerk/nextjs";
 import {
@@ -101,7 +95,10 @@ export function ChatOverlay({
 
   // ---- Incoming data: chat + moderation. ----
   const onData = useCallback(
-    (msg: { payload: Uint8Array; from?: { identity: string; name?: string } }) => {
+    (msg: {
+      payload: Uint8Array;
+      from?: { identity: string; name?: string };
+    }) => {
       try {
         const data = JSON.parse(decoder.decode(msg.payload));
         const fromIdentity = msg.from?.identity;
@@ -253,7 +250,10 @@ export function ChatOverlay({
       {/* Input row — docked at the bottom; action buttons ride on the right. */}
       <div className="flex h-11 items-center gap-2">
         {canSend ? (
-          <form onSubmit={submit} className="flex h-full min-w-0 flex-1 items-center gap-2">
+          <form
+            onSubmit={submit}
+            className="flex h-full min-w-0 flex-1 items-center gap-2"
+          >
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -268,7 +268,12 @@ export function ChatOverlay({
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-white transition-all duration-200 active:scale-90 disabled:opacity-40"
             >
               {/* Paper plane pointing right, visually centered. */}
-              <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-5 w-5" aria-hidden>
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="ml-0.5 h-5 w-5"
+                aria-hidden
+              >
                 <path d="M3.6 3.9a.7.7 0 0 1 .95-.8l16.2 8.06a.7.7 0 0 1 0 1.26L4.55 20.5a.7.7 0 0 1-.95-.8l1.6-6.4a.7.7 0 0 1 .52-.51l6.4-1.3-6.4-1.3a.7.7 0 0 1-.52-.5l-1.6-6.4Z" />
               </svg>
             </button>
@@ -317,7 +322,9 @@ const ChatRow = memo(function ChatRow({
       ) : (
         <>
           <p className="min-w-0 text-[13px] leading-snug text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-            <span className="mr-1.5 font-semibold text-white/60">{msg.name}</span>
+            <span className="mr-1.5 font-semibold text-white/60">
+              {msg.name}
+            </span>
             {msg.text}
           </p>
           {canModerate && !isOwn ? (

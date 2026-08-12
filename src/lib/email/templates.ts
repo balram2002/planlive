@@ -149,7 +149,12 @@ export type OrderEmailInput = {
   totalInPaise: number;
   paymentMethod: "ONLINE" | "COD";
   orderId: string;
-  address?: { fullName: string; line1: string; city: string; pincode: string } | null;
+  address?: {
+    fullName: string;
+    line1: string;
+    city: string;
+    pincode: string;
+  } | null;
 };
 
 /** Order receipt — the COD and prepaid variants differ in tone and totals. */
@@ -164,7 +169,10 @@ export function orderPlacedEmail(input: OrderEmailInput): EmailContent {
     },
   ];
   if (input.deliveryFeeInPaise > 0) {
-    rows.push({ label: "Delivery charge", value: formatPrice(input.deliveryFeeInPaise) });
+    rows.push({
+      label: "Delivery charge",
+      value: formatPrice(input.deliveryFeeInPaise),
+    });
   }
   rows.push({
     label: cod ? "Pay on delivery" : "Paid online",
@@ -417,7 +425,9 @@ export function profileUpdatedEmail(input: {
       ? rowsTable(
           input.changed.map((field) => ({ label: "Updated", value: field })),
         )
-      : rowsTable([{ label: "Username", value: `@${input.username}`, strong: true }]);
+      : rowsTable([
+          { label: "Username", value: `@${input.username}`, strong: true },
+        ]);
 
   return {
     subject: "Your liveWAB profile was updated",
@@ -479,7 +489,9 @@ export function accountStatusEmail(input: {
         : "Access to your account is paused.",
       emoji: input.active ? "🔓" : "🔒",
       eyebrow: "Account status",
-      heading: input.active ? "Your account is active again" : "Your account is suspended",
+      heading: input.active
+        ? "Your account is active again"
+        : "Your account is suspended",
       accent,
       body: input.active
         ? `<p style="margin:0;">Hi ${esc(input.name)}, your ${BRAND} account has been reactivated. Everything is back to normal — welcome back.</p>

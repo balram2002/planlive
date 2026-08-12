@@ -212,7 +212,9 @@ export function AttributesEditor({
                   <div className="flex items-center gap-2">
                     <input
                       type={field.kind === "number" ? "number" : "text"}
-                      inputMode={field.kind === "number" ? "decimal" : undefined}
+                      inputMode={
+                        field.kind === "number" ? "decimal" : undefined
+                      }
                       value={(values[field.key] ?? [])[0] ?? ""}
                       onChange={(e) => setFreeValue(field, e.target.value)}
                       placeholder={field.placeholder}
@@ -234,9 +236,7 @@ export function AttributesEditor({
 
       {/* Escape hatch */}
       <div className="rounded-2xl border border-dashed border-border p-3">
-        <p className="mb-2 text-sm font-medium text-muted">
-          Anything else?
-        </p>
+        <p className="mb-2 text-sm font-medium text-muted">Anything else?</p>
 
         {custom.length > 0 ? (
           <ul className="mb-2.5 flex flex-wrap gap-1.5">
@@ -344,7 +344,8 @@ function seedValues(
     const raw = field.unit
       ? match.value.replace(new RegExp(`\\s*${field.unit}$`), "")
       : match.value;
-    out[field.key] = field.kind === "chips" ? raw.split(",").map((v) => v.trim()) : [raw];
+    out[field.key] =
+      field.kind === "chips" ? raw.split(",").map((v) => v.trim()) : [raw];
   }
   return out;
 }

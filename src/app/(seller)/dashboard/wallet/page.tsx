@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { AreaTrend, HBars, StatusStack } from "@/components/charts/charts";
 import { formatPrice } from "@/lib/format";
 import { COD_DELIVERY_FEE_PAISE } from "@/lib/pricing";
+import { APP_TIMEZONE } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +140,7 @@ export default async function SellerWalletPage() {
     label: new Date(key).toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
+      timeZone: APP_TIMEZONE,
     }),
     value: value / 100,
   }));
@@ -235,7 +237,9 @@ export default async function SellerWalletPage() {
       <Card className="p-4 sm:p-5">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold">Earnings, last {DAYS} days</h2>
+            <h2 className="text-sm font-semibold">
+              Earnings, last {DAYS} days
+            </h2>
             <p className="mt-0.5 text-xs text-muted">
               Net of delivery charges, by order date.
             </p>
@@ -354,11 +358,7 @@ function Balance({
   emphasis?: boolean;
 }) {
   return (
-    <Card
-      className={
-        emphasis ? "border-primary/40 bg-primary/5 p-4" : "p-4"
-      }
-    >
+    <Card className={emphasis ? "border-primary/40 bg-primary/5 p-4" : "p-4"}>
       <p className="truncate text-xs uppercase tracking-wide text-faint">
         {label}
       </p>

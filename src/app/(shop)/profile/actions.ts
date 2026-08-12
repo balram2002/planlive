@@ -45,10 +45,15 @@ export async function updateProfile(
   });
   if (taken) return { error: "That username is already taken." };
 
-  const name = String(formData.get("name") ?? "").trim().slice(0, 60) || null;
+  const name =
+    String(formData.get("name") ?? "")
+      .trim()
+      .slice(0, 60) || null;
 
   const genderRaw = String(formData.get("gender") ?? "");
-  const gender = ["male", "female", "other", "prefer_not_to_say"].includes(genderRaw)
+  const gender = ["male", "female", "other", "prefer_not_to_say"].includes(
+    genderRaw,
+  )
     ? genderRaw
     : null;
 
@@ -66,7 +71,9 @@ export async function updateProfile(
   const imageUrl = sanitizeImageUrl(formData.get("imageUrl"));
 
   // Optional contact number for delivery coordination. Empty clears it.
-  const phoneRaw = String(formData.get("phone") ?? "").trim().slice(0, 15);
+  const phoneRaw = String(formData.get("phone") ?? "")
+    .trim()
+    .slice(0, 15);
   if (phoneRaw && !/^[0-9+\-\s]{8,15}$/.test(phoneRaw)) {
     return { error: "Enter a valid phone number." };
   }
@@ -79,7 +86,8 @@ export async function updateProfile(
   if (name !== user.name) changed.push("Name");
   if (phone !== user.phone) changed.push("Phone number");
   if (gender !== user.gender) changed.push("Gender");
-  if (birthday?.getTime() !== user.birthday?.getTime()) changed.push("Birthday");
+  if (birthday?.getTime() !== user.birthday?.getTime())
+    changed.push("Birthday");
   if (imageUrl !== user.imageUrl) changed.push("Profile picture");
 
   await prisma.user.update({

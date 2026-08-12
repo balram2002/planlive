@@ -32,7 +32,9 @@ function loadScript(): Promise<void> {
     const existing = document.querySelector(`script[src="${SCRIPT_SRC}"]`);
     if (existing) {
       existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("load failed")));
+      existing.addEventListener("error", () =>
+        reject(new Error("load failed")),
+      );
       return;
     }
     const script = document.createElement("script");
